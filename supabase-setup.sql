@@ -30,3 +30,33 @@ create policy "pos anon read"   on public.runway_pos for select to anon using (t
 create policy "pos anon insert" on public.runway_pos for insert to anon with check (true);
 create policy "pos anon update" on public.runway_pos for update to anon using (true) with check (true);
 alter publication supabase_realtime add table public.runway_pos;
+
+-- Public summary the friends page reads: one row per team, written by the team app every ~30 s.
+create table if not exists public.runway_public (
+  team text primary key,
+  leg integer, leg_name text, runner text,
+  lat double precision, lng double precision, src text,
+  km_done double precision, km_total double precision,
+  eta_finish timestamptz, race_start timestamptz,
+  started boolean default false, finished boolean default false,
+  at timestamptz not null default now()
+);
+alter table public.runway_public enable row level security;
+create policy "public anon read"   on public.runway_public for select to anon using (true);
+create policy "public anon insert" on public.runway_public for insert to anon with check (true);
+create policy "public anon update" on public.runway_public for update to anon using (true) with check (true);
+alter publication supabase_realtime add table public.runway_public;
+
+-- Cheers from the friends page: insert-only from the browser, readable by everyone.
+create table if not exists public.runway_cheers (
+  id bigint generated always as identity primary key,
+  team text not null,
+  emoji text not null,
+  name text,
+  at timestamptz not null default now()
+);
+create index if not exists runway_cheers_team_at on public.runway_cheers (team, at desc);
+alter table public.runway_cheers enable row level security;
+create policy "cheers anon read"   on public.runway_cheers for select to anon using (true);
+create policy "cheers anon insert" on public.runway_cheers for insert to anon with check (char_length(emoji) <= 8 and (name is null or char_length(name) <= 24));
+alter publication supabase_realtime add table public.runway_cheers;

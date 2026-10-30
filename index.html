@@ -86,6 +86,12 @@ h2{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.4px
 .btn:disabled{opacity:.45;cursor:default}
 .navgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .navgrid .btn{font-size:16px;padding:12px 6px}
+.rolebtn{justify-content:flex-start;text-align:left;padding:14px 16px;text-transform:none;letter-spacing:0}
+.rolebtn b{display:block;font-family:var(--display);font-size:22px;text-transform:uppercase;letter-spacing:.6px}
+.rolebtn small{display:block;font-family:var(--body);font-weight:400;font-size:14px;color:var(--muted);margin-top:2px}
+.cheer{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cheer .em{font-size:22px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 10px;white-space:nowrap}
+.cheer .em b{font-family:var(--display);font-size:16px;margin-left:4px;color:var(--fg)}
 
 .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
 .card.accent{border-left:4px solid var(--accent)}
@@ -853,6 +859,15 @@ svg.leaflet-image-layer.leaflet-interactive path {
       </div>
     </section>
     <section id="v-setup" hidden></section>
+    <section id="v-role" hidden>
+      <div class="stack" style="padding-top:8px">
+        <div><div class="eyebrow">First thing</div><h1>Who's carrying this phone?</h1><p class="muted" style="margin:6px 0 0">Sets what the app opens on. Change it any time in Setup.</p></div>
+        <button class="btn rolebtn" data-role="suv"><span><b>SUV driver</b><small>Shuttling runners exchange to exchange. Opens on the drive to the next exchange.</small></span></button>
+        <button class="btn rolebtn" data-role="rv"><span><b>RV driver</b><small>Jumping ahead with the resting runners. Opens on the RV planner.</small></span></button>
+        <button class="btn rolebtn" data-role="bike"><span><b>Bike support</b><small>Riding behind the runner. Opens on the map following you, and reports the runner's position.</small></span></button>
+        <button class="btn rolebtn" data-role="crew"><span><b>Crew / everything</b><small>Full app, opens on the current leg.</small></span></button>
+      </div>
+    </section>
   </main>
   <nav class="tabs" role="tablist">
     <button role="tab" data-view="leg" aria-selected="true">Leg</button>
@@ -1160,14 +1175,19 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 
 // ---------- state ----------
 const KEY = "runway.v1";
+// Team connection baked in so every phone joins the same team on first open. The anon key is public by design;
+// the database policies decide what it can do.
+const TEAM = { url:"https://sajvndlspknvaquqnakb.supabase.co", key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhanZuZGxzcGtudmFxdXFuYWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzAyNDQsImV4cCI6MjEwODk0NjI0NH0.jZWUIEY7-EKES_8XJi0xxEpT9q_PsqksU4Fb_xouOj8", team:"runway2026" };
 const defaults = () => {
   const d = new Date(); d.setHours(21,0,0,0);
   return { raceStart: toLocalISO(d), startSet:false, actual:{}, manualNow:null, viewLeg:null, mode:"run", zoom:1, rvAt:null, rvTo:null,
-           runners:[], assign:{}, stamps:{}, sync:{url:"",key:"",team:""}, device:Math.random().toString(36).slice(2,8),
-           me:{kind:"suv",runnerId:"",label:""}, sharePos:false, wake:true };
+           runners:[], assign:{}, stamps:{}, sync:{url:TEAM.url,key:TEAM.key,team:TEAM.team}, device:Math.random().toString(36).slice(2,8),
+           me:{kind:"",runnerId:"",label:""}, sharePos:false, wake:true, roleSet:false };
 };
 let S = defaults();
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(defaults(), JSON.parse(raw)); } catch(e){}
+if (!S.sync || !S.sync.url) S.sync = {url:TEAM.url,key:TEAM.key,team:TEAM.team};
+if (!S.me) S.me = {kind:"",runnerId:"",label:""};
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 // Shared fields carry a timestamp per key so two phones can merge (newest wins per key, not per file).
 function stamp(key){ S.stamps[key]=new Date().toISOString(); }
@@ -1257,14 +1277,23 @@ function navButtons(from,to,mode,line){
 // ---------- views ----------
 let view = "leg";
 function setView(v){ view=v; document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected", String(b.dataset.view===v)));
-  ["leg","legs","map","rv","setup"].forEach(id=>{ $("#v-"+id).hidden = id!==v; });
+  ["leg","legs","map","rv","setup","role"].forEach(id=>{ $("#v-"+id).hidden = id!==v; });
   if (location.hash !== "#"+v) { try{ history.replaceState(null,"","#"+v);}catch(e){} }
   render(); if(v==="map" && typeof lmap!=="undefined" && lmap){ setTimeout(()=>{ lmap.invalidateSize(); drawMap(); },50); }
   if(v==="rv" && typeof rvmap!=="undefined" && rvmap){ setTimeout(()=>{ rvmap.invalidateSize(); renderRv(); },50); } }
 document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
-window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(["leg","legs","map","rv","setup"].includes(h)) setView(h); });
+window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(["leg","legs","map","rv","setup","role"].includes(h)) setView(h); });
 
-function render(){ if(view==="leg") renderLeg(); else if(view==="legs") renderLegs(); else if(view==="map") drawMap(); else if(view==="rv") renderRv(); else renderSetup(); }
+function render(){ if(view==="leg") renderLeg(); else if(view==="legs") renderLegs(); else if(view==="map") drawMap(); else if(view==="rv") renderRv(); else if(view==="role") {} else renderSetup(); }
+function applyRole(kind){ S.me.kind=kind; S.roleSet=true;
+  if(kind==="suv"){ S.mode="drive"; S.sharePos=true; }
+  if(kind==="rv"){ S.mode="drive"; S.sharePos=true; }
+  if(kind==="bike"){ S.mode="run"; S.sharePos=true; }
+  if(kind==="crew"){ S.mode="run"; }
+  save(); startPosShare(); }
+function homeView(){ const k=S.me.kind; return k==="rv"?"rv": k==="bike"?"map": "leg"; }
+document.querySelectorAll(".rolebtn").forEach(b=>b.addEventListener("click",()=>{ applyRole(b.dataset.role); document.querySelector("nav.tabs").hidden=false;
+  if(b.dataset.role==="bike"){ following=true; } setView(homeView()); }));
 
 function viewIndex(){ return (S.viewLeg ? S.viewLeg-1 : currentIndex()); }
 
@@ -1314,6 +1343,7 @@ function renderLeg(){
   ${runnerRow(i)}
   ${darkNote(i)}
   ${liveCard(i)}
+  ${cheerCard()}
   ${startControls(i)}
   <div class="stats">
     <div class="stat"><div class="k">Distance</div><div class="v">${km1(L.km)}<small> km</small></div></div>
@@ -1566,7 +1596,8 @@ document.querySelectorAll("#v-map .seg button").forEach(b=>b.addEventListener("c
 $("#scopeLeg").addEventListener("click",()=>{ mapScope="leg"; drawMap(); });
 $("#scopeAll").addEventListener("click",()=>{ mapScope="all"; drawMap(); });
 $("#mapPrev").addEventListener("click",()=>{ const i=viewIndex(); if(i>0){ S.viewLeg=LEGS[i-1].n; save(); drawMap(); } });
-if (HAS_L){ $("#followMe").hidden=false; $("#followMe").addEventListener("click",()=>{ following=!following; $("#followMe").setAttribute("aria-pressed",String(following)); $("#followMe").textContent=following?"Following":"Follow me"; if(following){ startPosShare(); if(lastPosFix) onOwnFix(lastPosFix); } else if(!S.sharePos) stopPosShare(); }); }
+if (HAS_L){ $("#followMe").hidden=false; if(S.me.kind==="bike"){ following=true; $("#followMe").setAttribute("aria-pressed","true"); $("#followMe").textContent="Following"; }
+  $("#followMe").addEventListener("click",()=>{ following=!following; $("#followMe").setAttribute("aria-pressed",String(following)); $("#followMe").textContent=following?"Following":"Follow me"; if(following){ startPosShare(); if(lastPosFix) onOwnFix(lastPosFix); } else if(!S.sharePos) stopPosShare(); }); }
 $("#mapNext").addEventListener("click",()=>{ const i=viewIndex(); if(i<N-1){ S.viewLeg=LEGS[i+1].n; save(); drawMap(); } });
 window.addEventListener("resize",()=>{ if(view==="map") drawMap(); });
 
@@ -1643,14 +1674,26 @@ let POS={}, posWatch=null, lastPosPush=0, lastPosFix=null, following=false, myDo
 function onOwnFix(fix){ if(!HAS_L||!lmap) return; const ll=[fix.coords.latitude,fix.coords.longitude];
   if(!myDot){ myDot=L.circleMarker(ll,{radius:8,color:"#fff",weight:3,fillColor:"#ff9a3c",fillOpacity:1}).addTo(lmap); } else myDot.setLatLng(ll);
   if(following && view==="map") lmap.setView(ll, Math.max(lmap.getZoom(),16), {animate:true}); }
-function meLabel(){ if(S.me.kind==="runner"){ const r=S.runners.find(r=>r.id===S.me.runnerId); return r?r.name:"Runner"; } return S.me.kind==="rv"?"RV":S.me.kind==="bike"?"Bike":"SUV"; }
+function meLabel(){ if(S.me.kind==="runner"){ const r=S.runners.find(r=>r.id===S.me.runnerId); return r?r.name:"Runner"; } return S.me.kind==="rv"?"RV":S.me.kind==="bike"?"Bike":S.me.kind==="crew"?"Crew":"SUV"; }
 function startPosShare(){ stopPosShare(); if(!(S.sharePos||following)||!HAS_L||!("geolocation" in navigator)) return;
   posWatch=navigator.geolocation.watchPosition(fix=>{ lastPosFix=fix; onOwnFix(fix); if(!S.sharePos) return; const t=Date.now(); const moved=!POS[S.device]||hav([fix.coords.latitude,fix.coords.longitude],[POS[S.device].lat,POS[S.device].lng])>0.08;
       if(t-lastPosPush>30000 || (moved && t-lastPosPush>10000)){ lastPosPush=t; pushPos(fix); } },
     err=>{ const el=$("#posState"); if(el) el.textContent="Location unavailable: "+err.message; }, {enableHighAccuracy:true,maximumAge:10000,timeout:20000}); }
 function stopPosShare(){ if(posWatch!=null){ navigator.geolocation.clearWatch(posWatch); posWatch=null; } }
+let lastPublic=0;
+async function pushPublic(){ if(!sb) return; if(Date.now()-lastPublic<20000) return; lastPublic=Date.now();
+  try{ const i=currentIndex(); const L_=LEGS[i]; const lv=liveRunnerFor(i);
+    // position: live runner/bike fix if we have one, else the freshest team device, else the leg start
+    let pos=null, src="";
+    if(lv){ pos=[lv.r.lat,lv.r.lng]; src="runner"; }
+    else { const rows=liveRows(); if(rows.length){ pos=[rows[0].lat,rows[0].lng]; src=rows[0].kind; } }
+    const kmDone = kmBefore(i) + (lv? lv.a.alongKm : 0);
+    const row={team:S.sync.team, leg:L_.n, leg_name:L_.name, runner:runnerName(L_.n)||"", lat:pos?pos[0]:null, lng:pos?pos[1]:null, src,
+      km_done:+kmDone.toFixed(1), km_total:+totalKm.toFixed(1), eta_finish:projEnd(N-1).toISOString(), race_start:new Date(S.raceStart).toISOString(), started:!!S.actual[1]||Date.now()>new Date(S.raceStart), finished:!!S.actual[LEGS[N-1].n]&&Date.now()>projEnd(N-1), at:new Date().toISOString()};
+    await sb.from("runway_public").upsert(row); }catch(e){} }
+setInterval(()=>{ if(sb&&!document.hidden) pushPublic(); },30000);
 async function pushPos(fix){ const row={device:S.device,team:S.sync.team,label:meLabel(),kind:S.me.kind,runner_id:S.me.runnerId||null,lat:+fix.coords.latitude.toFixed(6),lng:+fix.coords.longitude.toFixed(6),acc:Math.round(fix.coords.accuracy||0),speed:fix.coords.speed==null?null:+fix.coords.speed.toFixed(2),at:new Date().toISOString()};
-  POS[S.device]=row; refreshLive(); if(!sb) return; try{ await sb.from("runway_pos").upsert(row); const el=$("#posState"); if(el) el.textContent=`Sharing as ${meLabel()}, last sent ${hm(new Date())}.`; }catch(e){} }
+  POS[S.device]=row; refreshLive(); if(!sb) return; try{ await sb.from("runway_pos").upsert(row); pushPublic(); const el=$("#posState"); if(el) el.textContent=`Sharing as ${meLabel()}, last sent ${hm(new Date())}.`; }catch(e){} }
 async function pullPos(){ if(!sb) return; try{ const {data}=await sb.from("runway_pos").select("*").eq("team",S.sync.team); if(data){ data.forEach(r=>{ if(r.device!==S.device) POS[r.device]=r; }); refreshLive(); } }catch(e){} }
 const posAge = r => Math.round((Date.now()-new Date(r.at))/1000);
 const ageText = sec => sec<60?`${sec}s ago`:sec<3600?`${Math.round(sec/60)} min ago`:`${(sec/3600).toFixed(1)} h ago`;
@@ -1676,6 +1719,18 @@ function drawLiveDots(map, layerRef){ if(!map) return null; if(layerRef) layerRe
 function refreshLive(){ if(view==="leg") renderLeg(); if(HAS_L){ if(view==="map"&&lmap) liveLayer=drawLiveDots(lmap,liveLayer); if(view==="rv"&&rvmap) rvLiveLayer=drawLiveDots(rvmap,rvLiveLayer); } }
 setInterval(()=>{ if(sb&&!document.hidden) pullPos(); },30000);
 window.__runwayPos = r => { POS[r.device]=r; refreshLive(); }; // test hook
+
+// ---------- cheers from the friends page ----------
+let CHEERS={counts:{},recent:[]};
+async function pullCheers(){ if(!sb) return; try{ const since=new Date(Date.now()-48*3600e3).toISOString();
+  const {data}=await sb.from("runway_cheers").select("emoji,name,at").eq("team",S.sync.team).gte("at",since).order("at",{ascending:false}).limit(400);
+  if(data){ const counts={}; data.forEach(r=>{ counts[r.emoji]=(counts[r.emoji]||0)+1; }); CHEERS={counts,recent:data.slice(0,6)}; if(view==="leg") renderLeg(); } }catch(e){} }
+function cheerCard(){ const n=Object.values(CHEERS.counts).reduce((a,b)=>a+b,0); if(!n) return "";
+  const order=["🔥","💪","❤️","🏃"]; const ems=order.filter(e=>CHEERS.counts[e]).concat(Object.keys(CHEERS.counts).filter(e=>!order.includes(e)));
+  const latest=CHEERS.recent[0];
+  return `<div class="card"><div class="row" style="justify-content:space-between;align-items:baseline"><span class="eyebrow">Cheers from home · ${n}</span>${latest?`<span class="muted" style="font-size:13px">latest ${latest.emoji}${latest.name?" "+esc(latest.name):""} ${ageText(posAge({at:latest.at}))}</span>`:""}</div>
+    <div class="cheer" style="margin-top:8px">${ems.map(e=>`<span class="em">${e}<b>${CHEERS.counts[e]}</b></span>`).join("")}</div></div>`; }
+setInterval(()=>{ if(sb&&!document.hidden) pullCheers(); },45000);
 
 // ---------- screen wake lock ----------
 let wakeLock=null;
@@ -1709,7 +1764,8 @@ function mergeRemote(r){ if(!r||!r.stamps) return false; let changed=false, mine
 async function loadSb(){ if(window.supabase) return true; return new Promise(res=>{ const sc=document.createElement("script"); sc.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"; sc.onload=()=>res(true); sc.onerror=()=>res(false); document.head.appendChild(sc); }); }
 async function startSync(){ stopSync(); if(!HAS_L||!S.sync.url||!S.sync.key||!S.sync.team) return; setSyncState("connecting");
   if(!(await loadSb())){ setSyncState("offline"); setTimeout(startSync,30000); return; }
-  try{ sb=window.supabase.createClient(S.sync.url,S.sync.key); await pullOnce(); await pullPos(); startPosShare();
+  try{ sb=window.supabase.createClient(S.sync.url,S.sync.key); await pullOnce(); await pullPos(); pullCheers(); startPosShare();
+    sb.channel("runway-cheers-"+S.sync.team).on("postgres_changes",{event:"INSERT",schema:"public",table:"runway_cheers",filter:"team=eq."+S.sync.team},payload=>{ const r=payload.new; if(!r) return; CHEERS.counts[r.emoji]=(CHEERS.counts[r.emoji]||0)+1; CHEERS.recent.unshift(r); CHEERS.recent=CHEERS.recent.slice(0,6); if(view==="leg") renderLeg(); }).subscribe();
     sb.channel("runway-pos-"+S.sync.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_pos",filter:"team=eq."+S.sync.team},payload=>{ const r=payload.new; if(r&&r.device!==S.device){ POS[r.device]=r; refreshLive(); } }).subscribe();
     syncChan=sb.channel("runway-"+S.sync.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_state",filter:"team=eq."+S.sync.team},payload=>{ if(payload.new&&payload.new.data&&payload.new.data.device!==S.device){ mergeRemote(payload.new.data); setSyncState("ok"); } }).subscribe();
     schedulePush(); }catch(e){ setSyncState("error",String(e.message||e)); }
@@ -1738,7 +1794,7 @@ function renderSetup(){
     <div class="row" style="margin-top:8px;justify-content:space-between"><button class="btn" id="rosterSave" style="padding:9px 14px;font-size:15px">Save roster</button><span class="muted" style="font-size:13px">Then tag runners on each leg, here or on the Leg tab.</span></div>
     ${S.runners.length?`<div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:6px">By runner</div><div class="kv">${S.runners.map(r=>{ const legs=LEGS.filter(l=>S.assign[l.n]===r.id); return `<div>${esc(r.name)}</div><div class="v">${legs.length?legs.map(l=>l.n).join(", ")+" · "+km1(legs.reduce((a,l)=>a+l.km,0))+" km":"<span class=muted>no legs yet</span>"}</div>`; }).join("")}</div>
     <details style="margin-top:10px"><summary class="eyebrow" style="cursor:pointer">Assign all legs</summary><div class="kv" style="margin-top:8px;grid-template-columns:auto 1fr">${LEGS.map(l=>`<div style="font-family:var(--display);font-weight:700;font-size:18px;color:var(--muted);align-self:center">${l.n}</div><select data-assign="${l.n}"><option value="">Unassigned</option>${S.runners.map(r=>`<option value="${r.id}" ${S.assign[l.n]===r.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select>`).join("")}</div></details></div>`:""}</div>
-  <div class="card"><h2>Share with the team</h2>${HAS_L?`<p style="margin:0 0 10px;font-size:15px">Leg starts, runner tags and the race clock sync between phones through a Supabase project (free). Paste the project URL and anon key, pick a team code, save, then send the share link to the other phone.</p>
+  <div class="card"><h2>Share with the team</h2>${HAS_L?`<p style="margin:0 0 10px;font-size:15px">The team connection is built in; every phone that opens this app is on the same team. Only change these if you set up a different project.</p>
     <label class="f" for="syncUrl">Supabase project URL</label><input type="url" id="syncUrl" placeholder="https://xxxx.supabase.co" value="${esc(S.sync.url)}" style="width:100%;padding:10px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;font-size:15px">
     <label class="f" for="syncKey" style="margin-top:8px">Anon key</label><input type="text" id="syncKey" placeholder="eyJ…" value="${esc(S.sync.key)}" style="width:100%;padding:10px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;font-size:13px">
     <label class="f" for="syncTeam" style="margin-top:8px">Team code</label><input type="text" id="syncTeam" placeholder="runway-2026" value="${esc(S.sync.team)}" style="width:100%;padding:10px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;font-size:15px">
@@ -1755,7 +1811,7 @@ function renderSetup(){
     <div>Exchange pins placed from description (approx)</div><div class="v">${approxCount}</div>
     <div>Start times interpolated</div><div class="v">${interpCount} (legs 2 to 10)</div>
   </div><p class="muted" style="font-size:13px;margin:10px 0 0">Source: RunToMtl participant booklet. Per-leg sheet distances used where the summary table disagreed (legs 6 and 7). Four legs are due for new routes; this build uses the booklet versions.</p></div>
-  <div class="card"><h2>This phone</h2><label class="f" for="meKind">Who's carrying it</label><select id="meKind"><option value="suv" ${S.me.kind==="suv"?"selected":""}>SUV (runner shuttle)</option><option value="rv" ${S.me.kind==="rv"?"selected":""}>RV</option><option value="bike" ${S.me.kind==="bike"?"selected":""}>Bike support (riding behind the runner)</option><option value="runner" ${S.me.kind==="runner"?"selected":""}>A runner</option></select>
+  <div class="card"><h2>This phone</h2><label class="f" for="meKind">Who's carrying it</label><select id="meKind"><option value="suv" ${S.me.kind==="suv"?"selected":""}>SUV driver (runner shuttle)</option><option value="rv" ${S.me.kind==="rv"?"selected":""}>RV driver</option><option value="bike" ${S.me.kind==="bike"?"selected":""}>Bike support (riding behind the runner)</option><option value="crew" ${S.me.kind==="crew"?"selected":""}>Crew / everything</option><option value="runner" ${S.me.kind==="runner"?"selected":""}>A runner</option></select>
     ${S.me.kind==="runner"?`<label class="f" for="meRunner" style="margin-top:8px">Which runner</label><select id="meRunner"><option value="">Pick a name</option>${S.runners.map(r=>`<option value="${r.id}" ${S.me.runnerId===r.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select>`:""}
     ${HAS_L?`<div class="row" style="margin-top:12px;justify-content:space-between"><label for="sharePos" style="font-size:15px">Share this phone's position with the team</label><input type="checkbox" id="sharePos" ${S.sharePos?"checked":""} style="width:22px;height:22px"></div>
     <div class="muted" id="posState" style="font-size:13px;margin-top:6px">${S.sharePos?(S.sync.url?"Sharing when the app is open and on screen.":"Needs the team connection below first."):"Off. When on, the other phones see this one as a dot on the Map and RV tabs, and a runner's phone gives a live ETA to the exchange."}</div>
@@ -1769,7 +1825,7 @@ function renderSetup(){
   $("#raceStart").addEventListener("change",e=>{ if(e.target.value){ setShared("raceStart",()=>{ S.raceStart=e.target.value; S.startSet=true; }); } });
   $("#manualNow").addEventListener("change",e=>{ setShared("manualNow",()=>{ S.manualNow=e.target.value?+e.target.value:null; }); });
   $("#clearAll")?.addEventListener("click",()=>{ Object.keys(S.actual).forEach(n=>setShared("actual."+n,()=>{ delete S.actual[n]; })); renderSetup(); });
-  $("#meKind").addEventListener("change",e=>{ S.me.kind=e.target.value; save(); renderSetup(); if(S.sharePos) startPosShare(); });
+  $("#meKind").addEventListener("change",e=>{ applyRole(e.target.value); renderSetup(); });
   $("#meRunner")?.addEventListener("change",e=>{ S.me.runnerId=e.target.value; save(); if(S.sharePos) startPosShare(); });
   $("#sharePos")?.addEventListener("change",e=>{ S.sharePos=e.target.checked; save(); if(S.sharePos) startPosShare(); else stopPosShare(); renderSetup(); });
   $("#wake")?.addEventListener("change",e=>{ S.wake=e.target.checked; save(); applyWake(); });
@@ -1791,7 +1847,9 @@ function renderLegIfChanged(){ const c=currentIndex(); if(c!==lastCur){ lastCur=
 
 // ---------- boot ----------
 startSync(); applyWake();
-const h0=location.hash.slice(1); setView(["leg","legs","map","rv","setup"].includes(h0)?h0:"leg");
+const h0=location.hash.slice(1);
+if(!S.roleSet && HAS_L){ document.querySelector("nav.tabs").hidden=true; setView("role"); }
+else setView(["leg","legs","map","rv","setup"].includes(h0)?h0:homeView());
 })();
 </script>
 

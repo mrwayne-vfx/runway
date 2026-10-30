@@ -943,6 +943,11 @@ svg.leaflet-image-layer.leaflet-interactive path {
 </div>
 
 <script>
+// If the app script dies before it draws anything, say so on screen instead of leaving a blank page.
+window.addEventListener("error", e => { const m=document.querySelector("main"); if(!m || document.getElementById("bootErr") || document.getElementById("v-leg").innerHTML) return;
+  m.insertAdjacentHTML("afterbegin", `<div class="alert" id="bootErr" style="margin-bottom:12px">The app hit a problem while loading: ${String(e.message).replace(/</g,"&lt;")}<br><button class="pill" style="margin-top:8px" onclick="try{localStorage.removeItem('runway.v1')}catch(x){};location.reload()">Reset this phone's data and reload</button></div>`); });
+</script>
+<script>
 // THE RUNWAY #RUNTOMTL - leg data transcribed from the participant booklet.
 // pt = exchange point at the END of the leg [lat, lng]. Leg N starts at leg N-1's pt.
 // approx = true means the pin was placed from the written exchange description, not a GPS fix from the booklet.
@@ -1251,6 +1256,13 @@ const defaults = () => {
            runners:[], assign:{}, stamps:{}, sync:{url:TEAM.url,key:TEAM.key,team:TEAM.team}, device:Math.random().toString(36).slice(2,8),
            me:{kind:"",runnerId:"",label:""}, sharePos:false, wake:true, roleSet:false, skin:"auto", teamSel:null };
 };
+// Module-level state, declared before any code that runs at load touches it.
+let POS={}, posWatch=null, lastPosPush=0, lastPosFix=null, following=false, myDot=null;
+let liveLayer=null, rvLiveLayer=null;
+let sb=null, syncChan=null, pushTimer=null, syncInfo={state:"off",last:null,err:""};
+let CHEERS={counts:{},recent:[]};
+let rvmap=null, rvLayer=null, rvLive=null, rvLiveKey="";
+let lastPublic=0;
 let S = defaults();
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(defaults(), JSON.parse(raw)); } catch(e){}
 if (!S.sync || !S.sync.url) S.sync = {url:TEAM.url,key:TEAM.key,team:TEAM.team};
@@ -1765,7 +1777,6 @@ window.addEventListener("resize",()=>{ if(view==="map") drawMap(); });
 
 // ---------- RV (jump-ahead vehicle) ----------
 // Exchange k = end of leg k (0 = race start). The RV route from exchange a to exchange b joins the vehicle legs a+1..b.
-let rvmap=null, rvLayer=null, rvLive=null, rvLiveKey="";
 const exLabel = k => k===0 ? "Start · "+RACE.startLabel : `Exchange ${k} · ${LEGS[k-1].ex}`;
 const exPt = k => k===0 ? RACE.startPt : LEGS[k-1].pt;
 const exTime = k => k===0 ? projStart(0) : projEnd(k-1);  // when the runners reach exchange k
@@ -1831,7 +1842,6 @@ function drawRvCanvas(a,b,ch){
 
 // ---------- live positions ----------
 // Each phone that opts in upserts its GPS fix into runway_pos every ~30 s; everyone else draws it.
-let POS={}, posWatch=null, lastPosPush=0, lastPosFix=null, following=false, myDot=null;
 function onOwnFix(fix){ if(!HAS_L||!lmap) return; const ll=[fix.coords.latitude,fix.coords.longitude];
   if(!myDot){ myDot=L.circleMarker(ll,{radius:8,color:"#fff",weight:3,fillColor:"#ff9a3c",fillOpacity:1}).addTo(lmap); } else myDot.setLatLng(ll);
   if(following && view==="map") lmap.setView(ll, Math.max(lmap.getZoom(),16), {animate:true}); }
@@ -1841,7 +1851,6 @@ function startPosShare(){ stopPosShare(); if(!(S.sharePos||following)||!HAS_L||!
       if(t-lastPosPush>30000 || (moved && t-lastPosPush>10000)){ lastPosPush=t; pushPos(fix); } },
     err=>{ const el=$("#posState"); if(el) el.textContent="Location unavailable: "+err.message; }, {enableHighAccuracy:true,maximumAge:10000,timeout:20000}); }
 function stopPosShare(){ if(posWatch!=null){ navigator.geolocation.clearWatch(posWatch); posWatch=null; } }
-let lastPublic=0;
 async function pushPublic(){ if(!sb) return; if(Date.now()-lastPublic<20000) return; lastPublic=Date.now();
   try{ const i=currentIndex(); const L_=LEGS[i]; const lv=liveRunnerFor(i);
     // position: live runner/bike fix if we have one, else the freshest team device, else the leg start
@@ -1875,7 +1884,6 @@ function liveCard(i){ const lv=liveRunnerFor(i); if(!lv) return ""; const {r,a}=
   return `<div class="card accent"><div class="eyebrow">Live · ${esc(r.label)}${r.kind==="bike"?" (riding with the runner)":""} · ${ageText(posAge(r))}</div>
     <div class="stats" style="margin-top:8px"><div class="stat"><div class="k">Done</div><div class="v">${km1(a.alongKm)}<small> km</small></div></div><div class="stat"><div class="k">To go</div><div class="v">${km1(remain)}<small> km</small></div></div><div class="stat"><div class="k">Exchange</div><div class="v">${hm(eta)}</div></div></div>
     <div class="muted" style="font-size:13px;margin-top:6px">Pace ${elapsedMin&&a.alongKm>0.3?`${Math.floor(pace)}:${p2(Math.round((pace%1)*60))}/km on this leg`:"booklet average (leg start not recorded yet)"}. SUV slack to exchange ${L_.n}: <b style="color:${slack<10?'var(--bad)':slack<20?'var(--warn)':'var(--ok)'}">${Math.round(slack)} min</b> after a ${Math.round(de.min)} min drive.</div></div>`; }
-let liveLayer=null, rvLiveLayer=null;
 function drawLiveDots(map, layerRef){ if(!map) return null; if(layerRef) layerRef.clearLayers(); else layerRef=L.layerGroup().addTo(map);
   const accent=cssVar("--accent"), fg=cssVar("--fg"), bg=cssVar("--bg");
   liveRows().forEach(r=>{ const isRunner = r.kind==="runner"||r.kind==="bike"; const stale=posAge(r)>300;
@@ -1911,7 +1919,6 @@ function simStop(){ clearInterval(simTimer); const dev=S.sim&&S.sim.device; S.si
 if(S.sim&&S.sim.on) setTimeout(simRun,3000);
 
 // ---------- cheers from the friends page ----------
-let CHEERS={counts:{},recent:[]};
 async function pullCheers(){ if(!sb) return; try{ const since=new Date(Date.now()-48*3600e3).toISOString();
   const {data}=await sb.from("runway_cheers").select("emoji,name,msg,at").eq("team",S.sync.team).gte("at",since).order("at",{ascending:false}).limit(400);
   if(data){ const counts={}; data.forEach(r=>{ counts[r.emoji]=(counts[r.emoji]||0)+1; }); CHEERS={counts,recent:data.slice(0,30)}; if(view==="leg") renderLeg(); } }catch(e){} }
@@ -1941,7 +1948,6 @@ function gpxButtons(i){ if(!HAS_L) return ""; const L_=LEGS[i]; return `<div cla
 
 // ---------- sync (hosted build): one row per team in Supabase, merged per key by timestamp ----------
 const SHARED_KEYS = () => ["raceStart","manualNow","runners",...Object.keys(S.actual).map(n=>"actual."+n),...Object.keys(S.assign).map(n=>"assign."+n),...Object.keys(S.stamps)];
-let sb=null, syncChan=null, pushTimer=null, syncInfo={state:"off",last:null,err:""};
 function syncStatus(){ if(!S.sync.url) return "Not connected."; return syncInfo.state==="ok"?`Connected as team "${esc(S.sync.team)}"${syncInfo.last?`, last sync ${hm(syncInfo.last)}`:""}.`: syncInfo.state==="offline"?`Offline; changes are kept on this phone and sent when signal returns.`: syncInfo.state==="error"?`Problem: ${esc(syncInfo.err)}`:"Connecting…"; }
 function setSyncState(st,err){ syncInfo.state=st; syncInfo.err=err||""; if(st==="ok") syncInfo.last=new Date(); const el=$("#syncState"); if(el) el.innerHTML=syncStatus(); }
 function sharedSnapshot(){ return {raceStart:S.raceStart,startSet:S.startSet,actual:S.actual,manualNow:S.manualNow,runners:S.runners,assign:S.assign,stamps:S.stamps,device:S.device,at:new Date().toISOString()}; }

@@ -70,3 +70,7 @@ alter table public.runway_public add column if not exists along_km double precis
 alter table public.runway_public add column if not exists next_runner text;
 alter table public.runway_public add column if not exists exchange_eta timestamptz;
 alter table public.runway_public add column if not exists legs jsonb;
+
+-- Rehearsal mode removes its pretend bike when it ends.
+drop policy if exists "pos anon delete" on public.runway_pos;
+create policy "pos anon delete" on public.runway_pos for delete to anon using (true);

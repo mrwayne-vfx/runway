@@ -1889,6 +1889,27 @@ function refreshLive(){ if(view==="leg") renderLeg(); if(HAS_L){ if(view==="map"
 setInterval(()=>{ if(sb&&!document.hidden) pullPos(); },30000);
 window.__runwayPos = r => { POS[r.device]=r; refreshLive(); }; // test hook
 
+// ---------- rehearsal: a pretend bike rides the route so the whole system can be tried before race day ----------
+const RACE_START_REAL = "2026-11-04T21:00";
+const SIM_PACE = 5.5; // min per km, close to the booklet average
+let simTimer=null;
+function pointAlong(line, km){ let acc=0; for(let k=0;k<line.length-1;k++){ const d=hav(line[k],line[k+1]); if(acc+d>=km){ const t=d?(km-acc)/d:0; return [line[k][0]+(line[k+1][0]-line[k][0])*t, line[k][1]+(line[k+1][1]-line[k][1])*t]; } acc+=d; } return line[line.length-1]; }
+function simStart(speed){ const now=toLocalISO(new Date());
+  setShared("raceStart",()=>{ S.raceStart=now; S.startSet=true; }); Object.keys(S.actual).forEach(n=>setShared("actual."+n,()=>{ delete S.actual[n]; }));
+  setShared("actual.1",()=>{ S.actual[1]=now; }); setShared("manualNow",()=>{ S.manualNow=null; });
+  S.sim={on:true,speed:speed||10,device:"sim-"+S.device}; save(); simRun(); renderSetup(); }
+function simRun(){ clearInterval(simTimer); if(!S.sim||!S.sim.on) return; simTick(); simTimer=setInterval(simTick,15000); }
+function simTick(){ if(!S.sim||!S.sim.on) return; const i=currentIndex(), L_=LEGS[i], act=S.actual[L_.n]; if(!act) return;
+  const line=legLine(i,"run"); const elapsed=(Date.now()-new Date(act))/60000*S.sim.speed; const km=Math.min(L_.km, elapsed/SIM_PACE); const p=pointAlong(line, km);
+  const row={device:S.sim.device,team:S.sync.team,label:"Rehearsal bike",kind:"bike",runner_id:S.assign[L_.n]||null,lat:+p[0].toFixed(6),lng:+p[1].toFixed(6),acc:8,speed:3,at:new Date().toISOString()};
+  POS[row.device]=row; refreshLive(); if(sb){ sb.from("runway_pos").upsert(row).then(()=>{ lastPublic=0; pushPublic(); }).catch(()=>{}); }
+  if(km>=L_.km && i<N-1 && !S.actual[LEGS[i+1].n]){ setShared("actual."+LEGS[i+1].n,()=>{ S.actual[LEGS[i+1].n]=toLocalISO(new Date()); }); render(); } }
+function simStop(){ clearInterval(simTimer); const dev=S.sim&&S.sim.device; S.sim={on:false};
+  Object.keys(S.actual).forEach(n=>setShared("actual."+n,()=>{ delete S.actual[n]; })); setShared("raceStart",()=>{ S.raceStart=RACE_START_REAL; S.startSet=true; }); setShared("manualNow",()=>{ S.manualNow=null; });
+  if(dev){ delete POS[dev]; if(sb) sb.from("runway_pos").delete().eq("device",dev).then(()=>{ lastPublic=0; pushPublic(); }).catch(()=>{}); }
+  save(); refreshLive(); renderSetup(); }
+if(S.sim&&S.sim.on) setTimeout(simRun,3000);
+
 // ---------- cheers from the friends page ----------
 let CHEERS={counts:{},recent:[]};
 async function pullCheers(){ if(!sb) return; try{ const since=new Date(Date.now()-48*3600e3).toISOString();
@@ -1974,6 +1995,9 @@ function renderSetup(){
     <div class="muted" id="shareMsg" style="font-size:13px;margin-top:8px"></div>
     <div class="muted" id="syncState" style="font-size:13px;margin-top:6px">${syncStatus()}</div>`
     :`<p style="margin:0;font-size:15px">Sharing between phones runs in the hosted build, not in this viewer.</p>`}</div>
+  ${HAS_L?`<div class="card ${S.sim&&S.sim.on?"accent":""}"><h2>Rehearsal</h2><p style="margin:0 0 10px;font-size:15px">${S.sim&&S.sim.on?`Running: a pretend bike is moving along leg ${LEGS[currentIndex()].n} at ${S.sim.speed}× speed and starting each next leg on arrival. Every phone and the friends page see it as the real thing.`:"Starts the race now with a pretend bike moving along the route, so you can try every screen, the friends page and the cheers from your couch. Run it on one phone only."}</p>
+    ${S.sim&&S.sim.on?`<div class="row"><button class="btn" id="simStop">End rehearsal</button></div><div class="muted" style="font-size:13px;margin-top:8px">Ending it clears the pretend starts and sets the race start back to ${dayhm(new Date(RACE_START_REAL))}.</div>`
+    :`<div class="row"><button class="btn" id="simFast">Start at 10× speed</button><button class="btn ghost" id="simReal">Real time</button></div><div class="muted" style="font-size:13px;margin-top:8px">At 10× a leg takes about eight minutes; real time is a full dress rehearsal.</div>`}</div>`:""}
   <div class="card"><h2>Recorded starts</h2>${Object.keys(S.actual).length?`<div class="kv">${LEGS.filter(l=>S.actual[l.n]).map((l)=>`<div>Leg ${l.n} ${esc(l.name)}</div><div class="v">${dayhm(new Date(S.actual[l.n]))}</div>`).join("")}</div><div style="margin-top:10px"><button class="pill" id="clearAll">Clear all recorded starts</button></div>`:`<span class="muted">None yet. Tap "Runner out" on a leg when the runner leaves the exchange.</span>`}</div>
   <div class="card"><h2>Data</h2><div class="kv">
     <div>Total distance</div><div class="v">${km1(totalKm)} km</div>
@@ -1995,6 +2019,7 @@ function renderSetup(){
   </div>`;
   $("#v-setup").innerHTML=h;
   $("#skinSel").addEventListener("change",e=>{ S.skin=e.target.value; save(); applySkin(); });
+  $("#simFast")?.addEventListener("click",()=>simStart(10)); $("#simReal")?.addEventListener("click",()=>simStart(1)); $("#simStop")?.addEventListener("click",simStop);
   $("#raceStart").addEventListener("change",e=>{ if(e.target.value){ setShared("raceStart",()=>{ S.raceStart=e.target.value; S.startSet=true; }); } });
   $("#manualNow").addEventListener("change",e=>{ setShared("manualNow",()=>{ S.manualNow=e.target.value?+e.target.value:null; }); });
   $("#clearAll")?.addEventListener("click",()=>{ Object.keys(S.actual).forEach(n=>setShared("actual."+n,()=>{ delete S.actual[n]; })); renderSetup(); });

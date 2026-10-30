@@ -3,173 +3,222 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0c0b0e">
+<meta name="theme-color" content="#F4F3EF">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Runway">
-<link rel="manifest" href="data:application/manifest+json,{%22name%22:%20%22The%20Runway%20Tracker%22,%20%22short_name%22:%20%22Runway%22,%20%22start_url%22:%20%22./index.html%22,%20%22display%22:%20%22standalone%22,%20%22background_color%22:%20%22#0c0b0e%22,%20%22theme_color%22:%20%22#0c0b0e%22,%20%22icons%22:%20[]}">
+<link rel="manifest" href="data:application/manifest+json,{%22name%22:%20%22The%20Runway%20Tracker%22,%20%22short_name%22:%20%22Runway%22,%20%22start_url%22:%20%22./index.html%22,%20%22display%22:%20%22standalone%22,%20%22background_color%22:%20%22#F4F3EF%22,%20%22theme_color%22:%20%22#F4F3EF%22,%20%22icons%22:%20[]}">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} img{max-width:100%} [hidden]{display:none!important}</style>
 </head>
 <body>
 <title>The Runway Tracker</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,700;1,700;1,800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@900&family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600&display=swap">
 <style>
-/* Layout: one-screen phone app. Fixed bottom tab bar, scrolling content above, dark-first for a race that runs through two nights. */
-:root{
-  --bg:#0c0b0e; --panel:#17161b; --panel2:#1f1d24; --fg:#f3f0f4; --muted:#a39daa; --line:#2b2832;
-  --accent:#ff6fb8; --accent-ink:#140a10; --ok:#67d28c; --warn:#ffb85c; --bad:#ff7d7d;
-  --display:"Barlow Condensed","Arial Narrow",Impact,sans-serif; --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  color-scheme:dark;
-}
-@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){
-  --bg:#f6f2f6; --panel:#ffffff; --panel2:#f0eaf0; --fg:#171419; --muted:#6a6370; --line:#e2dae3;
-  --accent:#e0348c; --accent-ink:#ffffff; --ok:#1f9a4d; --warn:#b86a00; --bad:#c43a3a; color-scheme:light; } }
-:root[data-theme="light"]{
-  --bg:#f6f2f6; --panel:#ffffff; --panel2:#f0eaf0; --fg:#171419; --muted:#6a6370; --line:#e2dae3;
-  --accent:#e0348c; --accent-ink:#ffffff; --ok:#1f9a4d; --warn:#b86a00; --bad:#c43a3a; color-scheme:light; }
+/* Race Bib. Paper, ink and one orange by day; black, warm white and dash-light amber by night.
+   The skin flips at sunset automatically (Setup can pin it). One body face, one display face for the numbers. */
+:root{ --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif; --body:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif; --r:4px; }
+html[data-skin="day"],html:not([data-skin]){ --bg:#F4F3EF; --fg:#141414; --accent:#FF4D00; --accent-ink:#FFFFFF; --muted:#6E6C66; --line:#CFCDC4; --soft:#E8E6DF; --dim:#D6D4CC;
+  --panel:#F4F3EF; --panel2:#E8E6DF; --ok:#1E7F4F; --warn:#9A5B00; --bad:#C2291C; --glow:rgba(255,77,0,.25); --tilefilter:saturate(.85); color-scheme:light }
+html[data-skin="night"]{ --bg:#000000; --fg:#ECE9E2; --accent:#FFB000; --accent-ink:#000000; --muted:#8C8982; --line:#2A2A2E; --soft:#141416; --dim:#2A2A2E;
+  --panel:#000000; --panel2:#141416; --ok:#6CCB8E; --warn:#FFD166; --bad:#FF6B5B; --glow:rgba(255,176,0,.35); --tilefilter:brightness(.7) contrast(1.05) saturate(.55); color-scheme:dark }
 
 html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.4;-webkit-text-size-adjust:100%;font-optical-sizing:auto;transition:background-color .3s,color .3s}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
 *{box-sizing:border-box}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
-button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-a{color:var(--accent)}
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:var(--fg)}
+@media (prefers-reduced-motion:reduce){ body{transition:none} }
 
 #app{height:100%;display:flex;flex-direction:column}
-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;
-  display:flex;align-items:baseline;justify-content:space-between;gap:12px}
-.brand{font-family:var(--display);font-style:italic;font-weight:800;font-size:26px;letter-spacing:.5px;text-transform:uppercase;line-height:1}
-.brand b{color:var(--accent)}
-.clock{font-family:var(--display);font-weight:700;font-size:22px;font-variant-numeric:tabular-nums;color:var(--muted)}
-main{flex:1;overflow:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 24px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:2px solid var(--fg);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px 8px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-family:var(--display);font-weight:900;font-size:28px;letter-spacing:-.5px;line-height:1}
+.brand b{color:var(--accent);font-weight:900}
+.hright{display:flex;align-items:center;gap:10px}
+.clock{font-weight:300;font-size:24px;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.skin{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 10px;white-space:nowrap}
+main{flex:1;overflow:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 28px}
 main>section[hidden]{display:none}
 
-nav.tabs{display:grid;grid-template-columns:repeat(6,1fr);border-top:1px solid var(--line);background:var(--panel);
+nav.tabs{display:grid;grid-template-columns:repeat(6,1fr);border-top:2px solid var(--fg);background:var(--bg);
   padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px));padding-bottom:env(safe-area-inset-bottom,0px)}
-nav.tabs button{padding:10px 2px 9px;font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);border-top:3px solid transparent}
-nav.tabs button[aria-selected="true"]{color:var(--accent);border-top-color:var(--accent)}
+nav.tabs button{padding:11px 2px 10px;font-weight:500;font-size:14px;color:var(--muted);border-top:3px solid transparent;margin-top:-2px}
+nav.tabs button[aria-selected="true"]{color:var(--fg);border-top-color:var(--accent)}
 
-.eyebrow{font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:1.2px;font-size:13px;color:var(--muted)}
-h1{font-family:var(--display);font-weight:700;font-size:34px;line-height:1.02;margin:2px 0 0;text-wrap:balance}
-h2{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.4px;text-transform:uppercase;margin:0 0 8px}
+/* type */
+.eyebrow{font-size:14px;color:var(--muted)}
+h1{font-weight:300;font-size:34px;line-height:1.05;letter-spacing:-.8px;margin:2px 0 0;text-wrap:balance}
+h1 b{font-weight:600}
+h2{font-weight:600;font-size:18px;letter-spacing:-.2px;margin:0 0 8px}
 .muted{color:var(--muted)}
 .stack{display:flex;flex-direction:column;gap:14px}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.pill{display:inline-block;font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:.8px;font-size:13px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.lnk{color:var(--accent);font-weight:500;text-decoration:underline;text-underline-offset:3px}
+.pill{display:inline-block;font-size:13px;font-weight:500;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);line-height:1.2}
 .pill.now{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .pill.done{color:var(--ok);border-color:var(--ok)}
 .pill.approx{color:var(--warn);border-color:var(--warn)}
 .pill[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 
-/* leg header */
-.leghead{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:start}
-.legnum{font-family:var(--display);font-style:italic;font-weight:800;font-size:72px;line-height:.85;color:var(--accent);font-variant-numeric:tabular-nums}
-.legnum small{display:block;font-style:normal;font-weight:700;font-size:13px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-.stat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0}
-.stat .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-family:var(--display);font-weight:700}
-.stat .v{font-family:var(--display);font-weight:700;font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
-.stat .v small{font-size:14px;color:var(--muted);font-weight:500}
+/* status line */
+.status{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:14px;min-height:22px}
+.status i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.status i.now{background:var(--accent);box-shadow:0 0 0 4px var(--glow)}
+.status i.done{background:var(--ok)}
+.status b{color:var(--fg);font-weight:500}
+.status em{color:var(--accent);font-style:normal;font-weight:500}
 
-.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:14px}
-.seg button{padding:11px;font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);background:var(--panel)}
-.seg button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+/* bib block: the big leg number with the runner beside it */
+.bib{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;padding:10px 0 14px;border-top:3px solid var(--fg);border-bottom:3px solid var(--fg)}
+.bib .n{font-family:var(--display);font-weight:900;font-size:118px;line-height:.82;letter-spacing:-3px;margin-top:6px;font-variant-numeric:tabular-nums}
+.bib .t{font-size:28px;font-weight:300;line-height:1.05;letter-spacing:-.5px;min-width:0;text-wrap:balance}
+.bib .t b{font-weight:600;display:block;overflow-wrap:anywhere}
+.bib .t small{display:block;font-size:14px;color:var(--muted);margin-bottom:6px;font-weight:400;letter-spacing:0;line-height:1.3}
+.bib .t em{display:block;font-style:normal;color:var(--accent);font-size:16px;margin-top:8px;font-weight:500}
+.bib.sm .n{font-size:84px} .bib.sm .t{font-size:22px}
+@media (max-width:360px){ .bib .n{font-size:96px} .bib .t{font-size:24px} }
+
+/* instrument track: all 67 legs as ticks, lit as they are run */
+.inst{margin:4px 0 0;position:relative}
+.inst .scale{height:30px;position:relative}
+.inst .tick{position:absolute;bottom:0;width:1px;height:8px;background:var(--dim)}
+.inst .tick.maj{height:16px;background:var(--muted)}
+.inst .tick.maj span{position:absolute;bottom:18px;left:0;transform:translateX(-50%);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.inst .tick.done{background:var(--accent);opacity:.55} .inst .tick.maj.done{opacity:1}
+.inst .line{height:2px;background:var(--dim);position:relative}
+.inst .line i{position:absolute;left:0;top:0;height:100%;background:var(--accent)}
+.inst .pos{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);box-shadow:0 0 0 5px var(--glow);cursor:pointer}
+.inst .mark{position:absolute;top:50%;width:8px;height:8px;border-radius:50%;border:2px solid var(--fg);background:var(--bg);transform:translate(-50%,-50%)}
+.inst .ends{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:8px}
+.inst .ends b{color:var(--fg);font-weight:500}
+
+/* figures in ruled columns */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--fg);border-bottom:1px solid var(--fg);margin-top:4px}
+.stat{padding:12px 0 10px;min-width:0}
+.stat+.stat{border-left:1px solid var(--fg);padding-left:12px}
+.stat .k{font-size:13px;color:var(--muted);margin-top:4px;order:2}
+.stat .v{font-family:var(--display);font-weight:900;font-size:40px;line-height:.9;letter-spacing:-.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat .v small{font-family:var(--body);font-size:14px;color:var(--muted);font-weight:500;letter-spacing:0;margin-left:2px}
+.stat{display:flex;flex-direction:column}
+.stat.hot .v{color:var(--accent)}
+
+.seg{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--fg);border-radius:var(--r);overflow:hidden;margin-top:14px}
+.seg button{padding:11px;font-weight:500;font-size:16px;color:var(--muted);background:transparent}
+.seg button[aria-selected="true"]{background:var(--fg);color:var(--bg)}
 
 .pn{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:.6px;text-transform:uppercase;text-decoration:none;color:var(--fg);min-width:0}
-.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.btn.ghost{background:transparent}
-.btn:disabled{opacity:.45;cursor:default}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 14px;border-radius:var(--r);border:2px solid var(--fg);background:transparent;font-weight:500;font-size:16px;text-decoration:none;color:var(--fg);min-width:0;line-height:1.2}
+.btn.primary{background:var(--fg);color:var(--bg)}
+.btn.go{justify-content:space-between;padding:16px 18px;font-size:20px;font-weight:600;letter-spacing:-.3px}
+.btn.go small{font-weight:400;font-size:13px;opacity:.7}
+.btn.ghost{border-color:var(--line);color:var(--muted)}
+.btn:disabled{opacity:.4;cursor:default}
 .navgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .navgrid .btn{font-size:16px;padding:12px 6px}
-.av{display:inline-flex;align-items:center;justify-content:center;width:var(--sz);height:var(--sz);border-radius:50%;background:var(--panel2);border:2px solid var(--line);overflow:hidden;flex:none;font-family:var(--display);font-weight:800;font-size:calc(var(--sz)*.42);color:var(--muted)}
+.av{display:inline-flex;align-items:center;justify-content:center;width:var(--sz);height:var(--sz);border-radius:50%;background:var(--bg);border:2px solid var(--fg);overflow:hidden;flex:none;font-weight:600;font-size:calc(var(--sz)*.36);color:var(--fg)}
 .av img{width:100%;height:100%;object-fit:cover;display:block}
-.av.on{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,111,184,.35)}
-.teamgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.tcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;position:relative}
-.tcard.on{border-color:var(--accent)}
+.av.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:0 0 0 4px var(--glow)}
+.av.on img{opacity:1}
+.teamgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.tcard{border:1px solid var(--line);border-radius:var(--r);padding:14px 10px 12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;position:relative;width:100%}
+.tcard.on{border-color:var(--fg);border-width:2px}
 .tcard .nm{font-weight:600;font-size:15px;line-height:1.15}
-.tcard .wd{font-family:var(--display);font-style:italic;font-weight:700;font-size:15px;color:var(--accent);letter-spacing:.3px}
+.tcard .wd{font-size:14px;color:var(--accent);font-weight:500}
 .tcard .st{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-.tcard .tag{position:absolute;top:8px;right:8px;font-family:var(--display);font-weight:800;font-size:11px;letter-spacing:1px;text-transform:uppercase;background:var(--accent);color:var(--accent-ink);padding:2px 7px;border-radius:999px}
+.tcard .tag{position:absolute;top:8px;right:8px;font-size:11px;font-weight:600;background:var(--accent);color:var(--accent-ink);padding:2px 8px;border-radius:999px}
 .runnerline{display:flex;align-items:center;gap:12px}
-.runnerline .big{font-family:var(--display);font-weight:700;font-size:26px;line-height:1.05}
+.runnerline .big{font-weight:600;font-size:22px;line-height:1.1;letter-spacing:-.3px}
 .runnerline .sub{font-size:13px;color:var(--muted)}
-.rolebtn{justify-content:flex-start;text-align:left;padding:14px 16px;text-transform:none;letter-spacing:0}
-.rolebtn b{display:block;font-family:var(--display);font-size:22px;text-transform:uppercase;letter-spacing:.6px}
-.rolebtn small{display:block;font-family:var(--body);font-weight:400;font-size:14px;color:var(--muted);margin-top:2px}
-.cheer{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.cheer .em{font-size:22px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 10px;white-space:nowrap}
-.cheer .em b{font-family:var(--display);font-size:16px;margin-left:4px;color:var(--fg)}
+.rolebtn{justify-content:flex-start;text-align:left;padding:14px 16px}
+.rolebtn b{display:block;font-size:20px;font-weight:600;letter-spacing:-.3px}
+.rolebtn small{display:block;font-weight:400;font-size:14px;color:var(--muted);margin-top:2px}
 
-.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
-.card.accent{border-left:4px solid var(--accent)}
+/* cheers feed */
+.cheer{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cheer .em{font-size:20px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;white-space:nowrap}
+.cheer .em b{font-size:15px;margin-left:5px;color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums}
+.feed{margin:10px 0 0;padding:0;list-style:none}
+.feed li{display:grid;grid-template-columns:30px 1fr auto;gap:8px;align-items:baseline;padding:7px 0;border-top:1px solid var(--line);font-size:15px}
+.feed .e{font-size:20px;line-height:1}
+.feed .w{color:var(--muted);font-size:12px;white-space:nowrap}
+.feed q{quotes:none;display:block;color:var(--fg)}
+.feed .nm{font-weight:600}
+
+.card{border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.card.accent{border-color:var(--fg);border-left:4px solid var(--accent)}
 .point{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:start}
-.point .dot{width:14px;height:14px;border-radius:50%;margin-top:5px;background:var(--fg)}
+.point .dot{width:12px;height:12px;border-radius:50%;margin-top:6px;background:var(--fg)}
 .point .dot.end{background:var(--accent)}
-.point .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.9px;font-family:var(--display);font-weight:700}
+.point .lbl{font-size:13px;color:var(--muted)}
 .point p{margin:0;font-size:17px;line-height:1.35}
 .coords{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);word-break:break-all}
 
 ol.steps{list-style:none;margin:0;padding:0;counter-reset:s}
 ol.steps li{display:grid;grid-template-columns:40px 1fr;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:17px;line-height:1.4}
 ol.steps li:last-child{border-bottom:0}
-ol.steps li::before{counter-increment:s;content:counter(s);font-family:var(--display);font-weight:800;font-style:italic;font-size:26px;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums;padding-top:1px}
+ol.steps li::before{counter-increment:s;content:counter(s);font-family:var(--display);font-weight:900;font-size:28px;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums;padding-top:1px}
 ol.steps li.final{font-weight:600}
 ul.notes{margin:0;padding-left:18px;font-size:16px}
 ul.notes li{margin:4px 0}
 
-.alert{border-left:4px solid var(--warn);background:var(--panel);padding:10px 12px;border-radius:0 6px 6px 0;font-size:15px}
+.alert{border-left:4px solid var(--warn);padding:10px 12px;font-size:15px;background:var(--soft);border-radius:0 var(--r) var(--r) 0}
 .alert.info{border-left-color:var(--accent)}
 
 /* list */
-.legrow{display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);width:100%;text-align:left}
+.legrow{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);width:100%;text-align:left}
 .legrow:last-child{border-bottom:0}
-.legrow .n{font-family:var(--display);font-weight:800;font-style:italic;font-size:30px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1}
-.legrow.now .n,.legrow.now .name{color:var(--accent)}
-.legrow.done .n{color:var(--ok)}
-.legrow .name{font-weight:600;font-size:16px;line-height:1.2}
+.legrow .n{font-family:var(--display);font-weight:900;font-size:36px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1}
+.legrow.now .n{color:var(--accent)} .legrow.now .name{font-weight:600}
+.legrow.done .n{color:var(--fg);opacity:.5}
+.legrow .name{font-weight:500;font-size:16px;line-height:1.2}
 .legrow .sub{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
-.legrow .t{font-family:var(--display);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums;text-align:right;line-height:1.05}
-.legrow .t small{display:block;font-size:12px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase}
-.daysep{padding:16px 0 6px;font-family:var(--display);font-weight:700;text-transform:uppercase;letter-spacing:1.2px;font-size:14px;color:var(--accent);border-bottom:2px solid var(--accent)}
+.legrow .t{font-weight:300;font-size:22px;font-variant-numeric:tabular-nums;text-align:right;line-height:1.05;letter-spacing:-.5px}
+.legrow .t small{display:block;font-size:12px;color:var(--muted);letter-spacing:0;font-weight:400}
+.daysep{padding:18px 0 6px;font-weight:600;font-size:14px;border-bottom:2px solid var(--fg)}
 
 /* map */
-.mapwrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel);touch-action:pan-x pan-y}
+.mapwrap{overflow-x:auto;border:2px solid var(--fg);border-radius:var(--r);background:var(--soft);touch-action:pan-x pan-y}
 canvas#map{display:block}
-#lmap,#rvlmap{height:min(62vh,560px);min-height:340px;width:100%;background:var(--panel2)}
+#lmap,#rvlmap{height:min(62vh,560px);min-height:340px;width:100%;background:var(--soft)}
 #rvlmap{height:min(48vh,440px);min-height:280px}
-#lmap .leaflet-tile-pane,#rvlmap .leaflet-tile-pane{filter:var(--tilefilter)}
-#lmap .leaflet-tile-pane{filter:var(--tilefilter)}
-:root{--tilefilter:brightness(.78) contrast(1.05) saturate(.75)}
-@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){--tilefilter:none} }
-:root[data-theme="light"]{--tilefilter:none}
-.turnpin{background:var(--accent);color:var(--accent-ink);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font:800 italic 12px var(--display);border:2px solid var(--bg)}
-.endpin{border-radius:50%;width:18px;height:18px;border:3px solid var(--bg);box-shadow:0 0 0 2px var(--accent)}
+#lmap .leaflet-tile-pane,#rvlmap .leaflet-tile-pane,#fmap .leaflet-tile-pane{filter:var(--tilefilter)}
+.turnpin{background:var(--fg);color:var(--bg);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font:600 11px var(--body);border:2px solid var(--bg)}
+.endpin{border-radius:50%;width:18px;height:18px;border:3px solid var(--bg);box-shadow:0 0 0 2px var(--fg)}
 .leaflet-container{font-family:var(--body)}
-.livetip{background:var(--panel);color:var(--fg);border:1px solid var(--line);font:600 12px var(--body);padding:2px 6px;border-radius:4px;box-shadow:none}.livetip::before{display:none}
+.livetip{background:var(--bg);color:var(--fg);border:1px solid var(--fg);font:500 12px var(--body);padding:2px 6px;border-radius:var(--r);box-shadow:none}.livetip::before{display:none}
 .leaflet-popup-content{font-size:14px;margin:10px 12px}
-.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel);color:var(--fg)}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--bg);color:var(--fg);border-radius:var(--r)}
+.leaflet-tooltip{font-family:var(--body);font-weight:600;border-radius:var(--r);background:var(--bg);color:var(--fg);border:1px solid var(--fg)}
+.leaflet-tooltip-top::before{border-top-color:var(--fg)}.leaflet-tooltip-right::before{border-right-color:var(--fg)}
+.leaflet-bar a{background:var(--bg);color:var(--fg);border-bottom-color:var(--line)}.leaflet-control-attribution{background:var(--bg);color:var(--muted);font-size:10px}.leaflet-control-attribution a{color:var(--muted)}
 ol.turns{list-style:none;margin:0;padding:0}
 ol.turns li{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);font-size:15px}
 ol.turns li:last-child{border-bottom:0}
-ol.turns .tn{font:800 italic 16px var(--display);color:var(--accent)}
+ol.turns .tn{font-family:var(--display);font-weight:900;font-size:20px;color:var(--accent)}
 ol.turns .td{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;white-space:nowrap}
-.progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden}.progress i{display:block;height:100%;background:var(--accent);width:0}
+.progress{height:4px;background:var(--line);overflow:hidden}.progress i{display:block;height:100%;background:var(--accent);width:0}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
 .legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;background:var(--fg)}
 .legend .l-done::before{background:var(--ok)} .legend .l-now::before{background:var(--accent)} .legend .l-approx::before{background:transparent;border:2px solid var(--warn);width:6px;height:6px}
 
+/* schematic route */
+.schem{position:relative;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:6px}
+.schem svg{width:100%;height:auto;display:block}
+.schem .c1,.schem .c2{position:absolute;font-size:13px;color:var(--muted)}
+.schem .c1{left:4px;top:8px}.schem .c2{right:4px;bottom:6px}
+.schem .hint{position:absolute;left:50%;transform:translateX(-50%);bottom:6px;font-size:12px;color:var(--muted);white-space:nowrap}
+
 /* setup */
-label.f{display:block;font-size:14px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px;font-family:var(--display);font-weight:700}
-input[type=datetime-local],select{width:100%;padding:10px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font:inherit;font-size:16px}
+label.f{display:block;font-size:14px;color:var(--muted);margin-bottom:6px}
+input[type=datetime-local],input[type=text],input[type=url],select,textarea{width:100%;padding:10px 12px;border-radius:var(--r);border:1px solid var(--fg);background:transparent;color:var(--fg);font:inherit;font-size:16px}
 .kv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:15px}
 .kv .v{font-variant-numeric:tabular-nums;text-align:right}
-@media (max-width:360px){ .stats{grid-template-columns:1fr 1fr} .legnum{font-size:60px} }
+@media (max-width:360px){ .stats{grid-template-columns:1fr 1fr} .stat .v{font-size:34px} }
 @media (prefers-reduced-motion:no-preference){ main{scroll-behavior:smooth} }
 </style>
 
@@ -844,7 +893,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <div id="app">
   <header>
     <div class="brand">The Run<b>way</b></div>
-    <div class="clock" id="clock">--:--</div>
+    <div class="hright"><button class="skin" id="skinBtn" title="Day or night look">Auto</button><div class="clock" id="clock">--:--</div></div>
   </header>
   <main>
     <section id="v-leg"></section>
@@ -1200,7 +1249,7 @@ const defaults = () => {
   const d = new Date(); d.setHours(21,0,0,0);
   return { raceStart: toLocalISO(d), startSet:false, actual:{}, manualNow:null, viewLeg:null, mode:"run", zoom:1, rvAt:null, rvTo:null,
            runners:[], assign:{}, stamps:{}, sync:{url:TEAM.url,key:TEAM.key,team:TEAM.team}, device:Math.random().toString(36).slice(2,8),
-           me:{kind:"",runnerId:"",label:""}, sharePos:false, wake:true, roleSet:false };
+           me:{kind:"",runnerId:"",label:""}, sharePos:false, wake:true, roleSet:false, skin:"auto", teamSel:null };
 };
 let S = defaults();
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(defaults(), JSON.parse(raw)); } catch(e){}
@@ -1319,16 +1368,40 @@ function renderTeam(){
   const crew = roster.filter(t=>!t.runner);
   const stats = id => { const legs=LEGS.filter(l=>S.assign[l.n]===id); const done=legs.filter(l=>status(LEGS.indexOf(l))==="done"); return {legs,km:legs.reduce((a,l)=>a+l.km,0),doneKm:done.reduce((a,l)=>a+l.km,0)}; };
   const card = (t,tag) => { const st=stats(t.id); const nextLeg=st.legs.find(l=>status(LEGS.indexOf(l))!=="done");
-    return `<div class="tcard ${t.id===curId?"on":""}">${tag?`<span class="tag">${tag}</span>`:""}${avatar(t.id,64,t.id===curId?"on":"")}<div class="nm">${esc(t.name)}</div>${t.word?`<div class="wd">${esc(t.word)}</div>`:""}
-      <div class="st">${t.runner?`${st.legs.length?`${st.legs.length} leg${st.legs.length>1?"s":""} · ${km1(st.km)} km${st.doneKm?` · ${km1(st.doneKm)} done`:""}`:"no legs yet"}${nextLeg&&t.id!==curId?`<br>next: leg ${nextLeg.n} ${hm(projStart(LEGS.indexOf(nextLeg)))}`:""}`:esc(t.role)}</div></div>`; };
+    return `<button class="tcard ${t.id===curId?"on":""}" data-id="${t.id}">${tag?`<span class="tag">${tag}</span>`:""}${avatar(t.id,64,t.id===curId?"on":"")}<div class="nm">${esc(t.name)}</div>${t.word?`<div class="wd">${esc(t.word)}</div>`:""}
+      <div class="st">${t.runner?`${st.legs.length?`${st.legs.length} leg${st.legs.length>1?"s":""}, ${km1(st.km)} km${st.doneKm?`, ${km1(st.doneKm)} done`:""}`:"no legs yet"}${nextLeg&&t.id!==curId?`<br>next: leg ${nextLeg.n} at ${hm(projStart(LEGS.indexOf(nextLeg)))}`:""}`:esc(t.role)}</div></button>`; };
   const curName=runnerName(LEGS[cur].n);
-  let h=`<div class="stack"><div><div class="eyebrow">13 people · one team</div><h1>The team</h1></div>
-    <div class="card accent"><div class="runnerline">${curId?avatar(curId,56,"on"):`<span class="av" style="--sz:56px"><span>?</span></span>`}<div><div class="eyebrow">Running now · leg ${LEGS[cur].n}</div><div class="big">${curName?esc(curName):"No runner tagged"}</div><div class="sub">${esc(LEGS[cur].name)} · ${km1(LEGS[cur].km)} km · exchange ${hm(projEnd(cur))}${nextId?` · then ${esc(runnerName(LEGS[nextIdx].n))}`:""}</div></div></div></div>
-    <div><h2>Runners</h2><div class="teamgrid">${runners.map(t=>card(t, t.id===curId?"Running":(t.id===nextId?"Up next":""))).join("")}</div></div>
-    <div><h2>Crew</h2><div class="teamgrid">${crew.map(t=>card(t,"")).join("")}</div></div>
-    <p class="muted" style="font-size:13px;margin:0">Tag runners to legs on the Leg tab or in Setup. Faces and words from the team page.</p></div>`;
+  const sel = S.teamSel ? runners.concat(crew).find(t=>t.id===S.teamSel) : null;
+  if (sel){ $("#v-team").innerHTML = runnerDetail(sel); wireRunnerDetail(sel); return; }
+  const lv=liveRunnerFor(cur);
+  let h=`<div class="stack"><div class="status"><i class="now"></i><span>${curName?`<b>${esc(curName)}</b> is running leg ${LEGS[cur].n}`:`Leg ${LEGS[cur].n}, no runner tagged`}${lv?`, <em>live</em> ${ageText(posAge(lv.r))}`:""}${nextId?`. Then ${esc(runnerName(LEGS[nextIdx].n))}.`:""}</span></div>
+    ${schematicSvg({alongKm: lv?lv.a.alongKm:0, hint:"Tap the dot to open the map"})}
+    <div><h2>Runners</h2><p class="muted" style="font-size:13px;margin:0 0 10px">Tap a runner for their legs.</p><div class="teamgrid">${runners.map(t=>card(t, t.id===curId?"Running":(t.id===nextId?"Up next":""))).join("")}</div></div>
+    <div><h2>Crew</h2><div class="teamgrid">${crew.map(t=>card(t,"")).join("")}</div></div></div>`;
   $("#v-team").innerHTML=h;
+  $("#v-team").querySelectorAll(".tcard").forEach(c=>c.addEventListener("click",()=>{ S.teamSel=c.dataset.id; save(); renderTeam(); $("main").scrollTop=0; }));
+  $("#v-team .posdot")?.addEventListener("click",()=>{ S.viewLeg=null; save(); mapScope="leg"; setView("map"); });
 }
+// One runner: the legs they have run, are running and have coming, with those legs lit on the route.
+function runnerLegs(id){ return LEGS.map((l,i)=>({l,i})).filter(x=>S.assign[x.l.n]===id); }
+function legElapsed(i){ const a=S.actual[LEGS[i].n], b=i<N-1?S.actual[LEGS[i+1].n]:null; return (a&&b)? (new Date(b)-new Date(a))/60000 : null; }
+function runnerDetail(t){
+  const legs=runnerLegs(t.id), cur=currentIndex(); const done=legs.filter(x=>status(x.i)==="done"), now=legs.find(x=>status(x.i)==="now"), todo=legs.filter(x=>status(x.i)==="upcoming");
+  const kmDone=done.reduce((a,x)=>a+x.l.km,0)+(now?(liveRunnerFor(now.i)||{a:{alongKm:0}}).a.alongKm:0), kmAll=legs.reduce((a,x)=>a+x.l.km,0);
+  const timed=done.map(x=>({x,m:legElapsed(x.i)})).filter(y=>y.m); const pace = timed.length ? timed.reduce((a,y)=>a+y.m,0)/timed.reduce((a,y)=>a+y.x.l.km,0) : null;
+  const row=x=>{ const st=status(x.i); const a=S.actual[x.l.n]; const el=legElapsed(x.i);
+    return `<button class="legrow ${st}" data-i="${x.i}"><div class="n">${x.l.n}</div><div><div class="name">${esc(x.l.name)}</div><div class="sub">${km1(x.l.km)} km${a?`, left ${hm(new Date(a))}`:`, planned ${hm(projStart(x.i))}`}${el?`, ${dur(el)} (${Math.floor(el/x.l.km)}:${p2(Math.round(((el/x.l.km)%1)*60))}/km)`:""}</div></div><div class="t">${st==="now"?"now":st==="done"?"done":hm(projStart(x.i))}<small>${st==="upcoming"?"start":""}</small></div></button>`; };
+  return `<div class="stack"><button class="lnk" id="teamBack" style="align-self:flex-start">All of the team</button>
+    <div class="bib sm"><div class="n">${legs.length}</div><div class="t"><small>${legs.length===1?"leg":"legs"}, ${km1(kmAll)} km${t.role&&!t.runner?`, ${esc(t.role)}`:""}</small><b>${esc(t.name)}</b>${t.word?`<em>${esc(t.word)}</em>`:""}</div></div>
+    ${legs.length?schematicSvg({highlight:new Set(legs.map(x=>x.i)), alongKm:(liveRunnerFor(cur)||{a:{alongKm:0}}).a.alongKm, hint:`${esc(t.name.split(" ")[0])}'s legs in colour`}):""}
+    <div class="stats"><div class="stat"><div class="v">${km1(kmDone)}<small>km</small></div><div class="k">run so far</div></div><div class="stat"><div class="v">${km1(Math.max(0,kmAll-kmDone))}<small>km</small></div><div class="k">still to run</div></div><div class="stat hot"><div class="v">${pace?`${Math.floor(pace)}:${p2(Math.round((pace%1)*60))}`:"–"}</div><div class="k">${pace?"min/km, timed legs":"pace, after a timed leg"}</div></div></div>
+    ${legs.length?`<div>${legs.map(row).join("")}</div><div class="pn"><button class="btn" id="teamMap">Show on the map</button>${now?`<button class="btn primary" id="teamNow">Open leg ${now.l.n}</button>`:""}</div>`:`<p class="muted">No legs tagged yet. Tag legs on the Leg tab or in Setup.</p>`}</div>`;
+}
+function wireRunnerDetail(t){ $("#teamBack").addEventListener("click",()=>{ S.teamSel=null; save(); renderTeam(); });
+  $("#v-team").querySelectorAll(".legrow").forEach(b=>b.addEventListener("click",()=>{ S.viewLeg=LEGS[+b.dataset.i].n; save(); setView("leg"); $("main").scrollTop=0; }));
+  $("#teamMap")?.addEventListener("click",()=>{ mapHighlight=t.id; mapScope="all"; setView("map"); });
+  $("#teamNow")?.addEventListener("click",()=>{ S.viewLeg=null; save(); setView("leg"); });
+  $("#v-team .posdot")?.addEventListener("click",()=>{ S.viewLeg=null; save(); mapScope="leg"; setView("map"); }); }
 function applyRole(kind){ S.me.kind=kind; S.roleSet=true;
   if(kind==="suv"){ S.mode="drive"; S.sharePos=true; }
   if(kind==="rv"){ S.mode="drive"; S.sharePos=true; }
@@ -1341,8 +1414,41 @@ document.querySelectorAll(".rolebtn").forEach(b=>b.addEventListener("click",()=>
 
 function viewIndex(){ return (S.viewLeg ? S.viewLeg-1 : currentIndex()); }
 
+// ---------- skin: paper by day, black by night, flipping at local sunset ----------
+let skinNow="";
+function applySkin(force){ const pref=S.skin||"auto"; let s=pref;
+  if(s==="auto"){ const i=currentIndex(); s = isDark(new Date(), startPt(i)) ? "night" : "day"; }
+  const changed = s!==skinNow; skinNow=s; document.documentElement.dataset.skin=s;
+  const b=$("#skinBtn"); if(b) b.textContent = pref==="auto" ? (s==="night"?"Night, auto":"Day, auto") : (s==="night"?"Night":"Day");
+  const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content = s==="night"?"#000000":"#F4F3EF";
+  if(changed && !force) render(); }
+$("#skinBtn").addEventListener("click",()=>{ const order=["auto","day","night"]; S.skin=order[(order.indexOf(S.skin||"auto")+1)%3]; save(); applySkin(); });
+
+// ---------- instrument track: all legs as ticks, lit as they are run ----------
+function instHtml(i, alongKm, cls){ const cur=currentIndex(); let acc=0, ticks="";
+  for(let k=0;k<=N;k++){ const pct=acc/totalKm*100, maj=k%10===0; ticks+=`<span class="tick${maj?" maj":""}${k<=cur?" done":""}" style="left:${pct}%">${maj&&k>0&&k<N?`<span>${k}</span>`:""}</span>`; if(k<N) acc+=LEGS[k].km; }
+  const p=Math.min(100,(kmBefore(cur)+(alongKm||0))/totalKm*100);
+  const mark = (i!=null && i!==cur) ? `<b class="mark" title="Leg ${LEGS[i].n}" style="left:${(kmBefore(i)+LEGS[i].km/2)/totalKm*100}%"></b>` : "";
+  return `<div class="inst ${cls||""}"><div class="scale">${ticks}</div><div class="line"><i style="width:${p}%"></i><button class="pos" id="instPos" aria-label="Open the map on the current leg" style="left:${p}%"></button>${mark}</div><div class="ends"><span>Toronto</span><span>Montréal</span></div></div>`; }
+function wireInst(){ $("#instPos")?.addEventListener("click",()=>{ S.viewLeg=null; save(); mapScope="leg"; setView("map"); }); }
+
+// ---------- schematic: the whole route as one line, with a set of legs highlighted ----------
+function schematicSvg(opts){ const o=opts||{}; const all=pts(); const lats=all.map(p=>p[0]), lngs=all.map(p=>p[1]);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLng=Math.min(...lngs),maxLng=Math.max(...lngs); const kx=Math.cos(44.5*Math.PI/180);
+  const W=400,H=o.h||190,pad=20, sc=Math.min((W-2*pad)/((maxLng-minLng)*kx),(H-2*pad)/(maxLat-minLat));
+  const X=p=>(pad+(p[1]-minLng)*kx*sc).toFixed(1), Y=p=>(H-pad-(p[0]-minLat)*sc).toFixed(1);
+  const seg=(k)=>`M${X(all[k])} ${Y(all[k])} L${X(all[k+1])} ${Y(all[k+1])}`;
+  const cur=currentIndex(); const hi=o.highlight||new Set();
+  let paths=`<path d="${all.map((p,k)=>(k?"L":"M")+X(p)+" "+Y(p)).join(" ")}" fill="none" stroke="var(--dim)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if(!o.noDone) paths+=`<path d="${all.slice(0,cur+1).map((p,k)=>(k?"L":"M")+X(p)+" "+Y(p)).join(" ")}" fill="none" stroke="var(--fg)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="${hi.size?.35:1}"/>`;
+  hi.forEach(k=>{ paths+=`<path d="${seg(k)}" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round"/>`; });
+  const f=Math.max(0,Math.min(1,(o.alongKm||0)/LEGS[cur].km)); const a=all[cur], b=all[cur+1];
+  const cx=(+X(a)+(+X(b)-X(a))*f).toFixed(1), cy=(+Y(a)+(+Y(b)-Y(a))*f).toFixed(1);
+  const dot = o.noPos ? "" : `<g class="posdot" style="cursor:pointer"><circle cx="${cx}" cy="${cy}" r="18" fill="var(--accent)" opacity=".22"/><circle cx="${cx}" cy="${cy}" r="7" fill="var(--accent)"/></g>`;
+  return `<div class="schem"><svg viewBox="0 0 ${W} ${H}" aria-label="Route overview">${paths}<circle cx="${X(all[0])}" cy="${Y(all[0])}" r="4" fill="var(--fg)"/><circle cx="${X(all[N])}" cy="${Y(all[N])}" r="4" fill="none" stroke="var(--fg)" stroke-width="2"/>${dot}</svg><span class="c1">Toronto</span><span class="c2">Montréal</span>${o.hint?`<span class="hint">${o.hint}</span>`:""}</div>`; }
+
 // Sunrise/sunset (NOAA approximation, good to a couple of minutes) so night legs are flagged automatically.
-function sunTimes(date, lat, lng){ const rad=Math.PI/180; const d0=Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()); const n=Math.floor(d0/86400000)-10957.5; const Jstar=n-lng/360;
+function sunTimes(date, lat, lng){ const rad=Math.PI/180; const d0=Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()); const n=Math.round(d0/86400000)-10957; const Jstar=n-lng/360;
   const M=(357.5291+0.98560028*Jstar)%360; const C=1.9148*Math.sin(M*rad)+0.02*Math.sin(2*M*rad)+0.0003*Math.sin(3*M*rad); const lam=(M+C+180+102.9372)%360;
   const Jt=2451545+Jstar+0.0053*Math.sin(M*rad)-0.0069*Math.sin(2*lam*rad); const dec=Math.asin(Math.sin(lam*rad)*Math.sin(23.44*rad));
   const cosw=(Math.sin(-0.83*rad)-Math.sin(lat*rad)*Math.sin(dec))/(Math.cos(lat*rad)*Math.cos(dec)); if(cosw<-1||cosw>1) return null; const w=Math.acos(cosw)/rad;
@@ -1369,7 +1475,7 @@ function startControls(i){
     <div class="muted" style="font-size:13px;margin-top:6px">${shiftNote} ${next}</div>
     <div id="startEdit" hidden style="margin-top:10px"><label class="f" for="startTime">Correct the start time</label><input type="datetime-local" id="startTime" value="${act}"></div></div>`;
   const prevDone = i===0 || !!S.actual[LEGS[i-1].n];
-  return `<div class="card ${st==="now"?"accent":""}"><button class="btn ${st==="now"?"primary":""}" id="markStart" style="width:100%">Start leg ${L_.n} now${runnerName(L_.n)?` · ${esc(runnerName(L_.n))} out`:""}</button>
+  return `<div class="card ${st==="now"?"accent":""}"><button class="btn go ${st==="now"?"primary":""}" id="markStart" style="width:100%"><span>Start leg ${L_.n}</span><small>${runnerName(L_.n)?`${esc(runnerName(L_.n).split(" ")[0])} leaves`:"runner leaves"}</small></button>
     <div class="muted" style="font-size:13px;margin-top:8px">Tap when the runner leaves exchange ${i===0?"start":L_.n-1}. Every later estimate shifts by the difference from plan.${prevDone?"":` Leg ${i>0?LEGS[i-1].n:""} has no recorded start yet; you can still start this one.`} ${next}</div>
     <div style="margin-top:8px"><button class="pill" id="editStart">Set a different time</button><div id="startEdit" hidden style="margin-top:8px"><input type="datetime-local" id="startTime" value="${toLocalISO(projStart(i))}"></div></div></div>`;
 }
@@ -1381,20 +1487,21 @@ function renderLeg(){
   const isLast=i===N-1;
   let h = `<div class="stack">`;
   if (!S.startSet) h+=`<div class="alert">Race start not set. Times below assume a 9:00 PM start today. Set the real gun time in Setup.</div>`;
-  h+=`<div class="leghead">
-    <div class="legnum"><small>Leg</small>${L.n}</div>
-    <div><div class="row" style="gap:6px"><span class="pill ${st}">${st==="now"?"Current":st==="done"?"Done":"Up next"}</span>${L.approx?'<span class="pill approx">Approx pin</span>':''}${i!==cur?`<button class="pill" id="jumpNow">Jump to now</button>`:''}</div>
-    <h1>${esc(L.name)}</h1></div></div>
+  const lv=liveRunnerFor(i); const rn=runnerName(L.n); const person=PERSON(S.assign[L.n]); const word=person?person.word:"";
+  const statusText = st==="now" ? (lv?`<em>Live</em>, position ${ageText(posAge(lv.r))}`:(act?`Current leg, started <b>${hm(new Date(act))}</b>`:"Current leg")) : st==="done" ? `Done${act?`, started <b>${hm(new Date(act))}</b>`:""}` : `Up next, planned <b>${dayhm(ps)}</b>`;
+  h+=`<div class="status"><i class="${st}"></i><span>${statusText}${L.approx?", approx pin":""}${i!==cur?` <button class="lnk" id="jumpNow">Jump to now</button>`:""}</span></div>
+  <div class="bib"><div class="n">${L.n}</div><div class="t"><small>of ${N} legs, ${esc(L.name)}, ${km1(L.km)} km</small>${rn?`<b>${esc(rn)}</b>${st==="done"?"ran this leg":st==="now"?"is running":"runs this leg"}`:`<b>No runner tagged</b><span class="muted" style="font-size:16px">pick one below</span>`}${word?`<em>${esc(word)}</em>`:""}</div></div>
+  ${instHtml(i, (st==="now"&&lv)?lv.a.alongKm:0)}
   ${runnerRow(i)}
   ${darkNote(i)}
   ${liveCard(i)}
-  ${cheerCard()}
   ${startControls(i)}
   <div class="stats">
-    <div class="stat"><div class="k">Distance</div><div class="v">${km1(L.km)}<small> km</small></div></div>
-    <div class="stat"><div class="k">${act?"Started":"Start"}</div><div class="v">${dayhm(ps)}</div></div>
-    <div class="stat"><div class="k">${isLast?"Finish":"Exchange"}</div><div class="v">${dayhm(pe)}</div></div>
+    <div class="stat"><div class="v">${km1(L.km)}<small>km</small></div><div class="k">this leg</div></div>
+    <div class="stat"><div class="v">${hm(ps)}</div><div class="k">${act?"started":"start"} ${DAYS[ps.getDay()]}</div></div>
+    <div class="stat hot"><div class="v">${hm(pe)}</div><div class="k">${isLast?"finish":"exchange"} ${DAYS[pe.getDay()]}</div></div>
   </div>
+  ${cheerCard()}
   <div class="muted" style="font-size:13px;margin-top:6px">Planned ${dayhm(plannedStart(i))}${L.interp?" (booklet gave no time; interpolated by distance)":""}${Math.abs(drift)>=1?` · running ${signed(drift)} vs plan`:""}. Cumulative ${km1(kmBefore(i))} km of ${km1(totalKm)} at the start of this leg.</div>
   <div class="seg" role="tablist"><button role="tab" data-mode="run" aria-selected="${S.mode==="run"}">Run</button><button role="tab" data-mode="drive" aria-selected="${S.mode==="drive"}">Drive</button></div>`;
 
@@ -1438,13 +1545,14 @@ function renderLeg(){
   $("#gpxLeg")?.addEventListener("click",()=>downloadText(`runway-leg-${String(L.n).padStart(2,"0")}.gpx`, gpxFor([i])));
   $("#gpxAll")?.addEventListener("click",()=>downloadText("runway-all-legs.gpx", gpxFor(LEGS.map((_,k)=>k))));
   $("#runnerPick")?.addEventListener("change",e=>{ setShared("assign."+L.n,()=>{ if(e.target.value) S.assign[L.n]=e.target.value; else delete S.assign[L.n]; }); renderLeg(); });
+  wireInst();
 }
 
 // Legs where the clock matters for more than pacing.
 function timeSensitive(L_){ if(L_.n===26) return "ferry sailing"; if(L_.n===27) return "off the ferry"; if(L_.notes.some(n=>/mandatory/i.test(n))) return "lights dusk to dawn"; if(L_.n===67) return "team joins at Lac aux Castors"; return ""; }
 function renderLegs(){
   const cur=currentIndex();
-  let h=`<div class="stack"><div><div class="eyebrow">${km1(totalKm)} km · ${N} legs</div><h1>All legs</h1>
+  let h=`<div class="stack"><div><div class="eyebrow">${km1(totalKm)} km, ${N} legs</div><h1>All legs</h1>
   <p class="muted" style="margin:6px 0 0">Times are projected from the race start you set, shifted by the latest recorded leg start. Finish projected ${dayhm(projEnd(N-1))}.</p></div><div>`;
   let lastDay=null;
   LEGS.forEach((L,i)=>{ const ps=projStart(i), st=status(i); const day=ps.toDateString();
@@ -1466,7 +1574,7 @@ const HAS_L = typeof L !== "undefined";
 const TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}";
 const tileUrl = t => { const [z,x,y]=t.split("/"); return TILE_URL.replace("{z}",z).replace("{y}",y).replace("{x}",x); };
 const pts = () => [RACE.startPt, ...LEGS.map(l=>l.pt)];
-let mapScope="leg", mapMode=null, lmap=null, lLayer=null, mapHits=[];
+let mapScope="leg", mapMode=null, lmap=null, lLayer=null, mapHits=[], mapHighlight=null;
 function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
 function mmode(){ return mapMode || S.mode; }
 function legLine(i,mode){ const r=ROUTE(LEGS[i].n); const g = r && (mode==="run" ? r.run : r.drive); return (g && g.length>1) ? g : [startPt(i), LEGS[i].pt]; }
@@ -1478,7 +1586,11 @@ const stepText = s => { let t=s[2].replace("new name","continue").replace("end o
 function mapHeader(i,mode){
   const L_=LEGS[i], r=ROUTE(L_.n);
   const routed = r && ((mode==="run"&&r.run)||(mode==="drive"&&r.drive));
-  $("#mapHead").innerHTML = `<div class="eyebrow">${mode==="run"?"Run map":"Drive map"} · Leg ${L_.n} · ${km1(L_.km)} km${routed?"":" · straight line only"}</div><h1>${esc(L_.name)}</h1>`;
+  const hiName = mapHighlight ? ((PERSON(mapHighlight)||S.runners.find(r=>r.id===mapHighlight)||{}).name||"") : "";
+  $("#mapHead").innerHTML = mapScope==="all" && hiName
+    ? `<div class="eyebrow">Whole relay</div><h1><b>${esc(hiName.split(" ")[0])}'s</b> legs in colour <button class="lnk" id="clearHi" style="font-size:15px">clear</button></h1>`
+    : `<div class="eyebrow">${mode==="run"?"Run map":"Drive map"}, leg ${L_.n}, ${km1(L_.km)} km${routed?"":", straight line only"}</div><h1><b>${L_.n}</b> ${esc(L_.name)}</h1>`;
+  $("#clearHi")?.addEventListener("click",()=>{ mapHighlight=null; drawMap(); });
   document.querySelectorAll("#v-map .seg button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.mm===mode)));
   $("#scopeLeg").setAttribute("aria-pressed",String(mapScope==="leg")); $("#scopeAll").setAttribute("aria-pressed",String(mapScope==="all"));
 }
@@ -1525,12 +1637,16 @@ function drawLeaflet(i,mode){
   const accent=cssVar("--accent"), ok=cssVar("--ok"), fg=cssVar("--fg"), muted=cssVar("--muted");
   const L_=LEGS[i];
   if (mapScope==="all"){
-    LEGS.forEach((lg,k)=>{ const st=status(k); const line=legLine(k,"run");
-      const pl=L.polyline(line,{color: st==="done"?ok: st==="now"?accent: muted, weight: k===i?6:3, opacity: k===i?1:.75}); pl.on("click",()=>{ S.viewLeg=lg.n; save(); mapScope="leg"; drawMap(); }); lLayer.addLayer(pl);
-      lLayer.addLayer(L.circleMarker(lg.pt,{radius:k===i?7:4,color:fg,weight:1,fillColor: st==="done"?ok: st==="now"?accent: fg,fillOpacity:1}).bindTooltip(`Exchange ${lg.n}`).on("click",()=>{ S.viewLeg=lg.n; save(); mapScope="leg"; drawMap(); }));
+    const dim=cssVar("--dim");
+    LEGS.forEach((lg,k)=>{ const st=status(k); const line=legLine(k,"run"); const mine = mapHighlight && S.assign[lg.n]===mapHighlight;
+      const color = mapHighlight ? (mine?accent:(st==="done"?fg:dim)) : (st==="done"?fg: st==="now"?accent: dim);
+      const pl=L.polyline(line,{color, weight: mine?6:(k===i&&!mapHighlight?6:3), opacity: mapHighlight&&!mine?.5:1}); pl.on("click",()=>{ S.viewLeg=lg.n; save(); mapScope="leg"; drawMap(); }); lLayer.addLayer(pl);
+      lLayer.addLayer(L.circleMarker(lg.pt,{radius:k===i?7:4,color:fg,weight:1,fillColor: mine?accent: st==="done"?fg: st==="now"?accent: muted,fillOpacity:1}).bindTooltip(`Exchange ${lg.n}${runnerName(lg.n)?", "+runnerName(lg.n):""}`).on("click",()=>{ S.viewLeg=lg.n; save(); mapScope="leg"; drawMap(); }));
     });
-    lmap.fitBounds(L.latLngBounds(pts()),{padding:[20,20]});
-    $("#mapLegend").innerHTML=`<span class="l-done">Done</span><span class="l-now">Current</span><span>Upcoming</span>`;
+    const hiLines = mapHighlight ? LEGS.map((lg,k)=>S.assign[lg.n]===mapHighlight?legLine(k,"run"):null).filter(Boolean).flat() : null;
+    lmap.fitBounds(L.latLngBounds(hiLines&&hiLines.length?hiLines:pts()),{padding:[20,20]});
+    liveLayer=drawLiveDots(lmap,liveLayer);
+    $("#mapLegend").innerHTML= mapHighlight ? `<span class="l-now">Their legs</span><span>Done</span><span class="l-approx">Everything else</span>` : `<span>Done</span><span class="l-now">Current</span><span class="l-approx">Upcoming</span>`;
     return;
   }
   const line=legLine(i,mode), from=startPt(i), to=L_.pt;
@@ -1638,7 +1754,7 @@ $("#map").addEventListener("click",e=>{ if(mapScope!=="all") return; const r=e.t
   mapHits.forEach(h=>{ const d=Math.hypot(h.x-x,h.y-y); if(d<bd){bd=d;best=h;} }); if(!best) return;
   S.viewLeg = best.leg; save(); mapScope="leg"; drawMap(); });
 document.querySelectorAll("#v-map .seg button").forEach(b=>b.addEventListener("click",()=>{ mapMode=b.dataset.mm; S.mode=mapMode; save(); drawMap(); }));
-$("#scopeLeg").addEventListener("click",()=>{ mapScope="leg"; drawMap(); });
+$("#scopeLeg").addEventListener("click",()=>{ mapScope="leg"; mapHighlight=null; drawMap(); });
 $("#scopeAll").addEventListener("click",()=>{ mapScope="all"; drawMap(); });
 $("#mapPrev").addEventListener("click",()=>{ const i=viewIndex(); if(i>0){ S.viewLeg=LEGS[i-1].n; save(); drawMap(); } });
 if (HAS_L){ $("#followMe").hidden=false; if(S.me.kind==="bike"){ following=true; $("#followMe").setAttribute("aria-pressed","true"); $("#followMe").textContent="Following"; }
@@ -1733,8 +1849,11 @@ async function pushPublic(){ if(!sb) return; if(Date.now()-lastPublic<20000) ret
     if(lv){ pos=[lv.r.lat,lv.r.lng]; src="runner"; }
     else { const rows=liveRows(); if(rows.length){ pos=[rows[0].lat,rows[0].lng]; src=rows[0].kind; } }
     const kmDone = kmBefore(i) + (lv? lv.a.alongKm : 0);
+    // the leg record the friends page needs: who is tagged to each leg, when each started, and the projected starts
+    const legs={assign:{}, actual:{}, proj:{}}; LEGS.forEach((l,k)=>{ const nm=runnerName(l.n); if(nm) legs.assign[l.n]=nm; if(S.actual[l.n]) legs.actual[l.n]=new Date(S.actual[l.n]).toISOString(); legs.proj[l.n]=projStart(k).toISOString(); });
     const row={team:S.sync.team, leg:L_.n, leg_name:L_.name, runner:runnerName(L_.n)||"", lat:pos?pos[0]:null, lng:pos?pos[1]:null, src,
-      km_done:+kmDone.toFixed(1), km_total:+totalKm.toFixed(1), eta_finish:projEnd(N-1).toISOString(), race_start:new Date(S.raceStart).toISOString(), started:!!S.actual[1]||Date.now()>new Date(S.raceStart), finished:!!S.actual[LEGS[N-1].n]&&Date.now()>projEnd(N-1), at:new Date().toISOString()};
+      km_done:+kmDone.toFixed(1), km_total:+totalKm.toFixed(1), eta_finish:projEnd(N-1).toISOString(), race_start:new Date(S.raceStart).toISOString(), started:!!S.actual[1]||Date.now()>new Date(S.raceStart), finished:!!S.actual[LEGS[N-1].n]&&Date.now()>projEnd(N-1), at:new Date().toISOString(),
+      along_km:+(lv?lv.a.alongKm:0).toFixed(2), next_runner: i<N-1 ? (runnerName(LEGS[i+1].n)||"") : "", exchange_eta: projEnd(i).toISOString(), legs};
     await sb.from("runway_public").upsert(row); }catch(e){} }
 setInterval(()=>{ if(sb&&!document.hidden) pushPublic(); },30000);
 async function pushPos(fix){ const row={device:S.device,team:S.sync.team,label:meLabel(),kind:S.me.kind,runner_id:S.me.runnerId||null,lat:+fix.coords.latitude.toFixed(6),lng:+fix.coords.longitude.toFixed(6),acc:Math.round(fix.coords.accuracy||0),speed:fix.coords.speed==null?null:+fix.coords.speed.toFixed(2),at:new Date().toISOString()};
@@ -1758,8 +1877,13 @@ function liveCard(i){ const lv=liveRunnerFor(i); if(!lv) return ""; const {r,a}=
     <div class="muted" style="font-size:13px;margin-top:6px">Pace ${elapsedMin&&a.alongKm>0.3?`${Math.floor(pace)}:${p2(Math.round((pace%1)*60))}/km on this leg`:"booklet average (leg start not recorded yet)"}. SUV slack to exchange ${L_.n}: <b style="color:${slack<10?'var(--bad)':slack<20?'var(--warn)':'var(--ok)'}">${Math.round(slack)} min</b> after a ${Math.round(de.min)} min drive.</div></div>`; }
 let liveLayer=null, rvLiveLayer=null;
 function drawLiveDots(map, layerRef){ if(!map) return null; if(layerRef) layerRef.clearLayers(); else layerRef=L.layerGroup().addTo(map);
-  liveRows().forEach(r=>{ const col = r.kind==="runner"?"#ffd54a": r.kind==="bike"?"#ff9a3c": r.kind==="rv"?"#3b82f6":"#22c55e"; const stale=posAge(r)>300;
-    layerRef.addLayer(L.circleMarker([r.lat,r.lng],{radius:9,color:"#000",weight:2,fillColor:col,fillOpacity:stale?.45:1}).bindTooltip(`${esc(r.label)} · ${ageText(posAge(r))}`,{permanent:true,direction:"right",offset:[10,0],className:"livetip"})); });
+  const accent=cssVar("--accent"), fg=cssVar("--fg"), bg=cssVar("--bg");
+  liveRows().forEach(r=>{ const isRunner = r.kind==="runner"||r.kind==="bike"; const stale=posAge(r)>300;
+    const m=L.circleMarker([r.lat,r.lng],{radius:isRunner?10:7,color:bg,weight:2,fillColor:isRunner?accent:fg,fillOpacity:stale?.45:1}).bindTooltip(`${esc(r.label)}, ${ageText(posAge(r))}${isRunner?". Tap to open the leg":""}`,{permanent:true,direction:"right",offset:[10,0],className:"livetip"});
+    m.on("click",()=>{ // zoom the map to whichever leg this fix sits on
+      let best={i:currentIndex(),d:0.6}; LEGS.forEach((lg,k)=>{ const a=alongLine(legLine(k,"run"),[r.lat,r.lng]); if(a.offKm<best.d) best={i:k,d:a.offKm}; });
+      S.viewLeg=LEGS[best.i].n; save(); mapScope="leg"; mapHighlight=null; if(view==="map") drawMap(); else setView("map"); });
+    layerRef.addLayer(m); });
   return layerRef; }
 function refreshLive(){ if(view==="leg") renderLeg(); if(HAS_L){ if(view==="map"&&lmap) liveLayer=drawLiveDots(lmap,liveLayer); if(view==="rv"&&rvmap) rvLiveLayer=drawLiveDots(rvmap,rvLiveLayer); } }
 setInterval(()=>{ if(sb&&!document.hidden) pullPos(); },30000);
@@ -1768,13 +1892,15 @@ window.__runwayPos = r => { POS[r.device]=r; refreshLive(); }; // test hook
 // ---------- cheers from the friends page ----------
 let CHEERS={counts:{},recent:[]};
 async function pullCheers(){ if(!sb) return; try{ const since=new Date(Date.now()-48*3600e3).toISOString();
-  const {data}=await sb.from("runway_cheers").select("emoji,name,at").eq("team",S.sync.team).gte("at",since).order("at",{ascending:false}).limit(400);
-  if(data){ const counts={}; data.forEach(r=>{ counts[r.emoji]=(counts[r.emoji]||0)+1; }); CHEERS={counts,recent:data.slice(0,6)}; if(view==="leg") renderLeg(); } }catch(e){} }
+  const {data}=await sb.from("runway_cheers").select("emoji,name,msg,at").eq("team",S.sync.team).gte("at",since).order("at",{ascending:false}).limit(400);
+  if(data){ const counts={}; data.forEach(r=>{ counts[r.emoji]=(counts[r.emoji]||0)+1; }); CHEERS={counts,recent:data.slice(0,30)}; if(view==="leg") renderLeg(); } }catch(e){} }
+// Cheers land on the crew's phones as a feed: emoji, who, and the short message if they wrote one.
 function cheerCard(){ const n=Object.values(CHEERS.counts).reduce((a,b)=>a+b,0); if(!n) return "";
   const order=["🔥","💪","❤️","🏃"]; const ems=order.filter(e=>CHEERS.counts[e]).concat(Object.keys(CHEERS.counts).filter(e=>!order.includes(e)));
-  const latest=CHEERS.recent[0];
-  return `<div class="card"><div class="row" style="justify-content:space-between;align-items:baseline"><span class="eyebrow">Cheers from home · ${n}</span>${latest?`<span class="muted" style="font-size:13px">latest ${latest.emoji}${latest.name?" "+esc(latest.name):""} ${ageText(posAge({at:latest.at}))}</span>`:""}</div>
-    <div class="cheer" style="margin-top:8px">${ems.map(e=>`<span class="em">${e}<b>${CHEERS.counts[e]}</b></span>`).join("")}</div></div>`; }
+  const shown = CHEERS.recent.filter(r=>r.msg||r.name).slice(0,8);
+  return `<div class="card"><div class="row" style="justify-content:space-between;align-items:baseline"><h2 style="margin:0">Cheers from home</h2><span class="muted" style="font-size:13px">${n} so far</span></div>
+    <div class="cheer" style="margin-top:8px">${ems.map(e=>`<span class="em">${e}<b>${CHEERS.counts[e]}</b></span>`).join("")}</div>
+    ${shown.length?`<ul class="feed">${shown.map(r=>`<li><span class="e">${esc(r.emoji)}</span><span>${r.name?`<span class="nm">${esc(r.name)}</span>`:""}${r.msg?`<q>${esc(r.msg)}</q>`:""}</span><span class="w">${ageText(posAge({at:r.at}))}</span></li>`).join("")}</ul>`:""}</div>`; }
 setInterval(()=>{ if(sb&&!document.hidden) pullCheers(); },45000);
 
 // ---------- screen wake lock ----------
@@ -1810,7 +1936,7 @@ async function loadSb(){ if(window.supabase) return true; return new Promise(res
 async function startSync(){ stopSync(); if(!HAS_L||!S.sync.url||!S.sync.key||!S.sync.team) return; setSyncState("connecting");
   if(!(await loadSb())){ setSyncState("offline"); setTimeout(startSync,30000); return; }
   try{ sb=window.supabase.createClient(S.sync.url,S.sync.key); await pullOnce(); await pullPos(); pullCheers(); startPosShare();
-    sb.channel("runway-cheers-"+S.sync.team).on("postgres_changes",{event:"INSERT",schema:"public",table:"runway_cheers",filter:"team=eq."+S.sync.team},payload=>{ const r=payload.new; if(!r) return; CHEERS.counts[r.emoji]=(CHEERS.counts[r.emoji]||0)+1; CHEERS.recent.unshift(r); CHEERS.recent=CHEERS.recent.slice(0,6); if(view==="leg") renderLeg(); }).subscribe();
+    sb.channel("runway-cheers-"+S.sync.team).on("postgres_changes",{event:"INSERT",schema:"public",table:"runway_cheers",filter:"team=eq."+S.sync.team},payload=>{ const r=payload.new; if(!r) return; CHEERS.counts[r.emoji]=(CHEERS.counts[r.emoji]||0)+1; CHEERS.recent.unshift(r); CHEERS.recent=CHEERS.recent.slice(0,30); if(view==="leg") renderLeg(); }).subscribe();
     sb.channel("runway-pos-"+S.sync.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_pos",filter:"team=eq."+S.sync.team},payload=>{ const r=payload.new; if(r&&r.device!==S.device){ POS[r.device]=r; refreshLive(); } }).subscribe();
     syncChan=sb.channel("runway-"+S.sync.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_state",filter:"team=eq."+S.sync.team},payload=>{ if(payload.new&&payload.new.data&&payload.new.data.device!==S.device){ mergeRemote(payload.new.data); setSyncState("ok"); } }).subscribe();
     schedulePush(); }catch(e){ setSyncState("error",String(e.message||e)); }
@@ -1831,6 +1957,7 @@ function renderSetup(){
   const sw = ("serviceWorker" in navigator);
   let h=`<div class="stack">
   <div><div class="eyebrow">Setup</div><h1>Race clock</h1></div>
+  <div><label class="f" for="skinSel">Look</label><select id="skinSel"><option value="auto" ${(S.skin||"auto")==="auto"?"selected":""}>Paper by day, black by night (flips at sunset where the runner is)</option><option value="day" ${S.skin==="day"?"selected":""}>Always day</option><option value="night" ${S.skin==="night"?"selected":""}>Always night</option></select></div>
   <div><label class="f" for="raceStart">Race start (gun time)</label><input type="datetime-local" id="raceStart" value="${S.raceStart}">
     <div class="muted" style="font-size:13px;margin-top:6px">Every planned time is an offset from this. The booklet's schedule ran from a 9:00 PM Tuesday start and finished about ${dur(finishOff)} later.</div></div>
   <div><label class="f" for="manualNow">Current leg</label><select id="manualNow"><option value="">Auto (from clock and recorded starts)</option>${LEGS.map(l=>`<option value="${l.n}" ${S.manualNow===l.n?"selected":""}>Leg ${l.n} · ${esc(l.name)}</option>`).join("")}</select>
@@ -1867,6 +1994,7 @@ function renderSetup(){
   <div class="card"><h2>Storage</h2><p style="margin:0 0 10px;font-size:15px">Settings and recorded starts live on this device only.</p><button class="pill" id="resetAll">Reset everything</button></div>
   </div>`;
   $("#v-setup").innerHTML=h;
+  $("#skinSel").addEventListener("change",e=>{ S.skin=e.target.value; save(); applySkin(); });
   $("#raceStart").addEventListener("change",e=>{ if(e.target.value){ setShared("raceStart",()=>{ S.raceStart=e.target.value; S.startSet=true; }); } });
   $("#manualNow").addEventListener("change",e=>{ setShared("manualNow",()=>{ S.manualNow=e.target.value?+e.target.value:null; }); });
   $("#clearAll")?.addEventListener("click",()=>{ Object.keys(S.actual).forEach(n=>setShared("actual."+n,()=>{ delete S.actual[n]; })); renderSetup(); });
@@ -1886,12 +2014,12 @@ function renderSetup(){
 
 // ---------- clock ----------
 function tick(){ $("#clock").textContent = hm(new Date()); }
-tick(); setInterval(()=>{ tick(); if(view==="leg" && !S.viewLeg) { /* keep current leg fresh */ renderLegIfChanged(); } }, 30000);
+tick(); setInterval(()=>{ tick(); applySkin(); if(view==="leg" && !S.viewLeg) { /* keep current leg fresh */ renderLegIfChanged(); } }, 30000);
 let lastCur=currentIndex();
 function renderLegIfChanged(){ const c=currentIndex(); if(c!==lastCur){ lastCur=c; renderLeg(); } }
 
 // ---------- boot ----------
-startSync(); applyWake();
+applySkin(true); startSync(); applyWake();
 const h0=location.hash.slice(1);
 if(!S.roleSet && HAS_L){ document.querySelector("nav.tabs").hidden=true; setView("role"); }
 else setView(["leg","legs","map","team","rv","setup"].includes(h0)?h0:homeView());

@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0c0b0e">
-<title>The Runway · Toronto to Montréal</title>
-<meta property="og:title" content="The Runway · Toronto to Montréal">
+<meta name="theme-color" content="#F4F3EF">
+<title>The Runway, Toronto to Montréal</title>
+<meta property="og:title" content="The Runway, Toronto to Montréal">
 <meta property="og:description" content="650 km, 67 legs, one team. Follow us live and send a cheer.">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,700;1,700;1,800&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@900&family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600&display=swap">
 <style>
 /* required styles */
 
@@ -671,84 +671,135 @@ svg.leaflet-image-layer.leaflet-interactive path {
 		}
 	}
 
-:root{ --bg:#0c0b0e; --panel:#17161b; --panel2:#1f1d24; --fg:#f3f0f4; --muted:#a39daa; --line:#2b2832; --accent:#ff6fb8; --accent-ink:#140a10; --ok:#67d28c;
-  --display:"Barlow Condensed","Arial Narrow",Impact,sans-serif; --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; color-scheme:dark; }
+/* Race Bib, friends edition. Paper and orange by day, black and amber by night; flips at sunset where the runner is. */
+:root{ --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif; --body:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif; --r:4px }
+html[data-skin="day"],html:not([data-skin]){ --bg:#F4F3EF; --fg:#141414; --accent:#FF4D00; --accent-ink:#fff; --muted:#6E6C66; --line:#CFCDC4; --soft:#E8E6DF; --dim:#D6D4CC; --ok:#1E7F4F; --glow:rgba(255,77,0,.25); --tilefilter:saturate(.85); color-scheme:light }
+html[data-skin="night"]{ --bg:#000; --fg:#ECE9E2; --accent:#FFB000; --accent-ink:#000; --muted:#8C8982; --line:#2A2A2E; --soft:#141416; --dim:#2A2A2E; --ok:#6CCB8E; --glow:rgba(255,176,0,.35); --tilefilter:brightness(.7) contrast(1.05) saturate(.55); color-scheme:dark }
 html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.4;display:flex;flex-direction:column;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.4;-webkit-text-size-adjust:100%;font-optical-sizing:auto;transition:background-color .3s,color .3s}
 *{box-sizing:border-box}
-header{padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));display:flex;justify-content:space-between;align-items:baseline;gap:12px}
-.brand{font-family:var(--display);font-style:italic;font-weight:800;font-size:28px;text-transform:uppercase;letter-spacing:.5px;line-height:1}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){ body{transition:none} }
+.wrap{max-width:460px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-right,0px)) calc(28px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(12px + env(safe-area-inset-top,0px)) 0 8px;border-bottom:2px solid var(--fg)}
+.brand{font-family:var(--display);font-weight:900;font-size:28px;letter-spacing:-.5px;line-height:1}
 .brand b{color:var(--accent)}
-.tag{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
-#map{flex:1;min-height:46vh;background:var(--panel2)}
-.leaflet-tile-pane{filter:brightness(.72) contrast(1.08) saturate(.7)}
-.leaflet-container{font-family:var(--body);background:var(--panel2)}
-.panel{background:var(--panel);border-top:1px solid var(--line);padding:14px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px}
-.now{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:end}
-.now .who{font-family:var(--display);font-weight:700;font-size:30px;line-height:1;text-wrap:balance}
-.now .where{color:var(--muted);font-size:14px;margin-top:4px}
-.now .leg{font-family:var(--display);font-style:italic;font-weight:800;font-size:54px;line-height:.85;color:var(--accent);text-align:right;font-variant-numeric:tabular-nums}
-.now .leg small{display:block;font-style:normal;font-weight:700;font-size:12px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
-.bar{height:10px;background:var(--line);border-radius:5px;overflow:hidden;position:relative}
-.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#ffb2d8);width:0;border-radius:5px;transition:width .6s ease}
-.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.num{min-width:0}
-.num .k{font-family:var(--display);font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
-.num .v{font-family:var(--display);font-weight:700;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap}
-.num .v small{font-size:14px;color:var(--muted);font-weight:500}
-.cheers{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.cheers button{font:inherit;color:inherit;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 4px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;transition:transform .08s}
-.cheers button:active{transform:scale(.94)}
-.cheers button .e{font-size:30px;line-height:1}
-.cheers button .c{font-family:var(--display);font-weight:700;font-size:15px;color:var(--muted);font-variant-numeric:tabular-nums}
-.cheers button.sent{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
-.name{display:flex;gap:8px}
-.name input{flex:1;min-width:0;padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;font-size:15px}
-.muted{color:var(--muted);font-size:13px}
-.toast{position:fixed;left:50%;bottom:calc(120px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);font-family:var(--display);font-weight:700;font-size:18px;padding:8px 16px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .2s}
-.toast.show{opacity:1}
-.teampin{width:46px;height:46px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 0 0 6px rgba(255,111,184,.35);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden;font-family:var(--display);font-weight:800;color:var(--accent-ink)}
-.teampin img{width:100%;height:100%;object-fit:cover;display:block}
+.hright{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.skin{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 10px;white-space:nowrap}
+section[hidden]{display:none}
+.stack{display:flex;flex-direction:column;gap:14px;padding-top:12px}
+.status{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:14px;min-height:22px}
+.status i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.status i.live{background:var(--accent);box-shadow:0 0 0 4px var(--glow)}
+.status b{color:var(--fg);font-weight:500}
+.status em{color:var(--accent);font-style:normal;font-weight:500}
+.lnk{color:var(--accent);font-weight:500;text-decoration:underline;text-underline-offset:3px}
+.bib{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;padding:10px 0 14px;border-top:3px solid var(--fg);border-bottom:3px solid var(--fg)}
+.bib .n{font-family:var(--display);font-weight:900;font-size:118px;line-height:.82;letter-spacing:-3px;margin-top:6px;font-variant-numeric:tabular-nums}
+.bib .t{font-size:28px;font-weight:300;line-height:1.05;letter-spacing:-.5px;min-width:0;text-wrap:balance}
+.bib .t b{font-weight:600;display:block;overflow-wrap:anywhere}
+.bib .t small{display:block;font-size:14px;color:var(--muted);margin-bottom:6px;font-weight:400;line-height:1.3}
+.bib .t em{display:block;font-style:normal;color:var(--accent);font-size:16px;margin-top:8px;font-weight:500}
+.bib.sm .n{font-size:84px} .bib.sm .t{font-size:22px}
+@media (max-width:360px){ .bib .n{font-size:96px} .bib .t{font-size:24px} }
+.inst{position:relative}
+.inst .scale{height:30px;position:relative}
+.inst .tick{position:absolute;bottom:0;width:1px;height:8px;background:var(--dim)}
+.inst .tick.maj{height:16px;background:var(--muted)}
+.inst .tick.maj span{position:absolute;bottom:18px;left:0;transform:translateX(-50%);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.inst .tick.done{background:var(--accent);opacity:.55} .inst .tick.maj.done{opacity:1}
+.inst .line{height:2px;background:var(--dim);position:relative}
+.inst .line i{position:absolute;left:0;top:0;height:100%;background:var(--accent)}
+.inst .pos{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);box-shadow:0 0 0 5px var(--glow)}
+.inst .ends{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:8px}
+.inst .ends b{color:var(--fg);font-weight:500}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--fg);border-bottom:1px solid var(--fg)}
+.stat{padding:12px 0 10px;min-width:0;display:flex;flex-direction:column}
+.stat+.stat{border-left:1px solid var(--fg);padding-left:12px}
+.stat .k{font-size:13px;color:var(--muted);margin-top:4px}
+.stat .v{font-family:var(--display);font-weight:900;font-size:40px;line-height:.9;letter-spacing:-.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat .v small{font-family:var(--body);font-size:14px;color:var(--muted);font-weight:500;letter-spacing:0;margin-left:2px}
+.stat.hot .v{color:var(--accent)}
+@media (max-width:360px){ .stat .v{font-size:32px} }
+.schem{position:relative;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.schem svg{width:100%;height:auto;display:block}
+.schem .c1,.schem .c2,.schem .hint{position:absolute;font-size:13px;color:var(--muted)}
+.schem .c1{left:4px;top:8px}.schem .c2{right:4px;bottom:6px}.schem .hint{left:50%;transform:translateX(-50%);bottom:6px;font-size:12px;white-space:nowrap}
+.schem .posdot{cursor:pointer}
+h2{font-weight:600;font-size:18px;letter-spacing:-.2px;margin:0 0 10px}
 .strip{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .strip::-webkit-scrollbar{display:none}
-.pm{flex:none;width:76px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;opacity:.75}
-.pm.on{opacity:1}
-.pm .av{width:56px;height:56px;border-radius:50%;background:var(--panel2);border:2px solid var(--line);overflow:hidden;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;font-size:20px;color:var(--muted)}
+.pm{flex:none;width:66px;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;color:var(--muted);font-size:11px}
+.pm .av{width:52px;height:52px;border-radius:50%;border:2px solid var(--fg);overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:17px;color:var(--fg);background:var(--bg)}
 .pm .av img{width:100%;height:100%;object-fit:cover;display:block}
-.pm.on .av{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,111,184,.4)}
-.pm.done .av{border-color:var(--ok)}
-.pm .n{font-size:11px;line-height:1.15;font-weight:600}
-.pm .w{font-family:var(--display);font-style:italic;font-weight:700;font-size:11px;color:var(--accent);letter-spacing:.3px}
-.pm .tag{font-family:var(--display);font-weight:800;font-size:10px;letter-spacing:1px;text-transform:uppercase;background:var(--accent);color:var(--accent-ink);padding:1px 6px;border-radius:999px}
-.sect{font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,111,184,.6)}100%{box-shadow:0 0 0 22px rgba(255,111,184,0)}}
+.pm.on .av{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:0 0 0 4px var(--glow)}
+.pm.on{color:var(--fg);font-weight:500}
+.pm.done .av{border-color:var(--muted);color:var(--muted)}
+.cheers{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.cheers button{border:2px solid var(--fg);border-radius:50%;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;transition:transform .08s,background .2s}
+.cheers button:active{transform:scale(.93)}
+.cheers button .e{font-size:30px;line-height:1}
+.cheers button .c{font-size:14px;font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
+.cheers button.sent{background:var(--accent);border-color:var(--accent)} .cheers button.sent .c{color:var(--accent-ink)}
+.msg{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:4px}
+.msg input{min-width:0;padding:11px 0;border:0;border-bottom:1px solid var(--fg);background:none;color:var(--fg);font:inherit;font-size:15px;border-radius:0}
+.msg input::placeholder{color:var(--muted)}
+.msg .send{border:2px solid var(--fg);border-radius:var(--r);padding:0 16px;font-weight:500;align-self:end;height:42px}
+.msg .send:disabled{opacity:.35}
+.name{margin-top:2px}
+.name input{width:100%;padding:11px 0;border:0;border-bottom:1px solid var(--line);background:none;color:var(--fg);font:inherit;font-size:15px;border-radius:0}
+.muted{color:var(--muted);font-size:13px}
+.feed{margin:0;padding:0;list-style:none}
+.feed li{display:grid;grid-template-columns:30px 1fr auto;gap:8px;align-items:baseline;padding:7px 0;border-top:1px solid var(--line);font-size:15px}
+.feed .e{font-size:20px;line-height:1}
+.feed .w{color:var(--muted);font-size:12px;white-space:nowrap}
+.feed q{quotes:none;display:block}
+.feed .nm{font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(40px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);font-weight:600;font-size:16px;padding:9px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:900}
+.toast.show{opacity:1}
+/* full map */
+#mapview{position:fixed;inset:0;z-index:800;background:var(--bg);display:flex;flex-direction:column}
+#mapview[hidden]{display:none}
+#mapview .bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));border-bottom:2px solid var(--fg)}
+#mapview .bar .ttl{font-weight:600;font-size:17px;line-height:1.15}
+#mapview .bar .ttl small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
+#mapview .back{border:2px solid var(--fg);border-radius:var(--r);padding:8px 12px;font-weight:500;white-space:nowrap}
+#fmap{flex:1;background:var(--soft)}
+#fmap .leaflet-tile-pane{filter:var(--tilefilter)}
+.leaflet-container{font-family:var(--body)}
+.teampin{width:46px;height:46px;border-radius:50%;background:var(--accent);border:3px solid var(--bg);box-shadow:0 0 0 6px var(--glow);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;font-weight:600;color:var(--accent-ink)}
+.teampin img{width:100%;height:100%;object-fit:cover;display:block}
+@keyframes pulse{0%{box-shadow:0 0 0 0 var(--glow)}100%{box-shadow:0 0 0 26px rgba(0,0,0,0)}}
 .teampin.live{animation:pulse 1.8s infinite}
-.pre{padding:24px max(16px,env(safe-area-inset-right,0px));text-align:center}
-.pre h1{font-family:var(--display);font-weight:800;font-style:italic;font-size:40px;margin:0;line-height:1}
-@media (min-width:900px){ body{flex-direction:row} #map{min-height:100vh} .panel{width:420px;border-top:0;border-left:1px solid var(--line);overflow:auto} header{position:absolute;z-index:500;left:0;top:0} }
+@media (prefers-reduced-motion:reduce){ .teampin.live{animation:none} }
+.endpin{border-radius:50%;width:16px;height:16px;border:3px solid var(--bg);box-shadow:0 0 0 2px var(--fg)}
+.leaflet-tooltip{font-family:var(--body);font-weight:600;border-radius:var(--r);background:var(--bg);color:var(--fg);border:1px solid var(--fg)}
+.leaflet-tooltip-top::before{border-top-color:var(--fg)}.leaflet-tooltip-right::before{border-right-color:var(--fg)}
+.leaflet-bar a{background:var(--bg);color:var(--fg);border-bottom-color:var(--line)}.leaflet-control-attribution{background:var(--bg);color:var(--muted);font-size:10px}.leaflet-control-attribution a{color:var(--muted)}
+.legrow{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);width:100%;text-align:left}
+.legrow .n{font-family:var(--display);font-weight:900;font-size:36px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1}
+.legrow.now .n{color:var(--accent)} .legrow.done .n{color:var(--fg);opacity:.5}
+.legrow .name{font-weight:500;font-size:16px;line-height:1.2}
+.legrow .sub{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.legrow .t{font-weight:300;font-size:22px;font-variant-numeric:tabular-nums;text-align:right;line-height:1.05}
+.legrow .t small{display:block;font-size:12px;color:var(--muted);font-weight:400}
+.btn{display:flex;align-items:center;justify-content:center;padding:13px 14px;border-radius:var(--r);border:2px solid var(--fg);font-weight:500;font-size:16px;width:100%}
+.pre{text-align:center;padding:40px 0}
+.pre .n{font-family:var(--display);font-weight:900;font-size:140px;line-height:.8;letter-spacing:-4px}
+.pre p{margin:12px 0 0;font-size:18px;font-weight:300}
+@media (min-width:900px){ .wrap{max-width:520px} }
 </style>
 </head>
 <body>
-<header><div class="brand">The Run<b>way</b></div><div class="tag">#RUNTOMTL · live</div></header>
-<div id="map"></div>
-<div class="panel">
-  <div class="now"><div><div class="who" id="who">Loading…</div><div class="where" id="where"></div></div><div class="leg"><small>Leg</small><span id="legn">–</span></div></div>
-  <div class="bar"><i id="bar"></i></div>
-  <div class="nums">
-    <div class="num"><div class="k">Run so far</div><div class="v" id="done">–<small> km</small></div></div>
-    <div class="num"><div class="k">Still to go</div><div class="v" id="left">–<small> km</small></div></div>
-    <div class="num"><div class="k" id="etak">Finish about</div><div class="v" id="eta">–</div></div>
-  </div>
-  <div><div class="sect" style="margin-bottom:8px">The team</div><div class="strip" id="strip"></div></div>
-  <div class="cheers" id="cheers">
-    <button data-e="🔥"><span class="e">🔥</span><span class="c">0</span></button>
-    <button data-e="💪"><span class="e">💪</span><span class="c">0</span></button>
-    <button data-e="❤️"><span class="e">❤️</span><span class="c">0</span></button>
-    <button data-e="🏃"><span class="e">🏃</span><span class="c">0</span></button>
-  </div>
-  <div class="name"><input id="nm" placeholder="Your name (optional, so they know who's cheering)" maxlength="24"></div>
-  <div class="muted" id="status">Tap an emoji to send a cheer. The team sees them on the road.</div>
+<div class="wrap">
+  <header><div class="brand">The Run<b>way</b></div><div class="hright"><span>#RUNTOMTL</span><button class="skin" id="skinBtn">Auto</button></div></header>
+
+  <section id="home"><div class="stack" id="homeBody"></div></section>
+  <section id="runner" hidden><div class="stack" id="runnerBody"></div></section>
 </div>
+
+<div id="mapview" hidden><div class="bar"><div class="ttl" id="mapTtl"></div><button class="back" id="mapBack">Back</button></div><div id="fmap"></div></div>
 <div class="toast" id="toast">Sent!</div>
 
 <script>/* @preserve
@@ -1053,86 +1104,150 @@ const TEAM_ROSTER = [{"i": 0, "name": "Isaiah Norfleet", "role": "Runner", "word
 "use strict";
 const TEAM = { url:"https://sajvndlspknvaquqnakb.supabase.co", key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhanZuZGxzcGtudmFxdXFuYWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzAyNDQsImV4cCI6MjEwODk0NjI0NH0.jZWUIEY7-EKES_8XJi0xxEpT9q_PsqksU4Fb_xouOj8", team:"runway2026" };
 const $=s=>document.querySelector(s);
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const totalKm = LEGS.reduce((a,l)=>a+l.km,0);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const N=LEGS.length, totalKm=LEGS.reduce((a,l)=>a+l.km,0);
+const kmBefore=i=>LEGS.slice(0,i).reduce((a,l)=>a+l.km,0);
 const line = n => { const r=ROUTES[String(n)]; return (r&&r.run&&r.run.length>1)? r.run : [n===1?RACE.startPt:LEGS[n-2].pt, LEGS[n-1].pt]; };
 const pts = [RACE.startPt, ...LEGS.map(l=>l.pt)];
 const ROSTER = (typeof TEAM_ROSTER!=="undefined"?TEAM_ROSTER:[]);
 const byName = n => ROSTER.find(t=>t.name===n) || null;
 const initials = n => String(n||"").split(/\s+/).map(w=>w[0]).filter(Boolean).slice(0,2).join("").toUpperCase();
-const face = (t, cls) => t&&t.photo ? `<img src="${t.photo}" alt="${esc(t.name)}">` : `<span>${esc(initials(t?t.name:"?"))}</span>`;
-function renderStrip(runnerName, done){
-  const runners=ROSTER.filter(t=>t.runner), crew=ROSTER.filter(t=>!t.runner);
-  const el=document.getElementById("strip"); if(!el) return;
-  el.innerHTML = runners.concat(crew).map(t=>{ const on=t.name===runnerName; return `<div class="pm ${on?"on":""}"><div class="av">${face(t)}</div>${on?`<span class="tag">Running</span>`:``}<div class="n">${esc(t.name.split(" ")[0])}</div><div class="w">${esc((t.word||"").split(" · ").pop())}</div></div>`; }).join("");
-  const on=el.querySelector(".pm.on"); if(on) on.scrollIntoView({inline:"center",block:"nearest"});
-}
-
-// ---- map ----
-const map=L.map("map",{zoomControl:false,attributionControl:true});
-L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:18,maxNativeZoom:17,attribution:'Tiles © Esri'}).addTo(map);
-L.control.zoom({position:"topright"}).addTo(map);
-const doneLayer=L.layerGroup().addTo(map), todoLayer=L.layerGroup().addTo(map);
-let teamMarker=null, drawnLeg=-1;
-function drawRoute(curLeg){
-  if(drawnLeg===curLeg) return; drawnLeg=curLeg; doneLayer.clearLayers(); todoLayer.clearLayers();
-  LEGS.forEach((l,i)=>{ const n=i+1; const ln=line(n); const done=n<curLeg;
-    (done?doneLayer:todoLayer).addLayer(L.polyline(ln,{color:done?"#67d28c":"#ff6fb8",weight:done?4:3,opacity:done?.9:.55})); });
-  L.circleMarker(RACE.startPt,{radius:6,color:"#fff",weight:2,fillColor:"#67d28c",fillOpacity:1}).bindTooltip("Toronto").addTo(todoLayer);
-  L.circleMarker(LEGS[LEGS.length-1].pt,{radius:6,color:"#fff",weight:2,fillColor:"#ff6fb8",fillOpacity:1}).bindTooltip("Montréal").addTo(todoLayer);
-}
-function placeTeam(lat,lng,live,label){
-  const t=byName(label);
-  const icon=L.divIcon({className:"",html:`<div class="teampin ${live?"live":""}">${t?face(t):"🏃"}</div>`,iconSize:[46,46],iconAnchor:[23,23]});
-  if(!teamMarker){ teamMarker=L.marker([lat,lng],{icon}).addTo(map); } else { teamMarker.setLatLng([lat,lng]); teamMarker.setIcon(icon); }
-  teamMarker.bindTooltip(label,{permanent:true,direction:"top",offset:[0,-20]});
-}
-let userMoved=false; map.on("dragstart zoomstart",()=>{ userMoved=true; });
-
-// ---- state ----
+const face = t => t&&t.photo ? `<img src="${t.photo}" alt="${esc(t.name)}">` : `<span>${esc(initials(t?t.name:"?"))}</span>`;
 const DAYS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]; const p2=n=>String(n).padStart(2,"0");
 const hm=d=>`${p2(d.getHours())}:${p2(d.getMinutes())}`; const dayhm=d=>`${DAYS[d.getDay()]} ${hm(d)}`;
-const sb = window.supabase ? window.supabase.createClient(TEAM.url,TEAM.key) : null;
-let PUB=null, counts={};
-function render(){
-  if(!PUB){ $("#who").textContent="Waiting for the team to go live"; $("#where").textContent="Toronto to Montréal, 67 legs, "+totalKm.toFixed(0)+" km."; drawRoute(1); renderStrip("",0);
-    map.fitBounds(L.latLngBounds(pts),{padding:[20,20]}); return; }
-  const legIdx=Math.max(0,PUB.leg-1), L_=LEGS[legIdx];
-  const done=Math.min(totalKm,Math.max(0,PUB.km_done||0)), left=Math.max(0,totalKm-done);
-  const age=(Date.now()-new Date(PUB.at))/1000, live=age<180;
-  if(PUB.finished){ $("#who").textContent="Finished!"; $("#where").textContent="Chalet du Mont-Royal, Montréal. "+totalKm.toFixed(0)+" km done."; $("#etak").textContent="Finished"; $("#eta").textContent=dayhm(new Date(PUB.eta_finish)); }
-  else if(!PUB.started){ $("#who").textContent="Starting soon"; $("#where").textContent="Gun goes "+dayhm(new Date(PUB.race_start))+" at the TORONTO sign."; $("#etak").textContent="Starts"; $("#eta").textContent=dayhm(new Date(PUB.race_start)); }
-  else { $("#who").textContent=PUB.runner?`${PUB.runner} is running`:"On the road"; $("#where").textContent=`Leg ${PUB.leg} · ${L_.name} · ${L_.km} km${live?"":" · last update "+Math.round(age/60)+" min ago"}`; $("#etak").textContent="Finish about"; $("#eta").textContent=dayhm(new Date(PUB.eta_finish)); }
-  $("#legn").textContent=PUB.leg; $("#bar").style.width=(100*done/totalKm).toFixed(1)+"%";
-  $("#done").innerHTML=done.toFixed(1)+"<small> km</small>"; $("#left").innerHTML=left.toFixed(1)+"<small> km</small>";
-  drawRoute(PUB.leg);
-  const pos = (PUB.lat!=null&&PUB.lng!=null)?[PUB.lat,PUB.lng]:line(PUB.leg)[0];
-  placeTeam(pos[0],pos[1],live,PUB.runner||"The team");
-  renderStrip(PUB.runner||"", done);
-  if(!userMoved){ map.setView(pos, 12, {animate:true}); }
+const dur=m=>{ m=Math.round(m); const h=Math.floor(m/60), r=m%60; return h?`${h}h ${p2(r)}`:`${r} min`; };
+const ageText=sec=>sec<60?`${Math.round(sec)} s ago`:sec<3600?`${Math.round(sec/60)} min ago`:`${(sec/3600).toFixed(1)} h ago`;
+const km1=k=>(Math.round(k*10)/10).toFixed(1);
+
+// ---- skin ----
+function sunTimes(date, lat, lng){ const rad=Math.PI/180; const d0=Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()); const n=Math.round(d0/86400000)-10957; const Jstar=n-lng/360;
+  const M=(357.5291+0.98560028*Jstar)%360; const C=1.9148*Math.sin(M*rad)+0.02*Math.sin(2*M*rad)+0.0003*Math.sin(3*M*rad); const lam=(M+C+180+102.9372)%360;
+  const Jt=2451545+Jstar+0.0053*Math.sin(M*rad)-0.0069*Math.sin(2*lam*rad); const dec=Math.asin(Math.sin(lam*rad)*Math.sin(23.44*rad));
+  const cosw=(Math.sin(-0.83*rad)-Math.sin(lat*rad)*Math.sin(dec))/(Math.cos(lat*rad)*Math.cos(dec)); if(cosw<-1||cosw>1) return null; const w=Math.acos(cosw)/rad;
+  const toDate=J=>new Date((J-2440587.5)*86400000); return {rise:toDate(Jt-w/360), set:toDate(Jt+w/360)}; }
+let skinPref="auto"; try{ skinPref=localStorage.getItem("runway.skin")||"auto"; }catch(e){}
+function applySkin(){ let s=skinPref; if(s==="auto"){ const pt = PUB&&PUB.lat!=null ? [PUB.lat,PUB.lng] : RACE.startPt; const st=sunTimes(new Date(),pt[0],pt[1]); const t=new Date(); s = (st && (t<st.rise||t>st.set)) ? "night":"day"; }
+  document.documentElement.dataset.skin=s; $("#skinBtn").textContent = skinPref==="auto"?(s==="night"?"Night, auto":"Day, auto"):(s==="night"?"Night":"Day");
+  const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content=s==="night"?"#000000":"#F4F3EF"; }
+$("#skinBtn").addEventListener("click",()=>{ const o=["auto","day","night"]; skinPref=o[(o.indexOf(skinPref)+1)%3]; try{ localStorage.setItem("runway.skin",skinPref); }catch(e){} applySkin(); });
+
+// ---- pieces ----
+function curIdx(){ return PUB ? Math.max(0,Math.min(N-1,PUB.leg-1)) : 0; }
+function legStatus(n){ const c=PUB?PUB.leg:0; return n<c?"done":n===c?"now":"upcoming"; }
+function instHtml(){ const cur=curIdx(); let acc=0, ticks=""; const started=PUB&&PUB.started;
+  for(let k=0;k<=N;k++){ const pct=acc/totalKm*100, maj=k%10===0; ticks+=`<span class="tick${maj?" maj":""}${started&&k<=cur?" done":""}" style="left:${pct}%">${maj&&k>0&&k<N?`<span>${k}</span>`:""}</span>`; if(k<N) acc+=LEGS[k].km; }
+  const done=PUB?Math.min(totalKm,Math.max(0,PUB.km_done||0)):0; const p=done/totalKm*100;
+  return `<div class="inst"><div class="scale">${ticks}</div><div class="line"><i style="width:${p}%"></i><b class="pos" style="left:${p}%"></b></div><div class="ends"><span>Toronto</span><span>Montréal</span></div></div>`; }
+function schematicSvg(o){ o=o||{}; const lats=pts.map(p=>p[0]), lngs=pts.map(p=>p[1]);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLng=Math.min(...lngs),maxLng=Math.max(...lngs); const kx=Math.cos(44.5*Math.PI/180);
+  const W=400,H=o.h||190,pad=20, sc=Math.min((W-2*pad)/((maxLng-minLng)*kx),(H-2*pad)/(maxLat-minLat));
+  const X=p=>(pad+(p[1]-minLng)*kx*sc).toFixed(1), Y=p=>(H-pad-(p[0]-minLat)*sc).toFixed(1);
+  const cur=curIdx(), hi=o.highlight||new Set(), started=PUB&&PUB.started;
+  let paths=`<path d="${pts.map((p,k)=>(k?"L":"M")+X(p)+" "+Y(p)).join(" ")}" fill="none" stroke="var(--dim)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if(started) paths+=`<path d="${pts.slice(0,cur+1).map((p,k)=>(k?"L":"M")+X(p)+" "+Y(p)).join(" ")}" fill="none" stroke="var(--fg)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="${hi.size?.35:1}"/>`;
+  hi.forEach(k=>{ paths+=`<path d="M${X(pts[k])} ${Y(pts[k])} L${X(pts[k+1])} ${Y(pts[k+1])}" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round"/>`; });
+  let dot=""; if(started && !o.noPos){ const f=Math.max(0,Math.min(1,(PUB.along_km||0)/LEGS[cur].km)); const a=pts[cur], b=pts[cur+1]; const cx=(+X(a)+(+X(b)-X(a))*f).toFixed(1), cy=(+Y(a)+(+Y(b)-Y(a))*f).toFixed(1);
+    dot=`<g class="posdot"><circle cx="${cx}" cy="${cy}" r="18" fill="var(--accent)" opacity=".22"/><circle cx="${cx}" cy="${cy}" r="7" fill="var(--accent)"/></g>`; }
+  return `<div class="schem"><svg viewBox="0 0 ${W} ${H}" aria-label="Route overview">${paths}<circle cx="${X(pts[0])}" cy="${Y(pts[0])}" r="4" fill="var(--fg)"/><circle cx="${X(pts[N])}" cy="${Y(pts[N])}" r="4" fill="none" stroke="var(--fg)" stroke-width="2"/>${dot}</svg><span class="c1">Toronto</span><span class="c2">Montréal</span>${o.hint?`<span class="hint">${o.hint}</span>`:""}</div>`; }
+function runnerLegs(name){ const a=PUB&&PUB.legs&&PUB.legs.assign||{}; return LEGS.map((l,i)=>({l,i})).filter(x=>a[x.l.n]===name); }
+function legElapsed(n){ const ac=PUB&&PUB.legs&&PUB.legs.actual||{}; const a=ac[n], b=ac[n+1]; return (a&&b)?(new Date(b)-new Date(a))/60000:null; }
+function stripHtml(){ const runners=ROSTER.filter(t=>t.runner), crew=ROSTER.filter(t=>!t.runner); const who=PUB?PUB.runner:"";
+  return `<div class="strip" id="strip">${runners.concat(crew).map(t=>{ const on=t.name===who; const legs=runnerLegs(t.name); const done=legs.length&&legs.every(x=>legStatus(x.l.n)==="done");
+    return `<button class="pm ${on?"on":done?"done":""}" data-name="${esc(t.name)}"><span class="av">${face(t)}</span><span>${esc(t.name.split(" ")[0])}</span></button>`; }).join("")}</div>`; }
+const EMOJI=["🔥","💪","❤️","🏃"];
+function cheersHtml(){ let nm=""; try{ nm=localStorage.getItem("runway.cheerName")||""; }catch(e){}
+  return `<div><h2>Send a cheer to the road</h2><div class="cheers" id="cheers">${EMOJI.map(e=>`<button data-e="${e}"><span class="e">${e}</span><span class="c">${counts[e]||0}</span></button>`).join("")}</div>
+    <div class="name"><input id="nm" placeholder="Your name, if you want them to know" maxlength="24" value="${esc(nm)}"></div>
+    <div class="msg"><input id="msgIn" placeholder="A few words for the runner (optional)" maxlength="80"><button class="send" id="sendMsg" disabled>Send</button></div>
+    <div class="muted" id="status" style="margin-top:8px">Tap an emoji to send it. The crew sees every cheer on their phones in the vehicles.</div>
+    ${recent.length?`<ul class="feed" style="margin-top:12px">${recent.slice(0,5).map(r=>`<li><span class="e">${esc(r.emoji)}</span><span>${r.name?`<span class="nm">${esc(r.name)}</span>`:`<span class="muted">someone</span>`}${r.msg?`<q>${esc(r.msg)}</q>`:""}</span><span class="w">${ageText((Date.now()-new Date(r.at))/1000)}</span></li>`).join("")}</ul>`:""}</div>`; }
+
+// ---- home ----
+function renderHome(){
+  const el=$("#homeBody");
+  if(!PUB){ el.innerHTML=`<div class="pre"><div class="n">650</div><p>kilometres, Toronto to Montréal, 67 legs, one team.<br>Waiting for the team to go live.</p></div>${schematicSvg({noPos:true})}${cheersHtml()}`; wireHome(); return; }
+  const cur=curIdx(), L_=LEGS[cur]; const done=Math.min(totalKm,Math.max(0,PUB.km_done||0)), left=Math.max(0,totalKm-done);
+  const age=(Date.now()-new Date(PUB.at))/1000, live=age<180; const t=byName(PUB.runner);
+  let status, bib;
+  if(PUB.finished){ status=`<i class="live"></i><span><em>Finished</em> ${dayhm(new Date(PUB.eta_finish))} at the Chalet du Mont-Royal</span>`; bib=`<div class="bib"><div class="n">67</div><div class="t"><small>of 67 legs, ${km1(totalKm)} km</small><b>Done.</b>Montréal.</div></div>`; }
+  else if(!PUB.started){ status=`<i></i><span>Gun goes <b>${dayhm(new Date(PUB.race_start))}</b> at the TORONTO sign</span>`; bib=`<div class="bib"><div class="n">1</div><div class="t"><small>of 67 legs, ${esc(LEGS[0].name)}</small><b>${esc(PUB.runner||"The team")}</b>goes first</div></div>`; }
+  else { status=`<i class="${live?"live":""}"></i><span>${live?`<em>Live</em>, updated ${ageText(age)}`:`Last update ${ageText(age)}`}${PUB.next_runner?`. Next up <b>${esc(PUB.next_runner)}</b>`:""}</span>`;
+    bib=`<div class="bib"><div class="n">${PUB.leg}</div><div class="t"><small>of 67 legs, ${esc(L_.name)}, ${km1(L_.km)} km</small><b>${esc(PUB.runner||"The team")}</b>is running${t&&t.word?`<em>${esc(t.word)}</em>`:""}</div></div>`; }
+  const tDate = new Date(PUB.finished ? PUB.eta_finish : !PUB.started ? PUB.race_start : PUB.eta_finish), tLabel = PUB.finished ? "finished" : !PUB.started ? "starts" : "finish about";
+  el.innerHTML=`<div class="status">${status}</div>${bib}${instHtml()}
+    <div class="stats"><div class="stat"><div class="v">${Math.round(done)}<small>km</small></div><div class="k">kilometres run</div></div><div class="stat hot"><div class="v">${Math.round(left)}<small>km</small></div><div class="k">still to go</div></div><div class="stat"><div class="v">${hm(tDate)}</div><div class="k">${tLabel} ${DAYS[tDate.getDay()]}</div></div></div>
+    ${schematicSvg({hint:PUB.started&&!PUB.finished?"Tap the dot for the map":""})}
+    <div><h2>The team</h2><p class="muted" style="margin:-4px 0 8px">Tap a runner for their legs.</p>${stripHtml()}</div>
+    ${cheersHtml()}`;
+  wireHome(); const on=el.querySelector(".pm.on"); if(on) on.scrollIntoView({inline:"center",block:"nearest"});
 }
+function wireHome(){
+  $("#homeBody .posdot")?.addEventListener("click",openMap);
+  document.querySelectorAll("#homeBody .pm").forEach(b=>b.addEventListener("click",()=>{ openRunner(b.dataset.name); }));
+  document.querySelectorAll("#cheers button").forEach(b=>b.addEventListener("click",()=>send(b.dataset.e,"",b)));
+  const mi=$("#msgIn"), sm=$("#sendMsg"); if(mi&&sm){ mi.addEventListener("input",()=>{ sm.disabled=!mi.value.trim(); }); sm.addEventListener("click",()=>{ const txt=mi.value.trim(); if(!txt) return; send(lastEmoji||"❤️",txt,null); mi.value=""; sm.disabled=true; }); }
+  $("#nm")?.addEventListener("change",()=>{ try{ localStorage.setItem("runway.cheerName",$("#nm").value.trim().slice(0,24)); }catch(e){} });
+}
+
+// ---- runner sheet ----
+function openRunner(name){ const t=byName(name); if(!t) return; const legs=runnerLegs(name); const done=legs.filter(x=>legStatus(x.l.n)==="done"), now=legs.find(x=>legStatus(x.l.n)==="now");
+  const kmAll=legs.reduce((a,x)=>a+x.l.km,0), kmDone=done.reduce((a,x)=>a+x.l.km,0)+(now?(PUB.along_km||0):0);
+  const timed=done.map(x=>({x,m:legElapsed(x.l.n)})).filter(y=>y.m); const pace=timed.length?timed.reduce((a,y)=>a+y.m,0)/timed.reduce((a,y)=>a+y.x.l.km,0):null;
+  const proj=PUB&&PUB.legs&&PUB.legs.proj||{}, ac=PUB&&PUB.legs&&PUB.legs.actual||{};
+  const row=x=>{ const st=legStatus(x.l.n); const a=ac[x.l.n]; const el=legElapsed(x.l.n); const when=a?new Date(a):proj[x.l.n]?new Date(proj[x.l.n]):null;
+    return `<div class="legrow ${st}"><div class="n">${x.l.n}</div><div><div class="name">${esc(x.l.name)}</div><div class="sub">${km1(x.l.km)} km${when?`, ${a?"left":"planned"} ${dayhm(when)}`:""}${el?`, ${dur(el)} (${Math.floor(el/x.l.km)}:${p2(Math.round(((el/x.l.km)%1)*60))}/km)`:""}</div></div><div class="t">${st==="now"?"now":st==="done"?"done":when?hm(when):""}<small>${st==="upcoming"&&when?"start":""}</small></div></div>`; };
+  $("#runnerBody").innerHTML=`<button class="lnk" id="rBack" style="align-self:flex-start">Back to the team</button>
+    <div class="bib sm"><div class="n">${legs.length||"–"}</div><div class="t"><small>${t.runner?`${legs.length===1?"leg":"legs"}, ${km1(kmAll)} km`:esc(t.role)}</small><b>${esc(t.name)}</b>${t.word?`<em>${esc(t.word)}</em>`:""}</div></div>
+    ${legs.length?schematicSvg({highlight:new Set(legs.map(x=>x.i)),hint:`${esc(t.name.split(" ")[0])}'s legs in colour`}):""}
+    ${t.runner?`<div class="stats"><div class="stat"><div class="v">${km1(kmDone)}<small>km</small></div><div class="k">run so far</div></div><div class="stat"><div class="v">${km1(Math.max(0,kmAll-kmDone))}<small>km</small></div><div class="k">still to run</div></div><div class="stat hot"><div class="v">${pace?`${Math.floor(pace)}:${p2(Math.round((pace%1)*60))}`:"–"}</div><div class="k">${pace?"min/km so far":"pace, after a timed leg"}</div></div></div>`:""}
+    ${legs.length?`<div>${legs.map(row).join("")}</div>`:`<p class="muted">${t.runner?"Legs not posted yet.":"Keeps the runners fed, watered and on time."}</p>`}
+    ${now?`<button class="btn" id="rMap">See leg ${now.l.n} on the map</button>`:""}`;
+  $("#home").hidden=true; $("#runner").hidden=false; window.scrollTo(0,0);
+  $("#rBack").addEventListener("click",()=>{ $("#runner").hidden=true; $("#home").hidden=false; });
+  $("#rMap")?.addEventListener("click",openMap);
+  $("#runnerBody .posdot")?.addEventListener("click",openMap); }
+
+// ---- full map on the current leg ----
+let map=null, routeLayer=null, teamMarker=null;
+function openMap(){ if(!PUB||!PUB.started) return; const cur=curIdx(), L_=LEGS[cur];
+  $("#mapview").hidden=false; $("#mapTtl").innerHTML=`Leg ${L_.n}, ${esc(L_.name)}<small>${esc(PUB.runner||"The team")}, ${km1(L_.km)} km, exchange about ${PUB.exchange_eta?hm(new Date(PUB.exchange_eta)):"–"}</small>`;
+  if(!map){ map=L.map("fmap",{zoomControl:false}); L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:18,maxNativeZoom:17,attribution:'Tiles © Esri'}).addTo(map); L.control.zoom({position:"topright"}).addTo(map); routeLayer=L.layerGroup().addTo(map); }
+  routeLayer.clearLayers(); const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim(); const accent=css("--accent"), fg=css("--fg"), dim=css("--dim"), bg=css("--bg");
+  LEGS.forEach((l,i)=>{ const n=i+1; if(n===PUB.leg) return; routeLayer.addLayer(L.polyline(line(n),{color:n<PUB.leg?fg:dim,weight:3,opacity:n<PUB.leg?.9:.8})); });
+  const ln=line(PUB.leg); routeLayer.addLayer(L.polyline(ln,{color:bg,weight:9,opacity:.6})); routeLayer.addLayer(L.polyline(ln,{color:accent,weight:5}));
+  const pin=(p,label)=>L.marker(p,{icon:L.divIcon({className:"",html:`<div class="endpin" style="background:${bg}"></div>`,iconSize:[16,16],iconAnchor:[8,8]})}).bindTooltip(label,{permanent:true,direction:"top",offset:[0,-8]});
+  routeLayer.addLayer(pin(ln[0], cur===0?"Start":`Exchange ${L_.n-1}`)); routeLayer.addLayer(pin(ln[ln.length-1], cur===N-1?"Finish":`Exchange ${L_.n}`));
+  const pos=(PUB.lat!=null&&PUB.lng!=null)?[PUB.lat,PUB.lng]:ln[0]; const live=(Date.now()-new Date(PUB.at))/1000<180; const t=byName(PUB.runner);
+  const icon=L.divIcon({className:"",html:`<div class="teampin ${live?"live":""}">${t?face(t):"🏃"}</div>`,iconSize:[46,46],iconAnchor:[23,23]});
+  if(!teamMarker){ teamMarker=L.marker(pos,{icon}).addTo(map); } else { teamMarker.setLatLng(pos); teamMarker.setIcon(icon); }
+  teamMarker.bindTooltip(PUB.runner||"The team",{permanent:true,direction:"right",offset:[26,0]});
+  setTimeout(()=>{ map.invalidateSize(); map.fitBounds(L.latLngBounds(ln).extend(pos),{padding:[40,40]}); },60); }
+$("#mapBack").addEventListener("click",()=>{ $("#mapview").hidden=true; });
+
+// ---- data ----
+const sb = window.supabase ? window.supabase.createClient(TEAM.url,TEAM.key) : null;
+let PUB=null, counts={}, recent=[], lastEmoji="";
+function render(){ applySkin(); if($("#runner").hidden) renderHome(); }
 async function pull(){ if(!sb){ render(); return; } try{
   const {data}=await sb.from("runway_public").select("*").eq("team",TEAM.team).maybeSingle(); if(data) PUB=data;
   const since=new Date(Date.now()-48*3600e3).toISOString();
-  const {data:ch}=await sb.from("runway_cheers").select("emoji").eq("team",TEAM.team).gte("at",since).limit(2000);
-  if(ch){ counts={}; ch.forEach(r=>{ counts[r.emoji]=(counts[r.emoji]||0)+1; }); document.querySelectorAll("#cheers button").forEach(b=>{ b.querySelector(".c").textContent=counts[b.dataset.e]||0; }); }
+  const {data:ch}=await sb.from("runway_cheers").select("emoji,name,msg,at").eq("team",TEAM.team).gte("at",since).order("at",{ascending:false}).limit(2000);
+  if(ch){ counts={}; ch.forEach(r=>{ counts[r.emoji]=(counts[r.emoji]||0)+1; }); recent=ch.filter(r=>r.name||r.msg).slice(0,20); }
   }catch(e){} render(); }
-pull(); setInterval(pull,30000);
-if(sb){ sb.channel("pub-"+TEAM.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_public",filter:"team=eq."+TEAM.team},p=>{ if(p.new){ PUB=p.new; render(); } })
-  .on("postgres_changes",{event:"INSERT",schema:"public",table:"runway_cheers",filter:"team=eq."+TEAM.team},p=>{ const r=p.new; if(!r) return; counts[r.emoji]=(counts[r.emoji]||0)+1; const b=document.querySelector(`#cheers button[data-e="${r.emoji}"]`); if(b) b.querySelector(".c").textContent=counts[r.emoji]; }).subscribe(); }
+pull(); setInterval(pull,30000); setInterval(applySkin,60000);
+window.__pub = (r,c,rc) => { PUB=r; if(c) counts=c; if(rc) recent=rc; render(); }; // test hook
+if(sb){ sb.channel("pub-"+TEAM.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_public",filter:"team=eq."+TEAM.team},p=>{ if(p.new){ PUB=p.new; render(); if(!$("#mapview").hidden) openMap(); } })
+  .on("postgres_changes",{event:"INSERT",schema:"public",table:"runway_cheers",filter:"team=eq."+TEAM.team},p=>{ const r=p.new; if(!r) return; counts[r.emoji]=(counts[r.emoji]||0)+1; if(r.name||r.msg) recent.unshift(r); const b=document.querySelector(`#cheers button[data-e="${r.emoji}"]`); if(b) b.querySelector(".c").textContent=counts[r.emoji]; }).subscribe(); }
 
-// ---- cheers ----
-try{ $("#nm").value=localStorage.getItem("runway.cheerName")||""; }catch(e){}
+// ---- sending ----
 let lastSend=0;
-document.querySelectorAll("#cheers button").forEach(b=>b.addEventListener("click",async()=>{
-  const now=Date.now(); if(now-lastSend<1500) return; lastSend=now;
-  const name=$("#nm").value.trim().slice(0,24); try{ localStorage.setItem("runway.cheerName",name); }catch(e){}
-  b.classList.add("sent"); setTimeout(()=>b.classList.remove("sent"),600);
-  const t=$("#toast"); t.textContent=`${b.dataset.e} sent${name?", "+name:""}!`; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1400);
-  if(!sb){ $("#status").textContent="Can't reach the team right now."; return; }
-  try{ await sb.from("runway_cheers").insert({team:TEAM.team,emoji:b.dataset.e,name:name||null}); $("#status").textContent="Sent. The team sees cheers on their phones as they come in."; }
-  catch(e){ $("#status").textContent="Couldn't send that one; try again in a moment."; }
-}));
+async function send(emoji,msg,btn){ const now=Date.now(); if(now-lastSend<1200) return; lastSend=now; lastEmoji=emoji;
+  const name=($("#nm")?$("#nm").value:"").trim().slice(0,24); try{ localStorage.setItem("runway.cheerName",name); }catch(e){}
+  if(btn){ btn.classList.add("sent"); setTimeout(()=>btn.classList.remove("sent"),600); const c=btn.querySelector(".c"); c.textContent=+c.textContent+1; }
+  const t=$("#toast"); t.textContent=msg?`Sent to the road ${emoji}`:`${emoji} sent${name?", "+name:""}`; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1400);
+  const st=$("#status"); if(!sb){ if(st) st.textContent="Can't reach the team right now."; return; }
+  try{ await sb.from("runway_cheers").insert({team:TEAM.team,emoji,name:name||null,msg:msg||null}); if(st) st.textContent=msg?"Sent. It shows up on the crew's phones with your name.":"Sent. The crew sees cheers as they come in."; }
+  catch(e){ if(st) st.textContent="Couldn't send that one; try again in a moment."; } }
 })();
 </script>
 </body>

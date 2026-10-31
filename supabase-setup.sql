@@ -96,3 +96,7 @@ drop policy if exists "photos anon read"   on public.runway_photos; create polic
 drop policy if exists "photos anon insert" on public.runway_photos; create policy "photos anon insert" on public.runway_photos for insert to anon with check (caption is null or char_length(caption) <= 120);
 drop policy if exists "photos anon delete" on public.runway_photos; create policy "photos anon delete" on public.runway_photos for delete to anon using (true);
 alter publication supabase_realtime add table public.runway_photos;
+
+-- The Runway tracker: lets the team app wipe everything for a fresh test ("Reset the whole team" in Setup).
+drop policy if exists "runway anon delete" on public.runway_state;  create policy "runway anon delete" on public.runway_state  for delete to anon using (true);
+drop policy if exists "public anon delete" on public.runway_public; create policy "public anon delete" on public.runway_public for delete to anon using (true);

@@ -12,3 +12,7 @@ alter table public.runway_public add column if not exists legs jsonb;
 -- Rehearsal mode removes its pretend bike when it ends.
 drop policy if exists "pos anon delete" on public.runway_pos;
 create policy "pos anon delete" on public.runway_pos for delete to anon using (true);
+
+-- Lets the team app clear test cheers before race day.
+drop policy if exists "cheers anon delete" on public.runway_cheers;
+create policy "cheers anon delete" on public.runway_cheers for delete to anon using (true);

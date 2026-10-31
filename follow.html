@@ -692,6 +692,9 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 section[hidden]{display:none}
 .stack{display:flex;flex-direction:column;gap:14px;padding-top:6px}
 
+/* embed: the host site supplies the header */
+html.embed header .logo{display:none!important} html.embed header{padding-top:8px;justify-content:flex-end}
+html.embed .wrap{padding-bottom:12px} html.embed,html.embed body{height:auto}
 /* masthead */
 header{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding:calc(16px + env(safe-area-inset-top,0px)) 0 4px}
 header .logo{height:60px;display:block}
@@ -1184,6 +1187,14 @@ const hm=d=>`${p2(d.getHours())}:${p2(d.getMinutes())}`; const dayhm=d=>`${DAYS[
 const dur=m=>{ m=Math.round(m); const h=Math.floor(m/60), r=m%60; return h?`${h}h ${p2(r)}`:`${r} min`; };
 const ageText=sec=>sec<60?`${Math.round(sec)} s ago`:sec<3600?`${Math.round(sec/60)} min ago`:`${(sec/3600).toFixed(1)} h ago`;
 const km1=k=>(Math.round(k*10)/10).toFixed(1);
+// Embed mode (…/follow.html?embed=1 inside an iframe on shiftandplay.com): the host page sizes the frame to fit,
+// and anything that needs the full screen (the leg map, a photo) opens the full page in a new tab instead.
+const EMBED = new URLSearchParams(location.search).has("embed") && window.parent!==window;
+const FULL_URL = location.origin + location.pathname;
+if(EMBED){ document.documentElement.classList.add("embed");
+  const post=()=>{ const w=document.querySelector(".wrap"); if(!w) return; try{ window.parent.postMessage({runwayHeight: Math.ceil(w.getBoundingClientRect().height)+4}, "*"); }catch(e){} };
+  try{ new ResizeObserver(post).observe(document.querySelector(".wrap")); }catch(e){ setInterval(post,1500); } window.addEventListener("load",post); setTimeout(post,500); }
+const toTop=()=>{ if(EMBED){ try{ window.parent.postMessage({runwayTop:true},"*"); }catch(e){} } else window.scrollTo(0,0); };
 const IG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>';
 
 // ---- skin ----
@@ -1283,8 +1294,8 @@ function openRunner(name){ const t=byName(name); if(!t) return; const legs=runne
     ${t.runner?`<div class="stats"><div class="stat"><div class="v">${km1(kmDone)}<small>km</small></div><div class="k">run so far</div></div><div class="stat"><div class="v">${km1(Math.max(0,kmAll-kmDone))}<small>km</small></div><div class="k">still to run</div></div><div class="stat hot"><div class="v">${pace?`${Math.floor(pace)}:${p2(Math.round((pace%1)*60))}`:"–"}</div><div class="k">${pace?"min/km so far":"pace, after a timed leg"}</div></div></div>`:""}
     ${legs.length?`<div>${legs.map(row).join("")}</div>`:`<p class="muted">${t.runner?"Legs not posted yet.":"Keeps the runners fed, watered and on time."}</p>`}
     ${now?`<button class="btn" id="rMap">See leg ${now.l.n} on the map</button>`:""}`;
-  $("#home").hidden=true; $("#runner").hidden=false; window.scrollTo(0,0);
-  $("#rBack").addEventListener("click",()=>{ $("#runner").hidden=true; $("#home").hidden=false; });
+  $("#home").hidden=true; $("#runner").hidden=false; toTop();
+  $("#rBack").addEventListener("click",()=>{ $("#runner").hidden=true; $("#home").hidden=false; toTop(); });
   $("#rMap")?.addEventListener("click",openMap);
   $("#runnerBody .posdot")?.addEventListener("click",openMap);
   if(legs.length) setTimeout(()=>drawRunnerMap(legs),30); }
@@ -1305,7 +1316,7 @@ function drawRunnerMap(legs){ const el=$("#rmap"); if(!el) return; if(rmap){ rma
 
 // ---- full map on the current leg ----
 let map=null, routeLayer=null, teamMarker=null;
-function openMap(){ if(!PUB||!PUB.started) return; const cur=curIdx(), L_=LEGS[cur];
+function openMap(){ if(!PUB||!PUB.started) return; if(EMBED){ window.open(FULL_URL+"#map","_blank","noopener"); return; } const cur=curIdx(), L_=LEGS[cur];
   $("#mapview").hidden=false; $("#mapTtl").innerHTML=`Leg ${L_.n}, ${esc(L_.name)}<small>${esc(PUB.runner||"The team")}, ${km1(L_.km)} km, exchange about ${PUB.exchange_eta?hm(new Date(PUB.exchange_eta)):"–"}</small>`;
   if(!map){ map=L.map("fmap",{zoomControl:false}); L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:18,maxNativeZoom:17,attribution:'Tiles © Esri'}).addTo(map); L.control.zoom({position:"topright"}).addTo(map); routeLayer=L.layerGroup().addTo(map); }
   routeLayer.clearLayers(); const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim(); const accent=css("--accent"), fg=css("--fg"), dim=css("--dim"), bg=css("--bg");
@@ -1326,9 +1337,11 @@ let PUB=null, counts={}, recent=[], lastEmoji="", PHOTOS=[];
 const photoAge=p=>ageText((Date.now()-new Date(p.at))/1000);
 function galleryHtml(){ if(!PHOTOS.length) return "";
   return `<div><h2><span>From <em>the road</em></span><small>${PHOTOS.length} photo${PHOTOS.length>1?"s":""}</small></h2><div class="film">${PHOTOS.slice(0,30).map(p=>`<button class="ph" data-id="${p.id}"><img src="${esc(p.url)}" alt="${esc(p.caption||"")}" loading="lazy"><span class="cap">${p.leg?`Leg ${p.leg}`:""}${p.by?`, ${esc(p.by)}`:""}, ${photoAge(p)}${p.caption?`<b>${esc(p.caption)}</b>`:""}</span></button>`).join("")}</div></div>`; }
-function openPhoto(id){ const p=PHOTOS.find(x=>x.id===id); if(!p) return; const ov=document.createElement("div"); ov.className="lightbox"; ov.innerHTML=`<img src="${esc(p.url)}" alt=""><div class="lb"><div><b>${p.leg?`Leg ${p.leg}`:""}${p.by?`, ${esc(p.by)}`:""}</b>, ${photoAge(p)}${p.caption?`<br>${esc(p.caption)}`:""}</div><button id="lbClose">Close</button></div>`;
+function openPhoto(id){ const p=PHOTOS.find(x=>x.id===id); if(!p) return; if(EMBED){ window.open(FULL_URL+"#photo-"+id,"_blank","noopener"); return; } const ov=document.createElement("div"); ov.className="lightbox"; ov.innerHTML=`<img src="${esc(p.url)}" alt=""><div class="lb"><div><b>${p.leg?`Leg ${p.leg}`:""}${p.by?`, ${esc(p.by)}`:""}</b>, ${photoAge(p)}${p.caption?`<br>${esc(p.caption)}`:""}</div><button id="lbClose">Close</button></div>`;
   document.body.appendChild(ov); ov.querySelector("#lbClose").addEventListener("click",()=>ov.remove()); ov.querySelector("img").addEventListener("click",()=>ov.remove()); }
-function render(){ applySkin(); if($("#runner").hidden) renderHome(); }
+let deepDone=false;
+function render(){ applySkin(); if($("#runner").hidden) renderHome();
+  if(!deepDone && PUB){ const h=location.hash; if(h==="#map"&&PUB.started){ deepDone=true; openMap(); } else if(h.startsWith("#photo-")&&PHOTOS.length){ deepDone=true; openPhoto(+h.slice(7)); } } }
 async function pull(){ if(!sb){ render(); return; } try{
   const {data}=await sb.from("runway_public").select("*").eq("team",TEAM.team).maybeSingle(); if(data) PUB=data;
   const since=new Date(Date.now()-48*3600e3).toISOString();

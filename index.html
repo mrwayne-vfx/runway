@@ -911,6 +911,7 @@ input[type=datetime-local],input[type=text],input[type=url],select,textarea{widt
     <div class="brand">The Run<b>way</b></div>
     <div class="hright"><button class="skin" id="skinBtn" title="Day or night look">Auto</button><button class="skin" id="setupBtn" aria-label="Setup" title="Setup">Setup</button><div class="clock" id="clock">--:--</div></div>
   </header>
+  <button id="updBar" hidden style="width:100%;background:var(--accent);color:var(--accent-ink);font-weight:600;padding:10px 16px;text-align:left">A newer version is ready. Tap to reload.</button>
   <main>
     <section id="v-leg"></section>
     <section id="v-legs" hidden></section>
@@ -1263,7 +1264,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 // ---------- state ----------
-const KEY = "runway.v1"; const BUILD = "Oct 31, 10:02";
+const KEY = "runway.v1"; const BUILD = "Oct 31, 10:16";
 // Team connection baked in so every phone joins the same team on first open. The anon key is public by design;
 // the database policies decide what it can do.
 const TEAM = { url:"https://sajvndlspknvaquqnakb.supabase.co", key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhanZuZGxzcGtudmFxdXFuYWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzAyNDQsImV4cCI6MjEwODk0NjI0NH0.jZWUIEY7-EKES_8XJi0xxEpT9q_PsqksU4Fb_xouOj8", team:"runway2026" };
@@ -2153,7 +2154,7 @@ function renderSetup(){
   <div class="card"><h2>Data</h2><div class="kv">
     <div>Total distance</div><div class="v">${km1(totalKm)} km</div>
     <div>Legs</div><div class="v">${N}</div>
-    <div>App build</div><div class="v">${BUILD}</div>
+    <div>App build</div><div class="v">${BUILD} <button class="pill" id="reloadApp" style="margin-left:6px">Reload</button></div>
     <div>Booklet average pace</div><div class="v">${Math.floor(paceMinPerKm)}:${p2(Math.round((paceMinPerKm%1)*60))} /km</div>
     <div>Exchange pins from GPS</div><div class="v">${N-approxCount+1}</div>
     <div>Exchange pins placed from description (approx)</div><div class="v">${approxCount}</div>
@@ -2172,6 +2173,7 @@ function renderSetup(){
     ${HAS_L?`<p style="margin:14px 0 10px;font-size:15px">The whole team: wipes starts, tags, positions, cheers and photos for everyone, and puts the race start back to ${dayhm(new Date(RACE_START_REAL))}. For testing, before race day.</p><button class="pill" id="resetTeam" style="border-color:var(--bad);color:var(--bad)">Reset the whole team</button><div class="muted" id="resetTeamMsg" style="font-size:13px;margin-top:6px"></div>`:""}</div>
   </div>`;
   $("#v-setup").innerHTML=h;
+  $("#reloadApp")?.addEventListener("click",()=>location.reload());
   $("#skinSel").addEventListener("change",e=>{ S.skin=e.target.value; save(); applySkin(); });
   $("#clearCheers")?.addEventListener("click",async()=>{ const ok=await clearCheers(); const m=$("#clearCheersMsg"); if(m) m.textContent= ok?"Cleared.":"Couldn't clear; run supabase-update.sql first."; });
   $("#simFast")?.addEventListener("click",()=>simStart(10)); $("#simReal")?.addEventListener("click",()=>simStart(1)); $("#simStop")?.addEventListener("click",simStop);
@@ -2193,6 +2195,10 @@ function renderSetup(){
   if (sw && window.__swState) { const el=$("#swstate"); if(el) el.textContent=window.__swState; }
 }
 
+// ---------- updates: the home-screen app has no refresh, so check for a newer build whenever it comes to the front ----------
+async function checkUpdate(){ if(!HAS_L) return; try{ const res=await fetch(location.pathname||"./",{cache:"no-store"}); const txt=await res.text(); const m=txt.match(/const BUILD = "([^"]+)"/); if(m && m[1]!==BUILD){ $("#updBar").hidden=false; } }catch(e){} }
+$("#updBar").addEventListener("click",()=>{ location.reload(); });
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) checkUpdate(); }); setTimeout(checkUpdate,4000); setInterval(checkUpdate,10*60000);
 // ---------- clock ----------
 function tick(){ $("#clock").textContent = hm(new Date()); }
 tick(); setInterval(()=>{ tick(); applySkin(); if(view==="leg" && !S.viewLeg) { /* keep current leg fresh */ renderLegIfChanged(); } }, 30000);

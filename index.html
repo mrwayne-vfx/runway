@@ -1643,6 +1643,8 @@ function ensureLeaflet(){
   lmap = L.map("lmap",{zoomControl:true, attributionControl:true});
   L.tileLayer(TILE_URL,{maxZoom:19, maxNativeZoom:17, attribution:'Tiles © <a href="https://www.esri.com/">Esri</a>'}).addTo(lmap);
   lLayer = L.layerGroup().addTo(lmap);
+  // Dragging the map by hand turns Follow me off, so the map stays where you put it.
+  lmap.on("dragstart",()=>{ if(following){ following=false; const b=$("#followMe"); if(b){ b.setAttribute("aria-pressed","false"); b.textContent="Follow me"; } if(!S.sharePos) stopPosShare(); } });
 }
 function drawLeaflet(i,mode){
   ensureLeaflet(); lLayer.clearLayers();
@@ -1844,7 +1846,7 @@ function drawRvCanvas(a,b,ch){
 // Each phone that opts in upserts its GPS fix into runway_pos every ~30 s; everyone else draws it.
 function onOwnFix(fix){ if(!HAS_L||!lmap) return; const ll=[fix.coords.latitude,fix.coords.longitude];
   if(!myDot){ myDot=L.circleMarker(ll,{radius:8,color:"#fff",weight:3,fillColor:"#ff9a3c",fillOpacity:1}).addTo(lmap); } else myDot.setLatLng(ll);
-  if(following && view==="map") lmap.setView(ll, Math.max(lmap.getZoom(),16), {animate:true}); }
+  if(following && view==="map" && !(S.sim&&S.sim.on)) lmap.setView(ll, Math.max(lmap.getZoom(),16), {animate:true}); }
 function meLabel(){ if(S.me.kind==="runner"){ const r=S.runners.find(r=>r.id===S.me.runnerId); return r?r.name:"Runner"; } return S.me.kind==="rv"?"RV":S.me.kind==="bike"?"Bike":S.me.kind==="crew"?"Crew":"SUV"; }
 function startPosShare(){ stopPosShare(); if(!(S.sharePos||following)||!HAS_L||!("geolocation" in navigator)) return;
   posWatch=navigator.geolocation.watchPosition(fix=>{ lastPosFix=fix; onOwnFix(fix); if(!S.sharePos) return; const t=Date.now(); const moved=!POS[S.device]||hav([fix.coords.latitude,fix.coords.longitude],[POS[S.device].lat,POS[S.device].lng])>0.08;
@@ -1910,7 +1912,8 @@ function simRun(){ clearInterval(simTimer); if(!S.sim||!S.sim.on) return; simTic
 function simTick(){ if(!S.sim||!S.sim.on) return; const i=currentIndex(), L_=LEGS[i], act=S.actual[L_.n]; if(!act) return;
   const line=legLine(i,"run"); const elapsed=(Date.now()-new Date(act))/60000*S.sim.speed; const km=Math.min(L_.km, elapsed/SIM_PACE); const p=pointAlong(line, km);
   const row={device:S.sim.device,team:S.sync.team,label:"Rehearsal bike",kind:"bike",runner_id:S.assign[L_.n]||null,lat:+p[0].toFixed(6),lng:+p[1].toFixed(6),acc:8,speed:3,at:new Date().toISOString()};
-  POS[row.device]=row; refreshLive(); if(sb){ sb.from("runway_pos").upsert(row).then(()=>{ lastPublic=0; pushPublic(); }).catch(()=>{}); }
+  POS[row.device]=row; refreshLive(); if(following && view==="map" && lmap) lmap.setView([row.lat,row.lng], Math.max(lmap.getZoom(),15), {animate:true}); // in rehearsal, Follow me follows the pretend bike
+  if(sb){ sb.from("runway_pos").upsert(row).then(()=>{ lastPublic=0; pushPublic(); }).catch(()=>{}); }
   if(km>=L_.km && i<N-1 && !S.actual[LEGS[i+1].n]){ setShared("actual."+LEGS[i+1].n,()=>{ S.actual[LEGS[i+1].n]=toLocalISO(new Date()); }); render(); } }
 function simStop(){ clearInterval(simTimer); const dev=S.sim&&S.sim.device; S.sim={on:false};
   Object.keys(S.actual).forEach(n=>setShared("actual."+n,()=>{ delete S.actual[n]; })); setShared("raceStart",()=>{ S.raceStart=RACE_START_REAL; S.startSet=true; }); setShared("manualNow",()=>{ S.manualNow=null; });

@@ -1951,6 +1951,7 @@ const SHARED_KEYS = () => ["raceStart","manualNow","runners",...Object.keys(S.ac
 function syncStatus(){ if(!S.sync.url) return "Not connected."; return syncInfo.state==="ok"?`Connected as team "${esc(S.sync.team)}"${syncInfo.last?`, last sync ${hm(syncInfo.last)}`:""}.`: syncInfo.state==="offline"?`Offline; changes are kept on this phone and sent when signal returns.`: syncInfo.state==="error"?`Problem: ${esc(syncInfo.err)}`:"Connecting…"; }
 function setSyncState(st,err){ syncInfo.state=st; syncInfo.err=err||""; if(st==="ok") syncInfo.last=new Date(); const el=$("#syncState"); if(el) el.innerHTML=syncStatus(); }
 function sharedSnapshot(){ return {raceStart:S.raceStart,startSet:S.startSet,actual:S.actual,manualNow:S.manualNow,runners:S.runners,assign:S.assign,stamps:S.stamps,device:S.device,at:new Date().toISOString()}; }
+let inPush=false;
 function mergeRemote(r){ if(!r||!r.stamps) return false; let changed=false, mineNewer=false;
   const keys=new Set([...Object.keys(r.stamps),...Object.keys(S.stamps)]);
   keys.forEach(k=>{ const rs=r.stamps[k]||"", ls=S.stamps[k]||""; if(rs>ls){ changed=true; S.stamps[k]=rs;
@@ -1958,7 +1959,7 @@ function mergeRemote(r){ if(!r||!r.stamps) return false; let changed=false, mine
       else if(k.startsWith("actual.")){ const n=k.slice(7); if(r.actual&&r.actual[n]) S.actual[n]=r.actual[n]; else delete S.actual[n]; }
       else if(k.startsWith("assign.")){ const n=k.slice(7); if(r.assign&&r.assign[n]) S.assign[n]=r.assign[n]; else delete S.assign[n]; } }
     else if(ls>rs) mineNewer=true; });
-  if(changed){ save(); render(); } if(mineNewer) schedulePush(); return changed; }
+  if(changed){ save(); render(); } if(mineNewer && !inPush) schedulePush(); return changed; }
 async function loadSb(){ if(window.supabase) return true; return new Promise(res=>{ const sc=document.createElement("script"); sc.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"; sc.onload=()=>res(true); sc.onerror=()=>res(false); document.head.appendChild(sc); }); }
 async function startSync(){ stopSync(); if(!HAS_L||!S.sync.url||!S.sync.key||!S.sync.team) return; setSyncState("connecting");
   if(!(await loadSb())){ setSyncState("offline"); setTimeout(startSync,30000); return; }
@@ -1971,7 +1972,10 @@ async function startSync(){ stopSync(); if(!HAS_L||!S.sync.url||!S.sync.key||!S.
 function stopSync(){ stopPosShare(); if(sb){ try{ sb.removeAllChannels(); }catch(e){} } syncChan=null; sb=null; syncInfo={state:"off",last:null,err:""}; }
 async function pullOnce(){ if(!sb) return; try{ const {data,error}=await sb.from("runway_state").select("data").eq("team",S.sync.team).maybeSingle(); if(error) throw error; if(data&&data.data) mergeRemote(data.data); setSyncState("ok"); }catch(e){ setSyncState(navigator.onLine?"error":"offline",String(e.message||e)); } }
 function schedulePush(){ if(!sb) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,600); }
-async function pushNow(){ if(!sb) return; try{ const {error}=await sb.from("runway_state").upsert({team:S.sync.team,data:sharedSnapshot(),updated_at:new Date().toISOString()}); if(error) throw error; setSyncState("ok"); }catch(e){ setSyncState(navigator.onLine?"error":"offline",String(e.message||e)); setTimeout(()=>{ if(sb) schedulePush(); },20000); } }
+// Push merges first: the shared row is only ever replaced by a snapshot that already contains everything newer on the server,
+// so a freshly reset phone can never wipe the team's tags and starts.
+async function pushNow(){ if(!sb) return; inPush=true; try{ const {data:cur}=await sb.from("runway_state").select("data").eq("team",S.sync.team).maybeSingle(); if(cur&&cur.data) mergeRemote(cur.data);
+  const {error}=await sb.from("runway_state").upsert({team:S.sync.team,data:sharedSnapshot(),updated_at:new Date().toISOString()}); if(error) throw error; setSyncState("ok"); }catch(e){ setSyncState(navigator.onLine?"error":"offline",String(e.message||e)); setTimeout(()=>{ if(sb) schedulePush(); },20000); } finally{ inPush=false; } }
 window.addEventListener("online",()=>{ if(S.sync.url){ if(!sb) startSync(); else { pullOnce(); schedulePush(); } } });
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&sb) pullOnce(); });
 setInterval(()=>{ if(sb&&!document.hidden) pullOnce(); },60000);
@@ -2039,7 +2043,7 @@ function renderSetup(){
   $("#syncSave")?.addEventListener("click",()=>{ S.sync={url:$("#syncUrl").value.trim().replace(/\/$/,""),key:$("#syncKey").value.trim(),team:$("#syncTeam").value.trim()}; save(); startSync(); renderSetup(); });
   $("#syncOff")?.addEventListener("click",()=>{ S.sync={url:"",key:"",team:""}; save(); stopSync(); renderSetup(); });
   $("#shareLink")?.addEventListener("click",async()=>{ const u=new URL(location.href); u.hash=""; u.searchParams.set("sync",btoa(JSON.stringify(S.sync))); const txt=u.toString(); try{ await navigator.clipboard.writeText(txt); $("#shareMsg").textContent="Link copied. Send it to the other phone; opening it once connects them to the same team."; }catch(e){ $("#shareMsg").innerHTML=`Copy this link to the other phone:<br><span class="coords">${esc(txt)}</span>`; } });
-  $("#resetAll").addEventListener("click",()=>{ S=defaults(); save(); renderSetup(); });
+  $("#resetAll").addEventListener("click",()=>{ S=defaults(); save(); renderSetup(); startSync(); /* shared tags and starts come straight back from the team row */ });
   if (sw && window.__swState) { const el=$("#swstate"); if(el) el.textContent=window.__swState; }
 }
 

@@ -1256,7 +1256,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 // ---------- state ----------
-const KEY = "runway.v1";
+const KEY = "runway.v1"; const BUILD = "Oct 30, 21:54";
 // Team connection baked in so every phone joins the same team on first open. The anon key is public by design;
 // the database policies decide what it can do.
 const TEAM = { url:"https://sajvndlspknvaquqnakb.supabase.co", key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhanZuZGxzcGtudmFxdXFuYWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzAyNDQsImV4cCI6MjEwODk0NjI0NH0.jZWUIEY7-EKES_8XJi0xxEpT9q_PsqksU4Fb_xouOj8", team:"runway2026" };
@@ -1277,10 +1277,14 @@ let S = defaults();
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(defaults(), JSON.parse(raw)); } catch(e){}
 if (!S.sync || !S.sync.url) S.sync = {url:TEAM.url,key:TEAM.key,team:TEAM.team};
 if (!S.me) S.me = {kind:"",runnerId:"",label:""};
-// Seed the roster from the published team list (runners only); user-added names are kept.
-(function(){ const base = (typeof TEAM_ROSTER!=="undefined" ? TEAM_ROSTER : []).filter(t=>t.runner).map(t=>({id:t.id,name:t.name}));
-  if (!S.runners || !S.runners.length) { S.runners = base; }
-  else { base.forEach(b=>{ if(!S.runners.some(r=>r.id===b.id || r.name.toLowerCase()===b.name.toLowerCase())) S.runners.push(b); }); } })();
+// The roster is the published team, full stop. Names typed in older builds are matched onto it (by full or first name) and dropped.
+const ROSTER_RUNNERS = () => (typeof TEAM_ROSTER!=="undefined" ? TEAM_ROSTER : []).filter(t=>t.runner).map(t=>({id:t.id,name:t.name}));
+function normalizeRoster(){ const base=ROSTER_RUNNERS(); const old=(S.runners||[]).filter(r=>!base.some(b=>b.id===r.id));
+  const match = nm => { const n=String(nm||"").trim().toLowerCase(); if(!n) return null; return base.find(b=>b.name.toLowerCase()===n) || base.find(b=>b.name.toLowerCase().split(" ")[0]===n.split(" ")[0]) || null; };
+  const remap={}; old.forEach(r=>{ const m=match(r.name); if(m) remap[r.id]=m.id; });
+  Object.keys(S.assign||{}).forEach(n=>{ const id=S.assign[n]; if(base.some(b=>b.id===id)) return; if(remap[id]){ S.assign[n]=remap[id]; } else delete S.assign[n]; });
+  S.runners=base; }
+normalizeRoster();
 const PERSON = id => (typeof TEAM_ROSTER!=="undefined" ? TEAM_ROSTER.find(t=>t.id===id) : null) || null;
 const initials = n => n.split(/\s+/).map(w=>w[0]).filter(Boolean).slice(0,2).join("").toUpperCase();
 function avatar(id, size, cls){ const t=PERSON(id); const nm=t?t.name:(S.runners.find(r=>r.id===id)||{}).name||"?";
@@ -1386,7 +1390,7 @@ function render(){ if(view==="leg") renderLeg(); else if(view==="legs") renderLe
 function renderTeam(){
   const cur=currentIndex(); const curId=S.assign[LEGS[cur].n]; const nextIdx=Math.min(N-1,cur+1); const nextId=S.assign[LEGS[nextIdx].n];
   const roster = (typeof TEAM_ROSTER!=="undefined"?TEAM_ROSTER:[]);
-  const runners = roster.filter(t=>t.runner).concat(S.runners.filter(r=>!roster.some(t=>t.id===r.id)).map(r=>({id:r.id,name:r.name,role:"Runner",word:"",runner:true})));
+  const runners = roster.filter(t=>t.runner);
   const crew = roster.filter(t=>!t.runner);
   const stats = id => { const legs=LEGS.filter(l=>S.assign[l.n]===id); const done=legs.filter(l=>status(LEGS.indexOf(l))==="done"); return {legs,km:legs.reduce((a,l)=>a+l.km,0),doneKm:done.reduce((a,l)=>a+l.km,0)}; };
   const card = (t,tag) => { const st=stats(t.id); const nextLeg=st.legs.find(l=>status(LEGS.indexOf(l))!=="done");
@@ -2050,11 +2054,11 @@ let inPush=false;
 function mergeRemote(r){ if(!r||!r.stamps) return false; let changed=false, mineNewer=false;
   const keys=new Set([...Object.keys(r.stamps),...Object.keys(S.stamps)]);
   keys.forEach(k=>{ const rs=r.stamps[k]||"", ls=S.stamps[k]||""; if(rs>ls){ changed=true; S.stamps[k]=rs;
-      if(k==="raceStart"){ S.raceStart=r.raceStart; S.startSet=r.startSet; } else if(k==="manualNow"){ S.manualNow=r.manualNow; } else if(k==="runners"){ S.runners=r.runners||[]; }
+      if(k==="raceStart"){ S.raceStart=r.raceStart; S.startSet=r.startSet; } else if(k==="manualNow"){ S.manualNow=r.manualNow; } else if(k==="runners"){ /* roster is fixed in the app */ }
       else if(k.startsWith("actual.")){ const n=k.slice(7); if(r.actual&&r.actual[n]) S.actual[n]=r.actual[n]; else delete S.actual[n]; }
       else if(k.startsWith("assign.")){ const n=k.slice(7); if(r.assign&&r.assign[n]) S.assign[n]=r.assign[n]; else delete S.assign[n]; } }
     else if(ls>rs) mineNewer=true; });
-  if(changed){ save(); render(); } if(mineNewer && !inPush) schedulePush(); return changed; }
+  if(changed){ normalizeRoster(); save(); render(); } if(mineNewer && !inPush) schedulePush(); return changed; }
 async function loadSb(){ if(window.supabase) return true; return new Promise(res=>{ const sc=document.createElement("script"); sc.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"; sc.onload=()=>res(true); sc.onerror=()=>res(false); document.head.appendChild(sc); }); }
 async function startSync(){ stopSync(); if(!HAS_L||!S.sync.url||!S.sync.key||!S.sync.team) return; setSyncState("connecting");
   if(!(await loadSb())){ setSyncState("offline"); setTimeout(startSync,30000); return; }
@@ -2089,8 +2093,7 @@ function renderSetup(){
     <div class="muted" style="font-size:13px;margin-top:6px">Every planned time is an offset from this. The booklet's schedule ran from a 9:00 PM Tuesday start and finished about ${dur(finishOff)} later.</div></div>
   <div><label class="f" for="manualNow">Current leg</label><select id="manualNow"><option value="">Auto (from clock and recorded starts)</option>${LEGS.map(l=>`<option value="${l.n}" ${S.manualNow===l.n?"selected":""}>Leg ${l.n} · ${esc(l.name)}</option>`).join("")}</select>
     <div class="muted" style="font-size:13px;margin-top:6px">Override if the clock is wrong about where you are. Marking a leg start clears this.</div></div>
-  <div class="card"><h2>Runners</h2><label class="f" for="roster">Roster, one name per line</label><textarea id="roster" rows="6" style="width:100%;padding:10px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;font-size:16px">${esc(S.runners.map(r=>r.name).join("\n"))}</textarea>
-    <div class="row" style="margin-top:8px;justify-content:space-between"><button class="btn" id="rosterSave" style="padding:9px 14px;font-size:15px">Save roster</button><span class="muted" style="font-size:13px">Then tag runners on each leg, here or on the Leg tab.</span></div>
+  <div class="card"><h2>Runners</h2><p style="margin:0;font-size:15px">The ten runners from the team page, with their faces and words. Tag them to legs here or on the Leg tab.</p>
     ${S.runners.length?`<div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:6px">By runner</div><div class="kv">${S.runners.map(r=>{ const legs=LEGS.filter(l=>S.assign[l.n]===r.id); return `<div>${esc(r.name)}</div><div class="v">${legs.length?legs.map(l=>l.n).join(", ")+" · "+km1(legs.reduce((a,l)=>a+l.km,0))+" km":"<span class=muted>no legs yet</span>"}</div>`; }).join("")}</div>
     <details style="margin-top:10px"><summary class="eyebrow" style="cursor:pointer">Assign all legs</summary><div class="kv" style="margin-top:8px;grid-template-columns:auto 1fr">${LEGS.map(l=>`<div style="font-family:var(--display);font-weight:700;font-size:18px;color:var(--muted);align-self:center">${l.n}</div><select data-assign="${l.n}"><option value="">Unassigned</option>${S.runners.map(r=>`<option value="${r.id}" ${S.assign[l.n]===r.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select>`).join("")}</div></details></div>`:""}</div>
   <div class="card"><h2>Share with the team</h2>${HAS_L?`<p style="margin:0 0 10px;font-size:15px">The team connection is built in; every phone that opens this app is on the same team. Only change these if you set up a different project.</p>
@@ -2108,6 +2111,7 @@ function renderSetup(){
   <div class="card"><h2>Data</h2><div class="kv">
     <div>Total distance</div><div class="v">${km1(totalKm)} km</div>
     <div>Legs</div><div class="v">${N}</div>
+    <div>App build</div><div class="v">${BUILD}</div>
     <div>Booklet average pace</div><div class="v">${Math.floor(paceMinPerKm)}:${p2(Math.round((paceMinPerKm%1)*60))} /km</div>
     <div>Exchange pins from GPS</div><div class="v">${N-approxCount+1}</div>
     <div>Exchange pins placed from description (approx)</div><div class="v">${approxCount}</div>
@@ -2136,8 +2140,7 @@ function renderSetup(){
   $("#meRunner")?.addEventListener("change",e=>{ S.me.runnerId=e.target.value; save(); if(S.sharePos) startPosShare(); });
   $("#sharePos")?.addEventListener("change",e=>{ S.sharePos=e.target.checked; save(); if(S.sharePos) startPosShare(); else stopPosShare(); renderSetup(); });
   $("#wake")?.addEventListener("change",e=>{ S.wake=e.target.checked; save(); applyWake(); });
-  $("#rosterSave").addEventListener("click",()=>{ const names=$("#roster").value.split("\n").map(x=>x.trim()).filter(Boolean);
-    setShared("runners",()=>{ const old=S.runners; S.runners=names.map(n=>{ const ex=old.find(r=>r.name.toLowerCase()===n.toLowerCase()); return ex||{id:Math.random().toString(36).slice(2,8),name:n}; }); const ids=new Set(S.runners.map(r=>r.id)); Object.keys(S.assign).forEach(k=>{ if(!ids.has(S.assign[k])) delete S.assign[k]; }); }); renderSetup(); });
+
   $("#v-setup").querySelectorAll("select[data-assign]").forEach(sel=>sel.addEventListener("change",e=>{ const n=sel.dataset.assign; setShared("assign."+n,()=>{ if(e.target.value) S.assign[n]=e.target.value; else delete S.assign[n]; }); }));
   $("#syncSave")?.addEventListener("click",()=>{ S.sync={url:$("#syncUrl").value.trim().replace(/\/$/,""),key:$("#syncKey").value.trim(),team:$("#syncTeam").value.trim()}; save(); startSync(); renderSetup(); });
   $("#syncOff")?.addEventListener("click",()=>{ S.sync={url:"",key:"",team:""}; save(); stopSync(); renderSetup(); });

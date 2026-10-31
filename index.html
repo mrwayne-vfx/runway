@@ -213,6 +213,16 @@ ol.turns .td{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px
 .schem .c1{left:4px;top:8px}.schem .c2{right:4px;bottom:6px}
 .schem .hint{position:absolute;left:50%;transform:translateX(-50%);bottom:6px;font-size:12px;color:var(--muted);white-space:nowrap}
 
+/* photos */
+.phgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.ph{position:relative;aspect-ratio:1;overflow:hidden;border-radius:var(--r);background:var(--soft);padding:0;display:block;width:100%}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph span{position:absolute;left:0;right:0;bottom:0;padding:4px 6px;font-size:11px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.65));text-align:left}
+.lightbox{position:fixed;inset:0;z-index:900;background:#000;display:flex;flex-direction:column}
+.lightbox img{flex:1;min-height:0;object-fit:contain;width:100%}
+.lightbox .lb{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));color:#ECE9E2;font-size:14px;background:#000}
+.lightbox .lb .pill{color:#ECE9E2;border-color:#8C8982}
+label.btn input{display:none}
 /* setup */
 label.f{display:block;font-size:14px;color:var(--muted);margin-bottom:6px}
 input[type=datetime-local],input[type=text],input[type=url],select,textarea{width:100%;padding:10px 12px;border-radius:var(--r);border:1px solid var(--fg);background:transparent;color:var(--fg);font:inherit;font-size:16px}
@@ -1389,8 +1399,9 @@ function renderTeam(){
   let h=`<div class="stack"><div class="status"><i class="now"></i><span>${curName?`<b>${esc(curName)}</b> is running leg ${LEGS[cur].n}`:`Leg ${LEGS[cur].n}, no runner tagged`}${lv?`, <em>live</em> ${ageText(posAge(lv.r))}`:""}${nextId?`. Then ${esc(runnerName(LEGS[nextIdx].n))}.`:""}</span></div>
     ${schematicSvg({alongKm: lv?lv.a.alongKm:0, hint:"Tap the dot to open the map"})}
     <div><h2>Runners</h2><p class="muted" style="font-size:13px;margin:0 0 10px">Tap a runner for their legs.</p><div class="teamgrid">${runners.map(t=>card(t, t.id===curId?"Running":(t.id===nextId?"Up next":""))).join("")}</div></div>
-    <div><h2>Crew</h2><div class="teamgrid">${crew.map(t=>card(t,"")).join("")}</div></div></div>`;
-  $("#v-team").innerHTML=h;
+    <div><h2>Crew</h2><div class="teamgrid">${crew.map(t=>card(t,"")).join("")}</div></div>
+    ${galleryHtml()}</div>`;
+  $("#v-team").innerHTML=h; wireGallery();
   $("#v-team").querySelectorAll(".tcard").forEach(c=>c.addEventListener("click",()=>{ S.teamSel=c.dataset.id; save(); renderTeam(); $("main").scrollTop=0; }));
   $("#v-team .posdot")?.addEventListener("click",()=>{ S.viewLeg=null; save(); mapScope="leg"; setView("map"); });
 }
@@ -1514,6 +1525,7 @@ function renderLeg(){
     <div class="stat hot"><div class="v">${hm(pe)}</div><div class="k">${isLast?"finish":"exchange"} ${DAYS[pe.getDay()]}</div></div>
   </div>
   ${cheerCard()}
+  ${photoCard(i)}
   <div class="muted" style="font-size:13px;margin-top:6px">Planned ${dayhm(plannedStart(i))}${L.interp?" (booklet gave no time; interpolated by distance)":""}${Math.abs(drift)>=1?` · running ${signed(drift)} vs plan`:""}. Cumulative ${km1(kmBefore(i))} km of ${km1(totalKm)} at the start of this leg.</div>
   <div class="seg" role="tablist"><button role="tab" data-mode="run" aria-selected="${S.mode==="run"}">Run</button><button role="tab" data-mode="drive" aria-selected="${S.mode==="drive"}">Drive</button></div>`;
 
@@ -1557,7 +1569,7 @@ function renderLeg(){
   $("#gpxLeg")?.addEventListener("click",()=>downloadText(`runway-leg-${String(L.n).padStart(2,"0")}.gpx`, gpxFor([i])));
   $("#gpxAll")?.addEventListener("click",()=>downloadText("runway-all-legs.gpx", gpxFor(LEGS.map((_,k)=>k))));
   $("#runnerPick")?.addEventListener("change",e=>{ setShared("assign."+L.n,()=>{ if(e.target.value) S.assign[L.n]=e.target.value; else delete S.assign[L.n]; }); renderLeg(); });
-  wireInst();
+  wireInst(); wirePhotos(i);
 }
 
 // Legs where the clock matters for more than pacing.
@@ -1847,7 +1859,7 @@ function drawRvCanvas(a,b,ch){
 function onOwnFix(fix){ if(!HAS_L||!lmap) return; const ll=[fix.coords.latitude,fix.coords.longitude];
   if(!myDot){ myDot=L.circleMarker(ll,{radius:8,color:"#fff",weight:3,fillColor:"#ff9a3c",fillOpacity:1}).addTo(lmap); } else myDot.setLatLng(ll);
   if(following && view==="map" && !(S.sim&&S.sim.on)) lmap.setView(ll, Math.max(lmap.getZoom(),16), {animate:true}); }
-function meLabel(){ if(S.me.kind==="runner"){ const r=S.runners.find(r=>r.id===S.me.runnerId); return r?r.name:"Runner"; } return S.me.kind==="rv"?"RV":S.me.kind==="bike"?"Bike":S.me.kind==="crew"?"Crew":"SUV"; }
+function meLabel(){ if(S.me.label) return S.me.label; if(S.me.kind==="runner"){ const r=S.runners.find(r=>r.id===S.me.runnerId); return r?r.name:"Runner"; } return S.me.kind==="rv"?"RV":S.me.kind==="bike"?"Bike":S.me.kind==="crew"?"Crew":"SUV"; }
 function startPosShare(){ stopPosShare(); if(!(S.sharePos||following)||!HAS_L||!("geolocation" in navigator)) return;
   posWatch=navigator.geolocation.watchPosition(fix=>{ lastPosFix=fix; onOwnFix(fix); if(!S.sharePos) return; const t=Date.now(); const moved=!POS[S.device]||hav([fix.coords.latitude,fix.coords.longitude],[POS[S.device].lat,POS[S.device].lng])>0.08;
       if(t-lastPosPush>30000 || (moved && t-lastPosPush>10000)){ lastPosPush=t; pushPos(fix); } },
@@ -1898,6 +1910,85 @@ function drawLiveDots(map, layerRef){ if(!map) return null; if(layerRef) layerRe
 function refreshLive(){ if(view==="leg") renderLeg(); if(HAS_L){ if(view==="map"&&lmap) liveLayer=drawLiveDots(lmap,liveLayer); if(view==="rv"&&rvmap) rvLiveLayer=drawLiveDots(rvmap,rvLiveLayer); } }
 setInterval(()=>{ if(sb&&!document.hidden) pullPos(); },30000);
 window.__runwayPos = r => { POS[r.device]=r; refreshLive(); }; // test hook
+
+// ---------- photos from the road: team posts, friends page shows ----------
+const BUCKET="runway", FOLLOW_URL="https://mrwayne-vfx.github.io/runway/follow.html";
+let PHOTOS=[], PENDING=[], photoBusy=false;
+function whoAmI(){ if(S.me.kind==="runner"){ const r=S.runners.find(r=>r.id===S.me.runnerId); if(r) return r.name; } return S.me.label || (S.me.kind==="rv"?"RV crew": S.me.kind==="bike"?"Bike support": S.me.kind==="suv"?"SUV crew":"Crew"); }
+function shrink(file, max, q){ return new Promise((res,rej)=>{ const url=URL.createObjectURL(file); const im=new Image(); im.onload=()=>{ const s=Math.min(1,max/Math.max(im.width,im.height)); const w=Math.round(im.width*s), h=Math.round(im.height*s); const c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(im,0,0,w,h); URL.revokeObjectURL(url); c.toBlob(b=>b?res({blob:b,w,h}):rej(new Error("encode")),"image/jpeg",q||.82); }; im.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error("read")); }; im.src=url; }); }
+async function postPhoto(file, caption, legN){ const msg=$("#photoMsg"); try{ if(msg) msg.textContent="Shrinking…"; const {blob,w,h}=await shrink(file,1600,.82);
+    const item={blob,w,h,caption:(caption||"").slice(0,120),leg:legN,by:whoAmI(),at:new Date().toISOString(),path:`${S.sync.team}/${Date.now()}-${Math.random().toString(36).slice(2,6)}.jpg`};
+    PENDING.push(item); renderLeg(); flushPhotos(); }catch(e){ if(msg) msg.textContent="Couldn't read that photo."; } }
+async function flushPhotos(){ if(photoBusy||!sb||!PENDING.length) return; photoBusy=true; const msg=$("#photoMsg");
+  while(PENDING.length){ const it=PENDING[0]; try{ if(msg) msg.textContent=`Sending ${PENDING.length} photo${PENDING.length>1?"s":""}…`;
+      const {error}=await sb.storage.from(BUCKET).upload(it.path, it.blob, {contentType:"image/jpeg", upsert:true}); if(error) throw error;
+      const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(it.path);
+      const {error:e2}=await sb.from("runway_photos").insert({team:S.sync.team,path:it.path,url:pub.publicUrl,leg:it.leg,by:it.by,caption:it.caption||null,w:it.w,h:it.h,at:it.at}); if(e2) throw e2;
+      PENDING.shift(); } catch(e){ if(msg) msg.textContent="No signal; the photo is queued and goes when it comes back (keep the app open)."; break; } }
+  photoBusy=false; if(!PENDING.length){ await pullPhotos(); if(msg) msg.textContent="Posted. It's on the friends page now."; } }
+window.addEventListener("online",()=>flushPhotos()); setInterval(()=>{ if(!document.hidden) flushPhotos(); },30000);
+async function pullPhotos(){ if(!sb) return; try{ const {data}=await sb.from("runway_photos").select("*").eq("team",S.sync.team).order("at",{ascending:false}).limit(200); if(data){ PHOTOS=data; if(view==="leg") renderLeg(); if(view==="team") renderTeam(); } }catch(e){} }
+async function deletePhoto(id){ const ph=PHOTOS.find(p=>p.id===id); if(!ph||!sb) return; try{ await sb.from("runway_photos").delete().eq("id",id); await sb.storage.from(BUCKET).remove([ph.path]); PHOTOS=PHOTOS.filter(p=>p.id!==id); render(); }catch(e){} }
+const photoWhen = p => `${ageText(posAge({at:p.at}))}`;
+function thumb(p, extra){ return `<button class="ph" data-id="${p.id}" ${extra||""}><img src="${esc(p.url)}" alt="${esc(p.caption||("Leg "+p.leg))}" loading="lazy"><span>${p.leg?`Leg ${p.leg}`:""}${p.by?`, ${esc(p.by)}`:""}</span></button>`; }
+function photoCard(i){ if(!HAS_L) return ""; const L_=LEGS[i]; const mine=PHOTOS.filter(p=>p.leg===L_.n).slice(0,6);
+  return `<div class="card"><div class="row" style="justify-content:space-between;align-items:baseline"><h2 style="margin:0">From the road</h2><span class="muted" style="font-size:13px">${PHOTOS.length?`${PHOTOS.length} photo${PHOTOS.length>1?"s":""} so far`:""}</span></div>
+    <div class="pn" style="margin-top:10px"><label class="btn" style="cursor:pointer"><input type="file" id="photoIn" accept="image/*" hidden>Post a photo</label><button class="btn" id="shareCard">Share status</button></div>
+    <input type="text" id="photoCap" placeholder="Caption (optional)" maxlength="120" style="margin-top:8px">
+    <div class="muted" id="photoMsg" style="font-size:13px;margin-top:6px">${PENDING.length?`${PENDING.length} waiting to send.`:"Photos go to the friends page tagged with this leg. Share status makes a story card for Instagram."}</div>
+    ${mine.length?`<div class="phgrid" style="margin-top:10px">${mine.map(p=>thumb(p)).join("")}</div>`:""}</div>`; }
+function wirePhotos(i){ $("#photoIn")?.addEventListener("change",e=>{ const f=e.target.files&&e.target.files[0]; if(f) postPhoto(f, $("#photoCap").value, LEGS[i].n); e.target.value=""; });
+  $("#shareCard")?.addEventListener("click",()=>shareStatus(i));
+  document.querySelectorAll("#v-leg .ph").forEach(b=>b.addEventListener("click",()=>openPhoto(+b.dataset.id))); }
+function galleryHtml(){ if(!HAS_L) return ""; return `<div><h2>From the road</h2>${PHOTOS.length?`<div class="phgrid">${PHOTOS.map(p=>thumb(p)).join("")}</div>`:`<p class="muted" style="margin:0">Nothing posted yet. Post from the Leg tab; everything lands on the friends page.</p>`}</div>`; }
+function wireGallery(){ document.querySelectorAll("#v-team .ph").forEach(b=>b.addEventListener("click",()=>openPhoto(+b.dataset.id))); }
+function openPhoto(id){ const p=PHOTOS.find(x=>x.id===id); if(!p) return; const ov=document.createElement("div"); ov.className="lightbox"; ov.innerHTML=`<img src="${esc(p.url)}" alt=""><div class="lb"><div><b>${p.leg?`Leg ${p.leg}`:""}${p.by?`, ${esc(p.by)}`:""}</b>, ${photoWhen(p)}${p.caption?`<br>${esc(p.caption)}`:""}</div><div class="row" style="gap:8px"><button class="pill" id="lbDel">Delete</button><button class="pill" id="lbClose">Close</button></div></div>`;
+  document.body.appendChild(ov); ov.querySelector("#lbClose").addEventListener("click",()=>ov.remove()); ov.querySelector("img").addEventListener("click",()=>ov.remove());
+  ov.querySelector("#lbDel").addEventListener("click",()=>{ if(confirm("Delete this photo for everyone?")){ deletePhoto(id); ov.remove(); } }); }
+
+// Status card for Instagram: a 1080×1920 story in the night skin, shared through the phone's share sheet.
+async function shareStatus(i){ const btn=$("#shareCard"); if(btn) btn.textContent="Making the card…";
+  try{ await Promise.all([document.fonts.load('900 200px "Big Shoulders Display"'), document.fonts.load('300 60px "Bricolage Grotesque"'), document.fonts.load('600 60px "Bricolage Grotesque"')]); }catch(e){}
+  const cur=currentIndex(), L_=LEGS[cur], lv=liveRunnerFor(cur); const kmDone=kmBefore(cur)+(lv?lv.a.alongKm:0); const rn=runnerName(L_.n), person=PERSON(S.assign[L_.n]);
+  const latest=PHOTOS[0]; const W=1080,H=1920; const c=document.createElement("canvas"); c.width=W; c.height=H; const g=c.getContext("2d");
+  g.fillStyle="#000"; g.fillRect(0,0,W,H);
+  if(latest){ try{ const im=await new Promise((res,rej)=>{ const x=new Image(); x.crossOrigin="anonymous"; x.onload=()=>res(x); x.onerror=rej; x.src=latest.url; });
+      const ph=1120, s=Math.max(W/im.width, ph/im.height); const dw=im.width*s, dh=im.height*s; g.drawImage(im,(W-dw)/2,(ph-dh)/2,dw,dh);
+      const gr=g.createLinearGradient(0,ph-520,0,ph); gr.addColorStop(0,"rgba(0,0,0,0)"); gr.addColorStop(1,"#000"); g.fillStyle=gr; g.fillRect(0,ph-520,W,520); }catch(e){} }
+  const amber="#FFB000", ink="#ECE9E2", mute="#8C8982";
+  if(!latest){ // no photo yet: the route itself fills the top of the card
+    const all=pts(); const lats=all.map(p=>p[0]), lngs=all.map(p=>p[1]); const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLng=Math.min(...lngs),maxLng=Math.max(...lngs); const kx=Math.cos(44.5*Math.PI/180);
+    const bx=90,by=200,bw=W-180,bh=300; const sc=Math.min(bw/((maxLng-minLng)*kx),bh/(maxLat-minLat)); const X=p=>bx+(p[1]-minLng)*kx*sc, Y=p=>by+bh-(p[0]-minLat)*sc;
+    g.lineJoin="round"; g.lineCap="round"; g.lineWidth=8; g.strokeStyle="#2A2A2E"; g.beginPath(); all.forEach((p,k)=>k?g.lineTo(X(p),Y(p)):g.moveTo(X(p),Y(p))); g.stroke();
+    g.strokeStyle=ink; g.beginPath(); all.slice(0,cur+1).forEach((p,k)=>k?g.lineTo(X(p),Y(p)):g.moveTo(X(p),Y(p))); g.stroke();
+    const f=Math.max(0,Math.min(1,(lv?lv.a.alongKm:0)/L_.km)); const a=all[cur],b2=all[cur+1]; const cx=X(a)+(X(b2)-X(a))*f, cy=Y(a)+(Y(b2)-Y(a))*f;
+    g.fillStyle="rgba(255,176,0,.3)"; g.beginPath(); g.arc(cx,cy,44,0,Math.PI*2); g.fill(); g.fillStyle=amber; g.beginPath(); g.arc(cx,cy,18,0,Math.PI*2); g.fill();
+    g.fillStyle=mute; g.font='400 30px "Bricolage Grotesque"'; g.fillText("Toronto",X(all[0])+60,Y(all[0])+46); g.fillText("Montréal",X(all[N])-150,Y(all[N])-40); }
+  g.fillStyle=ink; g.font='900 72px "Big Shoulders Display"'; g.textBaseline="alphabetic"; g.fillText("THE RUN",60,130); const tw=g.measureText("THE RUN").width; g.fillStyle=amber; g.fillText("WAY",60+tw,130);
+  g.fillStyle=mute; g.font='400 34px "Bricolage Grotesque"'; g.textAlign="right"; g.fillText("#RUNTOMTL",W-60,124); g.textAlign="left";
+  let y=latest?1180:620;
+  g.fillStyle=ink; g.fillRect(60,y-30,W-120,6);
+  g.font='900 420px "Big Shoulders Display"'; g.fillText(String(L_.n),50,y+340);
+  const nx=60+g.measureText(String(L_.n)).width+40;
+  g.fillStyle=mute; g.font='400 34px "Bricolage Grotesque"'; g.fillText(`of ${N} legs, ${km1(L_.km)} km`,nx,y+70);
+  g.fillStyle=ink; g.font='600 64px "Bricolage Grotesque"'; const nameLines=(rn||L_.name).split(" "); let ly=y+150; nameLines.forEach(w=>{ g.fillText(w,nx,ly); ly+=70; });
+  g.font='300 64px "Bricolage Grotesque"'; g.fillText(rn?"is running":"", nx, ly); ly+=70;
+  if(person&&person.word){ g.fillStyle=amber; g.font='500 40px "Bricolage Grotesque"'; g.fillText(person.word,nx,ly+10); }
+  y+=400; g.fillStyle=ink; g.fillRect(60,y,W-120,6); y+=50;
+  // instrument track
+  let acc=0; for(let k=0;k<=N;k++){ const x=60+acc/totalKm*(W-120); const maj=k%10===0; g.fillStyle= k<=cur ? amber : "#2A2A2E"; if(maj&&k<=cur) g.fillStyle=amber; g.fillRect(x,y+(maj?0:16),2,maj?40:24); if(maj&&k>0&&k<N){ g.fillStyle=mute; g.font='400 26px "Bricolage Grotesque"'; g.textAlign="center"; g.fillText(String(k),x,y-14); g.textAlign="left"; } if(k<N) acc+=LEGS[k].km; }
+  const px=60+Math.min(1,kmDone/totalKm)*(W-120); g.fillStyle="rgba(255,176,0,.35)"; g.beginPath(); g.arc(px,y+60,34,0,Math.PI*2); g.fill(); g.fillStyle=amber; g.beginPath(); g.arc(px,y+60,16,0,Math.PI*2); g.fill();
+  g.fillStyle=mute; g.font='400 30px "Bricolage Grotesque"'; g.fillText("Toronto",60,y+130); g.textAlign="right"; g.fillText("Montréal",W-60,y+130); g.textAlign="left";
+  y+=200; g.fillStyle=ink; g.fillRect(60,y,W-120,3); const cols=[[Math.round(kmDone)+"","km run",ink],[Math.round(totalKm-kmDone)+"","km to go",amber],[hm(projEnd(N-1)),"finish "+DAYS[projEnd(N-1).getDay()],ink]];
+  cols.forEach((cl,k)=>{ const x=60+k*(W-120)/3; if(k) g.fillRect(x,y,3,190); g.fillStyle=cl[2]; g.font='900 120px "Big Shoulders Display"'; g.fillText(cl[0],x+(k?24:0),y+125); g.fillStyle=mute; g.font='400 30px "Bricolage Grotesque"'; g.fillText(cl[1],x+(k?24:0),y+170); g.fillStyle=ink; });
+  g.fillRect(60,y+190,W-120,3);
+  g.fillStyle=mute; g.font='400 30px "Bricolage Grotesque"'; g.fillText("Follow live and send a cheer",60,H-110); g.fillStyle=ink; g.font='500 34px "Bricolage Grotesque"'; g.fillText(FOLLOW_URL.replace("https://",""),60,H-60);
+  const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.9)); const file=new File([blob],`runway-leg-${L_.n}.jpg`,{type:"image/jpeg"});
+  const caption=`Leg ${L_.n} of ${N}${rn?`, ${rn} out on the road`:""}. ${Math.round(kmDone)} km run, ${Math.round(totalKm-kmDone)} to go. Toronto to Montréal on foot. #RUNTOMTL ${FOLLOW_URL}`;
+  try{ await navigator.clipboard.writeText(caption); }catch(e){}
+  if(navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file],title:"The Runway"}); }catch(e){} }
+  else { const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=file.name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(u); a.remove(); },1000); }
+  if(btn) btn.textContent="Share status"; const m=$("#photoMsg"); if(m) m.textContent="Card made. Caption with the link is on your clipboard; paste it in Instagram."; }
 
 // ---------- rehearsal: a pretend bike rides the route so the whole system can be tried before race day ----------
 const RACE_START_REAL = "2026-11-04T21:00";
@@ -1969,6 +2060,7 @@ async function startSync(){ stopSync(); if(!HAS_L||!S.sync.url||!S.sync.key||!S.
   if(!(await loadSb())){ setSyncState("offline"); setTimeout(startSync,30000); return; }
   try{ sb=window.supabase.createClient(S.sync.url,S.sync.key); await pullOnce(); await pullPos(); pullCheers(); startPosShare();
     sb.channel("runway-cheers-"+S.sync.team).on("postgres_changes",{event:"INSERT",schema:"public",table:"runway_cheers",filter:"team=eq."+S.sync.team},payload=>{ const r=payload.new; if(!r) return; CHEERS.counts[r.emoji]=(CHEERS.counts[r.emoji]||0)+1; CHEERS.recent.unshift(r); CHEERS.recent=CHEERS.recent.slice(0,30); if(view==="leg") renderLeg(); }).subscribe();
+    pullPhotos(); sb.channel("runway-photos-"+S.sync.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_photos",filter:"team=eq."+S.sync.team},()=>pullPhotos()).subscribe();
     sb.channel("runway-pos-"+S.sync.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_pos",filter:"team=eq."+S.sync.team},payload=>{ const r=payload.new; if(r&&r.device!==S.device){ POS[r.device]=r; refreshLive(); } }).subscribe();
     syncChan=sb.channel("runway-"+S.sync.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_state",filter:"team=eq."+S.sync.team},payload=>{ if(payload.new&&payload.new.data&&payload.new.data.device!==S.device){ mergeRemote(payload.new.data); setSyncState("ok"); } }).subscribe();
     schedulePush(); }catch(e){ setSyncState("error",String(e.message||e)); }
@@ -2021,7 +2113,8 @@ function renderSetup(){
     <div>Exchange pins placed from description (approx)</div><div class="v">${approxCount}</div>
     <div>Start times interpolated</div><div class="v">${interpCount} (legs 2 to 10)</div>
   </div><p class="muted" style="font-size:13px;margin:10px 0 0">Source: RunToMtl participant booklet. Per-leg sheet distances used where the summary table disagreed (legs 6 and 7). Four legs are due for new routes; this build uses the booklet versions.</p></div>
-  <div class="card"><h2>This phone</h2><label class="f" for="meKind">Who's carrying it</label><select id="meKind"><option value="suv" ${S.me.kind==="suv"?"selected":""}>SUV driver (runner shuttle)</option><option value="rv" ${S.me.kind==="rv"?"selected":""}>RV driver</option><option value="bike" ${S.me.kind==="bike"?"selected":""}>Bike support (riding behind the runner)</option><option value="crew" ${S.me.kind==="crew"?"selected":""}>Crew / everything</option><option value="runner" ${S.me.kind==="runner"?"selected":""}>A runner</option></select>
+  <div class="card"><h2>This phone</h2><label class="f" for="meLabel">Your name (shows on photos and your map dot)</label><input type="text" id="meLabel" maxlength="24" placeholder="e.g. Wayne" value="${esc(S.me.label||"")}" style="margin-bottom:10px">
+    <label class="f" for="meKind">Who's carrying it</label><select id="meKind"><option value="suv" ${S.me.kind==="suv"?"selected":""}>SUV driver (runner shuttle)</option><option value="rv" ${S.me.kind==="rv"?"selected":""}>RV driver</option><option value="bike" ${S.me.kind==="bike"?"selected":""}>Bike support (riding behind the runner)</option><option value="crew" ${S.me.kind==="crew"?"selected":""}>Crew / everything</option><option value="runner" ${S.me.kind==="runner"?"selected":""}>A runner</option></select>
     ${S.me.kind==="runner"?`<label class="f" for="meRunner" style="margin-top:8px">Which runner</label><select id="meRunner"><option value="">Pick a name</option>${S.runners.map(r=>`<option value="${r.id}" ${S.me.runnerId===r.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select>`:""}
     ${HAS_L?`<div class="row" style="margin-top:12px;justify-content:space-between"><label for="sharePos" style="font-size:15px">Share this phone's position with the team</label><input type="checkbox" id="sharePos" ${S.sharePos?"checked":""} style="width:22px;height:22px"></div>
     <div class="muted" id="posState" style="font-size:13px;margin-top:6px">${S.sharePos?(S.sync.url?"Sharing when the app is open and on screen.":"Needs the team connection below first."):"Off. When on, the other phones see this one as a dot on the Map and RV tabs, and a runner's phone gives a live ETA to the exchange."}</div>
@@ -2038,6 +2131,7 @@ function renderSetup(){
   $("#raceStart").addEventListener("change",e=>{ if(e.target.value){ setShared("raceStart",()=>{ S.raceStart=e.target.value; S.startSet=true; }); } });
   $("#manualNow").addEventListener("change",e=>{ setShared("manualNow",()=>{ S.manualNow=e.target.value?+e.target.value:null; }); });
   $("#clearAll")?.addEventListener("click",()=>{ Object.keys(S.actual).forEach(n=>setShared("actual."+n,()=>{ delete S.actual[n]; })); renderSetup(); });
+  $("#meLabel").addEventListener("change",e=>{ S.me.label=e.target.value.trim().slice(0,24); save(); });
   $("#meKind").addEventListener("change",e=>{ applyRole(e.target.value); renderSetup(); });
   $("#meRunner")?.addEventListener("change",e=>{ S.me.runnerId=e.target.value; save(); if(S.sharePos) startPosShare(); });
   $("#sharePos")?.addEventListener("change",e=>{ S.sharePos=e.target.checked; save(); if(S.sharePos) startPosShare(); else stopPosShare(); renderSetup(); });

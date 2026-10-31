@@ -756,6 +756,18 @@ h2{font-weight:600;font-size:18px;letter-spacing:-.2px;margin:0 0 10px}
 .feed .w{color:var(--muted);font-size:12px;white-space:nowrap}
 .feed q{quotes:none;display:block}
 .feed .nm{font-weight:600}
+.phgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.ph{position:relative;aspect-ratio:1;overflow:hidden;border-radius:var(--r);background:var(--soft);padding:0;display:block;width:100%}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph span{position:absolute;left:0;right:0;bottom:0;padding:4px 6px;font-size:11px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.65));text-align:left}
+.hero{position:relative;border-radius:var(--r);overflow:hidden;background:var(--soft)}
+.hero img{width:100%;max-height:62vh;object-fit:cover;display:block}
+.hero .cap{position:absolute;left:0;right:0;bottom:0;padding:40px 14px 12px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.7));font-size:14px}
+.hero .cap b{display:block;font-size:16px}
+.lightbox{position:fixed;inset:0;z-index:900;background:#000;display:flex;flex-direction:column}
+.lightbox img{flex:1;min-height:0;object-fit:contain;width:100%}
+.lightbox .lb{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));color:#ECE9E2;font-size:14px;background:#000}
+.lightbox .lb button{color:#ECE9E2;border:1px solid #8C8982;border-radius:999px;padding:5px 12px}
 .toast{position:fixed;left:50%;bottom:calc(40px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);font-weight:600;font-size:16px;padding:9px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:900}
 .toast.show{opacity:1}
 /* full map */
@@ -1178,11 +1190,13 @@ function renderHome(){
     <div class="stats"><div class="stat"><div class="v">${Math.round(done)}<small>km</small></div><div class="k">kilometres run</div></div><div class="stat hot"><div class="v">${Math.round(left)}<small>km</small></div><div class="k">still to go</div></div><div class="stat"><div class="v">${hm(tDate)}</div><div class="k">${tLabel} ${DAYS[tDate.getDay()]}</div></div></div>
     ${schematicSvg({hint:PUB.started&&!PUB.finished?"Tap the dot for the map":""})}
     <div><h2>The team</h2><p class="muted" style="margin:-4px 0 8px">Tap a runner for their legs.</p>${stripHtml()}</div>
+    ${galleryHtml()}
     ${cheersHtml()}`;
   wireHome(); const on=el.querySelector(".pm.on"); if(on) on.scrollIntoView({inline:"center",block:"nearest"});
 }
 function wireHome(){
   $("#homeBody .posdot")?.addEventListener("click",openMap);
+  document.querySelectorAll("#homeBody .ph").forEach(b=>b.addEventListener("click",()=>openPhoto(+b.dataset.id)));
   document.querySelectorAll("#homeBody .pm").forEach(b=>b.addEventListener("click",()=>{ openRunner(b.dataset.name); }));
   document.querySelectorAll("#cheers button").forEach(b=>b.addEventListener("click",()=>send(b.dataset.e,"",b)));
   const mi=$("#msgIn"), sm=$("#sendMsg"); if(mi&&sm){ mi.addEventListener("input",()=>{ sm.disabled=!mi.value.trim(); }); sm.addEventListener("click",()=>{ const txt=mi.value.trim(); if(!txt) return; send(lastEmoji||"❤️",txt,null); mi.value=""; sm.disabled=true; }); }
@@ -1226,17 +1240,25 @@ $("#mapBack").addEventListener("click",()=>{ $("#mapview").hidden=true; });
 
 // ---- data ----
 const sb = window.supabase ? window.supabase.createClient(TEAM.url,TEAM.key) : null;
-let PUB=null, counts={}, recent=[], lastEmoji="";
+let PUB=null, counts={}, recent=[], lastEmoji="", PHOTOS=[];
+const photoAge=p=>ageText((Date.now()-new Date(p.at))/1000);
+function galleryHtml(){ if(!PHOTOS.length) return ""; const [first,...rest]=PHOTOS;
+  return `<div><h2>From the road</h2><button class="hero ph" data-id="${first.id}" style="aspect-ratio:auto"><img src="${esc(first.url)}" alt="${esc(first.caption||"")}"><div class="cap"><b>${first.leg?`Leg ${first.leg}`:""}${first.by?`, ${esc(first.by)}`:""}, ${photoAge(first)}</b>${first.caption?esc(first.caption):""}</div></button>
+    ${rest.length?`<div class="phgrid" style="margin-top:6px">${rest.slice(0,30).map(p=>`<button class="ph" data-id="${p.id}"><img src="${esc(p.url)}" alt="${esc(p.caption||"")}" loading="lazy"><span>${p.leg?`Leg ${p.leg}`:""}</span></button>`).join("")}</div>`:""}</div>`; }
+function openPhoto(id){ const p=PHOTOS.find(x=>x.id===id); if(!p) return; const ov=document.createElement("div"); ov.className="lightbox"; ov.innerHTML=`<img src="${esc(p.url)}" alt=""><div class="lb"><div><b>${p.leg?`Leg ${p.leg}`:""}${p.by?`, ${esc(p.by)}`:""}</b>, ${photoAge(p)}${p.caption?`<br>${esc(p.caption)}`:""}</div><button id="lbClose">Close</button></div>`;
+  document.body.appendChild(ov); ov.querySelector("#lbClose").addEventListener("click",()=>ov.remove()); ov.querySelector("img").addEventListener("click",()=>ov.remove()); }
 function render(){ applySkin(); if($("#runner").hidden) renderHome(); }
 async function pull(){ if(!sb){ render(); return; } try{
   const {data}=await sb.from("runway_public").select("*").eq("team",TEAM.team).maybeSingle(); if(data) PUB=data;
   const since=new Date(Date.now()-48*3600e3).toISOString();
   const {data:ch}=await sb.from("runway_cheers").select("emoji,name,msg,at").eq("team",TEAM.team).gte("at",since).order("at",{ascending:false}).limit(2000);
   if(ch){ counts={}; ch.forEach(r=>{ counts[r.emoji]=(counts[r.emoji]||0)+1; }); recent=ch.filter(r=>r.name||r.msg).slice(0,20); }
+  const {data:ph}=await sb.from("runway_photos").select("*").eq("team",TEAM.team).order("at",{ascending:false}).limit(60); if(ph) PHOTOS=ph;
   }catch(e){} render(); }
 pull(); setInterval(pull,30000); setInterval(applySkin,60000);
-window.__pub = (r,c,rc) => { PUB=r; if(c) counts=c; if(rc) recent=rc; render(); }; // test hook
+window.__pub = (r,c,rc,ph) => { PUB=r; if(c) counts=c; if(rc) recent=rc; if(ph) PHOTOS=ph; render(); }; // test hook
 if(sb){ sb.channel("pub-"+TEAM.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_public",filter:"team=eq."+TEAM.team},p=>{ if(p.new){ PUB=p.new; render(); if(!$("#mapview").hidden) openMap(); } })
+  .on("postgres_changes",{event:"*",schema:"public",table:"runway_photos",filter:"team=eq."+TEAM.team},()=>pull())
   .on("postgres_changes",{event:"INSERT",schema:"public",table:"runway_cheers",filter:"team=eq."+TEAM.team},p=>{ const r=p.new; if(!r) return; counts[r.emoji]=(counts[r.emoji]||0)+1; if(r.name||r.msg) recent.unshift(r); const b=document.querySelector(`#cheers button[data-e="${r.emoji}"]`); if(b) b.querySelector(".c").textContent=counts[r.emoji]; }).subscribe(); }
 
 // ---- sending ----

@@ -1375,7 +1375,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 // Test mode keeps rehearsals off the live friends page: its own team code and its own copy of this phone's data.
 // Enter with ?test=1 on any link, or the switch in Setup; leave with ?test=0 or the same switch.
 let TEST=false; try{ const q=new URLSearchParams(location.search).get("test"); if(q==="1") localStorage.setItem("runway.mode","test"); if(q==="0") localStorage.removeItem("runway.mode"); TEST = localStorage.getItem("runway.mode")==="test"; }catch(e){}
-const KEY = TEST ? "runway.v1.test" : "runway.v1"; const BUILD = "Nov 01, 08:58";
+const KEY = TEST ? "runway.v1.test" : "runway.v1"; const BUILD = "Nov 01, 09:16";
 // Team connection baked in so every phone joins the same team on first open. The anon key is public by design;
 // the database policies decide what it can do.
 const TEAM = { url:"https://sajvndlspknvaquqnakb.supabase.co", key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhanZuZGxzcGtudmFxdXFuYWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzAyNDQsImV4cCI6MjEwODk0NjI0NH0.jZWUIEY7-EKES_8XJi0xxEpT9q_PsqksU4Fb_xouOj8", team:"runway2026" };
@@ -2120,7 +2120,7 @@ async function postPhoto(file, caption, legN){ const msg=$("#photoMsg"); try{ if
     PENDING.push(item); if(view==="social") renderSocial(); flushPhotos(); }catch(e){ if(msg) msg.textContent="Couldn't read that photo."; } }
 async function flushPhotos(){ if(photoBusy||!sb||!PENDING.length) return; photoBusy=true; const msg=$("#photoMsg");
   while(PENDING.length){ const it=PENDING[0]; try{ if(msg) msg.textContent=`Sending ${PENDING.length} photo${PENDING.length>1?"s":""}…`;
-      const {error}=await sb.storage.from(BUCKET).upload(it.path, it.blob, {contentType:"image/jpeg", upsert:true}); if(error) throw error;
+      const {error}=await sb.storage.from(BUCKET).upload(it.path, it.blob, {contentType:"image/jpeg", upsert:true, cacheControl:"31536000"}); if(error) throw error;
       const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(it.path);
       const {error:e2}=await sb.from("runway_photos").insert({team:S.sync.team,path:it.path,url:pub.publicUrl,leg:it.leg,by:it.by,caption:it.caption||null,w:it.w,h:it.h,at:it.at}); if(e2) throw e2;
       PENDING.shift(); } catch(e){ if(msg) msg.textContent="No signal; the photo is queued and goes when it comes back (keep the app open)."; break; } }
@@ -2221,9 +2221,10 @@ function simStop(){ clearInterval(simTimer); const dev=S.sim&&S.sim.device; S.si
 if(S.sim&&S.sim.on) setTimeout(simRun,3000);
 
 // ---------- cheers from the friends page ----------
-async function pullCheers(){ if(!sb) return; try{ const since=new Date(Date.now()-48*3600e3).toISOString();
-  const {data}=await sb.from("runway_cheers").select("emoji,name,msg,at").eq("team",S.sync.team).order("at",{ascending:false}).limit(400);
-  if(data){ const counts={}; data.forEach(r=>{ counts[r.emoji]=(counts[r.emoji]||0)+1; }); CHEERS={counts,recent:data.slice(0,30)}; if(view==="social") renderSocial(); } }catch(e){} }
+async function pullCheers(){ if(!sb) return; try{
+  const counts={}; await Promise.all(["🔥","💪","❤️","🏃"].map(async e=>{ const {count,error}=await sb.from("runway_cheers").select("id",{count:"exact",head:true}).eq("team",S.sync.team).eq("emoji",e); if(!error&&count) counts[e]=count; }));
+  const {data}=await sb.from("runway_cheers").select("emoji,name,msg,at").eq("team",S.sync.team).order("at",{ascending:false}).limit(30);
+  if(data){ CHEERS={counts,recent:data}; if(view==="social") renderSocial(); } }catch(e){} }
 // Cheers land on the crew's phones as a feed: emoji, who, and the short message if they wrote one.
 const spr = e => (typeof SPRITES!=="undefined" && SPRITES[e]) ? SPRITES[e] : esc(e);
 if(typeof SPRITE_CSS!=="undefined") document.head.insertAdjacentHTML("beforeend","<style>"+SPRITE_CSS+"</style>");

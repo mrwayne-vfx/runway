@@ -1192,6 +1192,7 @@ function spriteBurst(el){ const b=document.createElement("span"); b.className="b
 "use strict";
 const TEAM = { url:"https://sajvndlspknvaquqnakb.supabase.co", key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhanZuZGxzcGtudmFxdXFuYWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzAyNDQsImV4cCI6MjEwODk0NjI0NH0.jZWUIEY7-EKES_8XJi0xxEpT9q_PsqksU4Fb_xouOj8", team:"runway2026" };
 if(new URLSearchParams(location.search).get("test")==="1") TEAM.team += "-test";
+const BUILD = "Nov 01, 09:16";
 const RACE_START_DEFAULT = "2026-11-04T21:00:00-05:00";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -1418,16 +1419,27 @@ function render(){ PUB=derive(RAW); applySkin(); if($("#runner").hidden) renderH
   if(!deepDone && PUB){ const h=location.hash; if(h==="#map"&&PUB.started){ deepDone=true; openMap(); } else if(h.startsWith("#photo-")&&PHOTOS.length){ deepDone=true; openPhoto(+h.slice(7)); } } }
 async function pull(){ if(!sb){ render(); return; } try{
   const {data,error}=await sb.from("runway_public").select("*").eq("team",TEAM.team).maybeSingle(); if(!error) RAW=data||null;
-  const since=new Date(Date.now()-48*3600e3).toISOString();
-  const {data:ch}=await sb.from("runway_cheers").select("emoji,name,msg,at").eq("team",TEAM.team).order("at",{ascending:false}).limit(5000);
-  if(ch){ counts={}; ch.forEach(r=>{ counts[r.emoji]=(counts[r.emoji]||0)+1; }); recent=ch.filter(r=>r.name||r.msg).slice(0,20); }
-  const {data:ph}=await sb.from("runway_photos").select("*").eq("team",TEAM.team).order("at",{ascending:false}).limit(60); if(ph) PHOTOS=ph;
+  // light polling: the summary every 30 s; cheers and photos every 2 min (live updates arrive in between by realtime)
+  if(pullN++%4===0){ await pullCheersAndPhotos(); }
   }catch(e){} render(); }
+let pullN=0;
+async function pullCheersAndPhotos(){ try{
+  const n={}; await Promise.all(EMOJI.map(async e=>{ const {count,error}=await sb.from("runway_cheers").select("id",{count:"exact",head:true}).eq("team",TEAM.team).eq("emoji",e); if(!error) n[e]=count||0; }));
+  if(Object.keys(n).length) counts=n;
+  const {data:ch}=await sb.from("runway_cheers").select("emoji,name,msg,at").eq("team",TEAM.team).or("name.not.is.null,msg.not.is.null").order("at",{ascending:false}).limit(20); if(ch) recent=ch;
+  const {data:ph}=await sb.from("runway_photos").select("id,url,leg,by,caption,at").eq("team",TEAM.team).order("at",{ascending:false}).limit(60); if(ph) PHOTOS=ph; }catch(e){} }
 pull(); setInterval(pull,30000); setInterval(applySkin,60000);
+// New version published? Reload on its own if the reader isn't typing or looking at a photo or map; otherwise offer it.
+async function checkUpdate(){ try{ const r=await fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"}); const txt=await r.text(); const m=txt.match(/const BUILD = "([^"]+)"/);
+  if(!m||m[1]===BUILD||m[1].includes("BUILD")) return;
+  const busy=($("#msgIn")&&$("#msgIn").value.trim())||document.querySelector(".lightbox")||!$("#mapview").hidden||!$("#runner").hidden||(document.activeElement&&document.activeElement.tagName==="INPUT");
+  if(!busy){ location.reload(); return; }
+  if(!$("#updBar")){ const b=document.createElement("button"); b.id="updBar"; b.textContent="Updated. Tap to refresh."; b.style.cssText="position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:960;background:var(--accent);color:var(--onacc);font:700 14px var(--f);padding:10px 18px;border-radius:999px;box-shadow:0 4px 16px rgba(0,0,0,.25)"; b.onclick=()=>location.reload(); document.body.appendChild(b); } }catch(e){} }
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) checkUpdate(); }); setInterval(checkUpdate,5*60000); setTimeout(checkUpdate,20000);
 setInterval(()=>{ if(document.hidden||!RAW||!RAW.started) return; render(); if(teamMarker&&!$("#mapview").hidden&&PUB&&PUB.lat!=null) teamMarker.setLatLng([PUB.lat,PUB.lng]); },15000);
 window.__pub = (r,c,rc,ph) => { RAW=r; if(c) counts=c; if(rc) recent=rc; if(ph) PHOTOS=ph; render(); }; // test hook
 if(sb){ sb.channel("pub-"+TEAM.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_public",filter:"team=eq."+TEAM.team},p=>{ if(p.new){ RAW=p.new; render(); if(!$("#mapview").hidden) openMap(); } })
-  .on("postgres_changes",{event:"*",schema:"public",table:"runway_photos",filter:"team=eq."+TEAM.team},()=>pull())
+  .on("postgres_changes",{event:"*",schema:"public",table:"runway_photos",filter:"team=eq."+TEAM.team},()=>{ pullCheersAndPhotos().then(render); })
   .on("postgres_changes",{event:"INSERT",schema:"public",table:"runway_cheers",filter:"team=eq."+TEAM.team},p=>{ const r=p.new; if(!r) return; counts[r.emoji]=(counts[r.emoji]||0)+1; if(r.name||r.msg) recent.unshift(r); const b=document.querySelector(`#cheers button[data-e="${r.emoji}"]`); if(b) b.querySelector(".c").textContent=counts[r.emoji]; }).subscribe(); }
 
 // ---- sending ----

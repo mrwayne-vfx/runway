@@ -1417,7 +1417,7 @@ let deepDone=false;
 function render(){ PUB=derive(RAW); applySkin(); if($("#runner").hidden) renderHome();
   if(!deepDone && PUB){ const h=location.hash; if(h==="#map"&&PUB.started){ deepDone=true; openMap(); } else if(h.startsWith("#photo-")&&PHOTOS.length){ deepDone=true; openPhoto(+h.slice(7)); } } }
 async function pull(){ if(!sb){ render(); return; } try{
-  const {data}=await sb.from("runway_public").select("*").eq("team",TEAM.team).maybeSingle(); if(data) RAW=data;
+  const {data,error}=await sb.from("runway_public").select("*").eq("team",TEAM.team).maybeSingle(); if(!error) RAW=data||null;
   const since=new Date(Date.now()-48*3600e3).toISOString();
   const {data:ch}=await sb.from("runway_cheers").select("emoji,name,msg,at").eq("team",TEAM.team).order("at",{ascending:false}).limit(5000);
   if(ch){ counts={}; ch.forEach(r=>{ counts[r.emoji]=(counts[r.emoji]||0)+1; }); recent=ch.filter(r=>r.name||r.msg).slice(0,20); }

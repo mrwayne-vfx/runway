@@ -1368,7 +1368,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 // ---------- state ----------
-const KEY = "runway.v1"; const BUILD = "Oct 31, 22:28";
+const KEY = "runway.v1"; const BUILD = "Nov 01, 08:13";
 // Team connection baked in so every phone joins the same team on first open. The anon key is public by design;
 // the database policies decide what it can do.
 const TEAM = { url:"https://sajvndlspknvaquqnakb.supabase.co", key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhanZuZGxzcGtudmFxdXFuYWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzAyNDQsImV4cCI6MjEwODk0NjI0NH0.jZWUIEY7-EKES_8XJi0xxEpT9q_PsqksU4Fb_xouOj8", team:"runway2026" };
@@ -2052,12 +2052,20 @@ async function pushPublic(){ if(!sb) return; if(Date.now()-lastPublic<20000) ret
     let pos=null, src="";
     if(lv){ pos=[lv.r.lat,lv.r.lng]; src="runner"; }
     else { const rows=liveRows(); if(rows.length){ pos=[rows[0].lat,rows[0].lng]; src=rows[0].kind; } }
-    const kmDone = kmBefore(i) + (lv? lv.a.alongKm : 0);
+    let kmDone = kmBefore(i) + (lv? lv.a.alongKm : 0);
     // the leg record the friends page needs: who is tagged to each leg, when each started, and the projected starts
-    const legs={assign:{}, actual:{}, proj:{}}; LEGS.forEach((l,k)=>{ const nm=runnerName(l.n); if(nm) legs.assign[l.n]=nm; if(S.actual[l.n]) legs.actual[l.n]=new Date(S.actual[l.n]).toISOString(); legs.proj[l.n]=projStart(k).toISOString(); });
+    // What the friends page needs to keep the runner moving through dead zones: the freshest position on this leg
+    // (however old), when this leg started, and the pace to carry forward.
+    let fix=null; Object.values(POS).filter(r=>r.kind==="runner"||r.kind==="bike").sort((a,b)=>new Date(b.at)-new Date(a.at)).some(r=>{ const a=alongLine(legLine(i,"run"),[r.lat,r.lng]); if(a.offKm<0.25){ fix={at:r.at,along:a.alongKm,lat:r.lat,lng:r.lng}; return true; } return false; });
+    const legStart=S.actual[L_.n]?new Date(S.actual[L_.n]):null;
+    let pace=null; if(fix&&legStart&&fix.along>0.3){ pace=(new Date(fix.at)-legStart)/60000/fix.along; }
+    if(!pace){ const rid=S.assign[L_.n]; let m=0,k=0; LEGS.forEach((l,j)=>{ if(j<N-1&&S.assign[l.n]===rid&&S.actual[l.n]&&S.actual[LEGS[j+1].n]){ m+=(new Date(S.actual[LEGS[j+1].n])-new Date(S.actual[l.n]))/60000; k+=l.km; } }); if(k>0) pace=m/k; }
+    if(!pace||!isFinite(pace)) pace=paceMinPerKm; pace=Math.max(3.5,Math.min(9,pace));
+    if(fix){ pos=[fix.lat,fix.lng]; }
+    const legs={assign:{}, actual:{}, proj:{}, live:{leg:L_.n, leg_start:legStart?legStart.toISOString():null, fix_at:fix?fix.at:null, fix_along:fix?+fix.along.toFixed(3):null, pace:+pace.toFixed(2), booklet_pace:+paceMinPerKm.toFixed(2)}}; LEGS.forEach((l,k)=>{ const nm=runnerName(l.n); if(nm) legs.assign[l.n]=nm; if(S.actual[l.n]) legs.actual[l.n]=new Date(S.actual[l.n]).toISOString(); legs.proj[l.n]=projStart(k).toISOString(); });
     const row={team:S.sync.team, leg:L_.n, leg_name:L_.name, runner:runnerName(L_.n)||"", lat:pos?pos[0]:null, lng:pos?pos[1]:null, src,
       km_done:+kmDone.toFixed(1), km_total:+totalKm.toFixed(1), eta_finish:projEnd(N-1).toISOString(), race_start:new Date(S.raceStart).toISOString(), started:!!S.actual[1]||Date.now()>new Date(S.raceStart), finished:!!S.actual[LEGS[N-1].n]&&Date.now()>projEnd(N-1), at:new Date().toISOString(),
-      along_km:+(lv?lv.a.alongKm:0).toFixed(2), next_runner: i<N-1 ? (runnerName(LEGS[i+1].n)||"") : "", exchange_eta: projEnd(i).toISOString(), legs};
+      along_km:+(lv?lv.a.alongKm:(fix?fix.along:0)).toFixed(2), next_runner: i<N-1 ? (runnerName(LEGS[i+1].n)||"") : "", exchange_eta: projEnd(i).toISOString(), legs};
     await sb.from("runway_public").upsert(row); }catch(e){} }
 setInterval(()=>{ if(sb&&!document.hidden) pushPublic(); },30000);
 async function pushPos(fix){ const row={device:S.device,team:S.sync.team,label:meLabel(),kind:S.me.kind,runner_id:S.me.runnerId||null,lat:+fix.coords.latitude.toFixed(6),lng:+fix.coords.longitude.toFixed(6),acc:Math.round(fix.coords.accuracy||0),speed:fix.coords.speed==null?null:+fix.coords.speed.toFixed(2),at:new Date().toISOString()};

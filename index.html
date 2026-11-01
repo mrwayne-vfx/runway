@@ -956,6 +956,11 @@ body.mapfull #mapFoot,body.mapfull #mapLegend{display:none}
 .turnsbox{margin-top:10px;background:var(--soft);border-radius:var(--r);padding:10px 14px}
 .turnsbox summary{cursor:pointer;font-weight:600;font-size:15px}
 .turnsbox ol.turns{margin-top:8px}
+
+.legpanel{background:var(--soft);border-radius:var(--r);padding:14px;margin:2px 0 12px}
+.legpanel .stat{background:var(--bg)}
+.legrow.open{border-bottom-color:transparent}
+.legrow .rn{color:var(--fg);font-weight:600}.legrow .norun{color:var(--warn)}
 </style>
 
 <script>/* @preserve
@@ -1009,7 +1014,7 @@ body.mapfull #mapFoot,body.mapfull #mapLegend{display:none}
     </section>
   </main>
   <nav class="tabs" role="tablist">
-    <button role="tab" data-view="leg" aria-selected="true">Leg</button>
+    <button role="tab" data-view="leg" aria-selected="true">Now</button>
     <button role="tab" data-view="legs" aria-selected="false">Legs</button>
     <button role="tab" data-view="team" aria-selected="false">Team</button>
     <button role="tab" data-view="rv" aria-selected="false">RV</button>
@@ -1363,7 +1368,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 // ---------- state ----------
-const KEY = "runway.v1"; const BUILD = "Oct 31, 22:10";
+const KEY = "runway.v1"; const BUILD = "Oct 31, 22:28";
 // Team connection baked in so every phone joins the same team on first open. The anon key is public by design;
 // the database policies decide what it can do.
 const TEAM = { url:"https://sajvndlspknvaquqnakb.supabase.co", key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhanZuZGxzcGtudmFxdXFuYWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzAyNDQsImV4cCI6MjEwODk0NjI0NH0.jZWUIEY7-EKES_8XJi0xxEpT9q_PsqksU4Fb_xouOj8", team:"runway2026" };
@@ -1492,7 +1497,7 @@ function navButtons(from,to,mode,line){
 // ---------- views ----------
 let view = "leg";
 let prevView="leg";
-function setView(v){ if(v==="map" && view!=="map") prevView=view==="role"?"leg":view; view=v; document.body.classList.toggle("mapfull", v==="map"); document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected", String(b.dataset.view===v)));
+function setView(v){ if(v==="legs" && view!=="legs") legsScrolled=false; if(v==="map" && view!=="map") prevView=view==="role"?"leg":view; view=v; document.body.classList.toggle("mapfull", v==="map"); document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected", String(b.dataset.view===v)));
   ["leg","legs","map","team","rv","social","setup","role"].forEach(id=>{ $("#v-"+id).hidden = id!==v; });
   if (location.hash !== "#"+v) { try{ history.replaceState(null,"","#"+v);}catch(e){} }
   render(); if(v==="map" && typeof lmap!=="undefined" && lmap){ setTimeout(()=>{ lmap.invalidateSize(); drawMap(); },50); }
@@ -1538,7 +1543,7 @@ function runnerDetail(t){
     <div class="bib sm"><div class="n">${legs.length}</div><div class="t"><small>${legs.length===1?"leg":"legs"}, ${km1(kmAll)} km${t.role&&!t.runner?`, ${esc(t.role)}`:""}</small><b>${esc(t.name)}</b>${t.word?`<em>${esc(t.word)}</em>`:""}</div></div>
     ${legs.length?schematicSvg({highlight:new Set(legs.map(x=>x.i)), alongKm:(liveRunnerFor(cur)||{a:{alongKm:0}}).a.alongKm, hint:`${esc(t.name.split(" ")[0])}'s legs in colour`}):""}
     <div class="stats"><div class="stat"><div class="v">${km1(kmDone)}<small>km</small></div><div class="k">run so far</div></div><div class="stat"><div class="v">${km1(Math.max(0,kmAll-kmDone))}<small>km</small></div><div class="k">still to run</div></div><div class="stat hot"><div class="v">${pace?`${Math.floor(pace)}:${p2(Math.round((pace%1)*60))}`:"–"}</div><div class="k">${pace?"min/km, timed legs":"pace, after a timed leg"}</div></div></div>
-    ${legs.length?`<div>${legs.map(row).join("")}</div><div class="pn"><button class="btn" id="teamMap">Show on the map</button>${now?`<button class="btn primary" id="teamNow">Open leg ${now.l.n}</button>`:""}</div>`:`<p class="muted">No legs tagged yet. Tag legs on the Leg tab or in Setup.</p>`}</div>`;
+    ${legs.length?`<div>${legs.map(row).join("")}</div><div class="pn"><button class="btn" id="teamMap">Show on the map</button>${now?`<button class="btn primary" id="teamNow">Open leg ${now.l.n}</button>`:""}</div>`:`<p class="muted">No legs tagged yet. Tag legs on the Now tab or in Setup.</p>`}</div>`;
 }
 function wireRunnerDetail(t){ $("#teamBack").addEventListener("click",()=>{ S.teamSel=null; save(); renderTeam(); });
   $("#v-team").querySelectorAll(".legrow").forEach(b=>b.addEventListener("click",()=>{ S.viewLeg=LEGS[+b.dataset.i].n; save(); setView("leg"); $("main").scrollTop=0; }));
@@ -1699,20 +1704,33 @@ function renderLeg(){
 
 // Legs where the clock matters for more than pacing.
 function timeSensitive(L_){ if(L_.n===26) return "ferry sailing"; if(L_.n===27) return "off the ferry"; if(L_.notes.some(n=>/mandatory/i.test(n))) return "lights dusk to dawn"; if(L_.n===67) return "team joins at Lac aux Castors"; return ""; }
+let legsOpen=null, legsScrolled=false;
+function legPanel(i){ const L=LEGS[i], st=status(i), ps=projStart(i), pe=projEnd(i), id=S.assign[L.n]||"", ts=timeSensitive(L), dk=legDark(i);
+  return `<div class="legpanel">
+    <div class="point"><div class="dot"></div><div><div class="lbl">Start${i===0?"":`, exchange ${L.n-1}`}</div><p>${esc(startLabel(i))}</p></div></div>
+    <div class="point" style="margin-top:8px"><div class="dot end"></div><div><div class="lbl">${i===N-1?"Finish":`Exchange ${L.n}`}</div><p>${esc(L.ex)}</p></div></div>
+    <div class="stats" style="margin-top:12px"><div class="stat"><div class="v">${km1(L.km)}<small>km</small></div><div class="k">distance</div></div><div class="stat"><div class="v">${hm(ps)}</div><div class="k">${S.actual[L.n]?"started":"start"} ${DAYS[ps.getDay()]}</div></div><div class="stat hot"><div class="v">${hm(pe)}</div><div class="k">${i===N-1?"finish":"exchange"} ${DAYS[pe.getDay()]}</div></div></div>
+    ${dk||ts?`<div class="muted" style="font-size:13px;margin-top:8px">${dk==="dark"?"Night leg: headlamp and vest.":dk?"Dusk or dawn: headlamp and vest.":""} ${ts?`Time-sensitive: ${esc(ts)}.`:""}</div>`:""}
+    <label class="f" for="legPick" style="margin-top:12px">Runner</label>
+    <div class="runnerline">${id?avatar(id,44,st==="now"?"on":""):`<span class="av" style="--sz:44px"><span>?</span></span>`}<select id="legPick" data-n="${L.n}" style="flex:1"><option value="">${id?"Nobody (clear)":"Pick a runner"}</option>${S.runners.map(r=>`<option value="${r.id}" ${id===r.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select></div>
+    <div class="pn" style="margin-top:12px"><button class="btn primary" id="legOpen" data-i="${i}">Open leg ${L.n}</button><button class="btn" id="legClose">Close</button></div></div>`; }
 function renderLegs(){
   const cur=currentIndex();
   let h=`<div class="stack"><div><div class="eyebrow">${km1(totalKm)} km, ${N} legs</div><h1>All legs</h1>
-  <p class="muted" style="margin:6px 0 0">Times are projected from the race start you set, shifted by the latest recorded leg start. Finish projected ${dayhm(projEnd(N-1))}.</p></div>${HAS_L?`<div class="mapwrap" id="legsmapSlot"></div>`:""}<div>`;
+  <p class="muted" style="margin:6px 0 0">Finish projected ${dayhm(projEnd(N-1))}. Tap a leg for its details and runner.</p></div>${HAS_L?`<div class="mapwrap" id="legsmapSlot"></div>`:""}<div>`;
   let lastDay=null;
   LEGS.forEach((L,i)=>{ const ps=projStart(i), st=status(i); const day=ps.toDateString();
     if(day!==lastDay){ h+=`<div class="daysep">${DAYS[ps.getDay()]} ${ps.getDate()} ${ps.toLocaleString(undefined,{month:"short"})}</div>`; lastDay=day; }
-    const rn=runnerName(L.n); const ts=timeSensitive(L); const dk=legDark(i);
-    h+=`<button class="legrow ${st}" data-i="${i}"><div class="n">${L.n}</div><div><div class="name">${esc(L.name)}${rn?` <span class="muted" style="font-weight:500">· ${esc(rn)}</span>`:""}</div><div class="sub">${km1(L.km)} km${dk==="dark"?" · 🌙 night":dk?" · 🌙 dusk/dawn":""}${ts?` · <span style="color:var(--warn)">⏱ ${esc(ts)}</span>`:""}${S.actual[L.n]?" · started "+hm(new Date(S.actual[L.n])):""}</div></div><div class="t">${hm(ps)}<small>${st==="now"?"now":st==="done"?"done":"start"}</small></div></button>`;
+    const rn=runnerName(L.n); const ts=timeSensitive(L); const dk=legDark(i); const open=legsOpen===i;
+    h+=`<button class="legrow ${st}${open?" open":""}" data-i="${i}" aria-expanded="${open}"><div class="n">${L.n}</div><div><div class="name">${esc(L.name)}</div><div class="sub">${rn?`<b class="rn">${esc(rn)}</b>, `:`<span class="norun">no runner</span>, `}${km1(L.km)} km${dk==="dark"?", night":dk?", dusk/dawn":""}${ts?`, <span style="color:var(--warn)">${esc(ts)}</span>`:""}</div></div><div class="t">${hm(ps)}<small>${st==="now"?"now":st==="done"?"done":"start"}</small></div></button>${open?legPanel(i):""}`;
   });
   h+=`</div></div>`;
   $("#v-legs").innerHTML=h; if(HAS_L) mountLegsMap();
-  $("#v-legs").querySelectorAll(".legrow").forEach(b=>b.addEventListener("click",()=>{ S.viewLeg=LEGS[+b.dataset.i].n; save(); setView("leg"); $("main").scrollTop=0; }));
-  const nowRow=$("#v-legs .legrow.now"); if(nowRow) nowRow.scrollIntoView({block:"center"});
+  $("#v-legs").querySelectorAll(".legrow").forEach(b=>b.addEventListener("click",()=>{ const i=+b.dataset.i; legsOpen = legsOpen===i?null:i; renderLegs(); const r=$(`#v-legs .legrow[data-i="${i}"]`); if(r) r.scrollIntoView({block:"nearest"}); }));
+  $("#legPick")?.addEventListener("change",e=>{ const n=e.target.dataset.n; setShared("assign."+n,()=>{ if(e.target.value) S.assign[n]=e.target.value; else delete S.assign[n]; }); renderLegs(); });
+  $("#legOpen")?.addEventListener("click",e=>{ const i=+e.target.dataset.i; S.viewLeg = i===cur?null:LEGS[i].n; save(); setView("leg"); $("main").scrollTop=0; });
+  $("#legClose")?.addEventListener("click",()=>{ legsOpen=null; renderLegs(); });
+  if(!legsScrolled){ legsScrolled=true; const nowRow=$("#v-legs .legrow.now"); if(nowRow) nowRow.scrollIntoView({block:"center"}); }
 }
 
 // ---------- map ----------
@@ -1813,7 +1831,7 @@ let lmap3=null, lLayer3=null, LEGSMAP_EL=null;
 function mountLegsMap(){ const slot=$("#legsmapSlot"); if(!slot) return; if(!LEGSMAP_EL){ LEGSMAP_EL=document.createElement("div"); LEGSMAP_EL.id="legsmap"; } slot.appendChild(LEGSMAP_EL);
   if(!lmap3){ lmap3=L.map(LEGSMAP_EL,{zoomControl:false,attributionControl:false,scrollWheelZoom:false}); L.tileLayer(TILE_URL,{maxZoom:19,maxNativeZoom:17}).addTo(lmap3); L.control.zoom({position:"topright"}).addTo(lmap3); lLayer3=L.layerGroup().addTo(lmap3); lmap3.fitBounds(L.latLngBounds(pts()),{padding:[14,14]}); }
   lmap3.invalidateSize(); lLayer3.clearLayers(); const accent=cssVar("--accent"), fg=cssVar("--fg"), dim=cssVar("--muted"), cur=currentIndex();
-  LEGS.forEach((lg,k)=>{ const st=status(k); const pl=L.polyline(legLine(k,"run"),{color: st==="now"?accent: st==="done"?fg: dim, weight: st==="now"?7:4, opacity: st==="upcoming"?.6:1}); pl.on("click",()=>{ S.viewLeg=lg.n; save(); setView("leg"); $("main").scrollTop=0; }); lLayer3.addLayer(pl); });
+  LEGS.forEach((lg,k)=>{ const st=status(k); const pl=L.polyline(legLine(k,"run"),{color: st==="now"?accent: st==="done"?fg: dim, weight: st==="now"?7:4, opacity: st==="upcoming"?.6:1}); pl.on("click",()=>{ legsOpen=k; renderLegs(); const r=$(`#v-legs .legrow[data-i="${k}"]`); if(r) r.scrollIntoView({block:"start",behavior:"smooth"}); }); lLayer3.addLayer(pl); });
   const L_=LEGS[cur], mid=legLine(cur,"run")[Math.floor(legLine(cur,"run").length/2)];
   lLayer3.addLayer(L.marker(mid,{icon:L.divIcon({className:"",html:`<div class="legpin">${L_.n}</div>`,iconSize:[30,30],iconAnchor:[15,15]})}).on("click",()=>{ S.viewLeg=null; save(); setView("leg"); }));
   drawLiveDots(lmap3,null); }
@@ -2017,7 +2035,7 @@ function autoStart(fix){ if(S.me.kind!=="bike" || (S.sim&&S.sim.on)) return; con
   if(hav(p,ex)<0.15){ autoAtEx=t; return; }
   if(autoAtEx && t-autoAtEx<20*60000){ const a=alongLine(legLine(cur+1,"run"),p); if(a.offKm<0.12 && a.alongKm>0.3 && a.alongKm<3){
       const when=toLocalISO(new Date(autoAtEx)); setShared("actual."+nxt.n,()=>{ S.actual[nxt.n]=when; }); setShared("manualNow",()=>{ S.manualNow=null; }); S.viewLeg=null; save(); autoAtEx=null;
-      const tt=document.createElement("div"); tt.className="alert info"; tt.style.cssText="position:fixed;left:16px;right:16px;top:calc(70px + env(safe-area-inset-top,0px));z-index:950"; tt.textContent=`Leg ${nxt.n} started automatically at ${hm(new Date(when))} from the bike. Edit it on the Leg tab if that's off.`; document.body.appendChild(tt); setTimeout(()=>tt.remove(),8000);
+      const tt=document.createElement("div"); tt.className="alert info"; tt.style.cssText="position:fixed;left:16px;right:16px;top:calc(70px + env(safe-area-inset-top,0px));z-index:950"; tt.textContent=`Leg ${nxt.n} started automatically at ${hm(new Date(when))} from the bike. Edit it on the Now tab if that's off.`; document.body.appendChild(tt); setTimeout(()=>tt.remove(),8000);
       render(); } } }
 function onOwnFix(fix){ if(!HAS_L) return; autoStart(fix); const ll=[fix.coords.latitude,fix.coords.longitude]; const mk=()=>L.circleMarker(ll,{radius:8,color:"#fff",weight:3,fillColor:"#ff9a3c",fillOpacity:1});
   if(lmap){ if(!myDot) myDot=mk().addTo(lmap); else myDot.setLatLng(ll); } if(lmap2){ if(!myDot2) myDot2=mk().addTo(lmap2); else myDot2.setLatLng(ll); }
@@ -2267,7 +2285,7 @@ function renderSetup(){
     <div class="muted" style="font-size:13px;margin-top:6px">Every planned time is an offset from this. The booklet's schedule ran from a 9:00 PM Tuesday start and finished about ${dur(finishOff)} later.</div></div>
   <div><label class="f" for="manualNow">Current leg</label><select id="manualNow"><option value="">Auto (from clock and recorded starts)</option>${LEGS.map(l=>`<option value="${l.n}" ${S.manualNow===l.n?"selected":""}>Leg ${l.n} · ${esc(l.name)}</option>`).join("")}</select>
     <div class="muted" style="font-size:13px;margin-top:6px">Override if the clock is wrong about where you are. Marking a leg start clears this.</div></div>
-  <div class="card"><h2>Runners</h2><p style="margin:0;font-size:15px">The ten runners from the team page, with their faces and words. Tag them to legs here or on the Leg tab.</p>
+  <div class="card"><h2>Runners</h2><p style="margin:0;font-size:15px">The ten runners from the team page, with their faces and words. Tag them to legs here or on the Now tab.</p>
     ${S.runners.length?`<div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:6px">By runner</div><div class="kv">${S.runners.map(r=>{ const legs=LEGS.filter(l=>S.assign[l.n]===r.id); return `<div>${esc(r.name)}</div><div class="v">${legs.length?legs.map(l=>l.n).join(", ")+" · "+km1(legs.reduce((a,l)=>a+l.km,0))+" km":"<span class=muted>no legs yet</span>"}</div>`; }).join("")}</div>
     <details style="margin-top:10px"><summary class="eyebrow" style="cursor:pointer">Assign all legs</summary><div class="kv" style="margin-top:8px;grid-template-columns:auto 1fr">${LEGS.map(l=>`<div style="font-family:var(--display);font-weight:700;font-size:18px;color:var(--muted);align-self:center">${l.n}</div><select data-assign="${l.n}"><option value="">Unassigned</option>${S.runners.map(r=>`<option value="${r.id}" ${S.assign[l.n]===r.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select>`).join("")}</div></details></div>`:""}</div>
   <div class="card"><h2>Share with the team</h2>${HAS_L?`<p style="margin:0 0 10px;font-size:15px">The team connection is built in; every phone that opens this app is on the same team. Only change these if you set up a different project.</p>

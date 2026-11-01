@@ -935,6 +935,27 @@ input[type=datetime-local],input[type=text],input[type=url],select,textarea{bord
 ol.steps li::before,ol.turns .tn{color:var(--accent)}
 .skin{border-color:var(--line)}
 @media (max-width:360px){ .rhero{grid-template-columns:120px 1fr} .ringwrap{width:120px;height:120px} .portrait{inset:14px} .rhero h1{font-size:36px} }
+
+/* tab bar: five big labels, slim bar */
+nav.tabs{grid-template-columns:repeat(5,1fr)!important}
+nav.tabs button{padding:8px 2px 6px!important;font-size:16px!important;font-weight:600;letter-spacing:-.1px;color:var(--muted)}
+nav.tabs button[aria-selected="true"]{color:var(--fg)}
+/* full-screen map */
+body.mapfull nav.tabs, body.mapfull header{display:none}
+body.mapfull main{padding:0}
+body.mapfull #v-map{position:fixed;inset:0;z-index:30;background:var(--bg);padding:calc(10px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+body.mapfull #v-map>.stack{height:100%;gap:10px}
+body.mapfull #mapwrap{flex:1;min-height:0}
+body.mapfull #lmap{height:100%!important;min-height:0}
+body.mapfull #mapFoot,body.mapfull #mapLegend{display:none}
+.mapbar{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mapbar h1{font-size:28px}.mapbar .eyebrow{font-size:12px}
+.mapbar .btn{padding:9px 14px;flex:none}
+#legsmap{height:260px;width:100%;background:var(--soft)}#legsmap .leaflet-tile-pane{filter:var(--tilefilter)}
+.legpin{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;font:900 15px var(--display);box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.turnsbox{margin-top:10px;background:var(--soft);border-radius:var(--r);padding:10px 14px}
+.turnsbox summary{cursor:pointer;font-weight:600;font-size:15px}
+.turnsbox ol.turns{margin-top:8px}
 </style>
 
 <script>/* @preserve
@@ -954,7 +975,7 @@ ol.steps li::before,ol.turns .tn{color:var(--accent)}
     <section id="v-legs" hidden></section>
     <section id="v-map" hidden>
       <div class="stack">
-        <div id="mapHead"></div>
+        <div class="mapbar"><div id="mapHead"></div><button class="btn" id="mapClose">Close</button></div>
         <div class="seg" role="tablist" style="margin-top:0"><button role="tab" data-mm="run" aria-selected="true">Run</button><button role="tab" data-mm="drive" aria-selected="false">Drive</button></div>
         <div class="row" style="justify-content:space-between">
           <div class="row" style="gap:6px"><button class="pill" id="scopeLeg" aria-pressed="true">This leg</button><button class="pill" id="scopeAll" aria-pressed="false">Full route</button></div>
@@ -990,7 +1011,6 @@ ol.steps li::before,ol.turns .tn{color:var(--accent)}
   <nav class="tabs" role="tablist">
     <button role="tab" data-view="leg" aria-selected="true">Leg</button>
     <button role="tab" data-view="legs" aria-selected="false">Legs</button>
-    <button role="tab" data-view="map" aria-selected="false">Map</button>
     <button role="tab" data-view="team" aria-selected="false">Team</button>
     <button role="tab" data-view="rv" aria-selected="false">RV</button>
     <button role="tab" data-view="social" aria-selected="false">Social</button>
@@ -1343,7 +1363,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 // ---------- state ----------
-const KEY = "runway.v1"; const BUILD = "Oct 31, 11:52";
+const KEY = "runway.v1"; const BUILD = "Oct 31, 22:10";
 // Team connection baked in so every phone joins the same team on first open. The anon key is public by design;
 // the database policies decide what it can do.
 const TEAM = { url:"https://sajvndlspknvaquqnakb.supabase.co", key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhanZuZGxzcGtudmFxdXFuYWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzAyNDQsImV4cCI6MjEwODk0NjI0NH0.jZWUIEY7-EKES_8XJi0xxEpT9q_PsqksU4Fb_xouOj8", team:"runway2026" };
@@ -1471,12 +1491,14 @@ function navButtons(from,to,mode,line){
 
 // ---------- views ----------
 let view = "leg";
-function setView(v){ view=v; document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected", String(b.dataset.view===v)));
+let prevView="leg";
+function setView(v){ if(v==="map" && view!=="map") prevView=view==="role"?"leg":view; view=v; document.body.classList.toggle("mapfull", v==="map"); document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected", String(b.dataset.view===v)));
   ["leg","legs","map","team","rv","social","setup","role"].forEach(id=>{ $("#v-"+id).hidden = id!==v; });
   if (location.hash !== "#"+v) { try{ history.replaceState(null,"","#"+v);}catch(e){} }
   render(); if(v==="map" && typeof lmap!=="undefined" && lmap){ setTimeout(()=>{ lmap.invalidateSize(); drawMap(); },50); }
   if(v==="rv" && typeof rvmap!=="undefined" && rvmap){ setTimeout(()=>{ rvmap.invalidateSize(); renderRv(); },50); } }
 document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
+$("#mapClose").addEventListener("click",()=>{ mapHighlight=null; setView(prevView&&prevView!=="map"?prevView:"leg"); });
 window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(["leg","legs","map","team","rv","social","setup","role"].includes(h)) setView(h); });
 
 function render(){ if(view==="leg") renderLeg(); else if(view==="legs") renderLegs(); else if(view==="map") drawMap(); else if(view==="team") renderTeam(); else if(view==="rv") renderRv(); else if(view==="social") renderSocial(); else if(view==="role") {} else renderSetup(); }
@@ -1537,13 +1559,16 @@ function viewIndex(){ return (S.viewLeg ? S.viewLeg-1 : currentIndex()); }
 
 // ---------- skin: paper by day, black by night, flipping at local sunset ----------
 let skinNow="";
-function applySkin(force){ const pref=S.skin||"auto"; let s=pref;
-  if(s==="auto"){ const i=currentIndex(); s = isDark(new Date(), startPt(i)) ? "night" : "day"; }
+function sunSkin(){ const i=currentIndex(); return isDark(new Date(), startPt(i)) ? "night" : "day"; }
+function nextSunEvent(){ const pt=startPt(currentIndex()), now=new Date(); const s=sunTimes(now,pt[0],pt[1]); if(!s) return new Date(now.getTime()+6*3600e3);
+  if(now<s.rise) return s.rise; if(now<s.set) return s.set; const tm=new Date(now.getTime()+86400e3); const s2=sunTimes(tm,pt[0],pt[1]); return s2?s2.rise:new Date(now.getTime()+12*3600e3); }
+function applySkin(force){ let s=sunSkin();
+  if(S.skinOverride && S.skinOverride.until && Date.now()<new Date(S.skinOverride.until)) s=S.skinOverride.skin; else if(S.skinOverride){ S.skinOverride=null; save(); }
   const changed = s!==skinNow; skinNow=s; document.documentElement.dataset.skin=s;
-  const b=$("#skinBtn"); if(b) b.textContent = pref==="auto" ? (s==="night"?"Night, auto":"Day, auto") : (s==="night"?"Night":"Day");
+  const b=$("#skinBtn"); if(b) b.textContent = s==="night"?"Night":"Day";
   const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content = s==="night"?"#000000":"#F4F3EF";
   if(changed && !force) render(); }
-$("#skinBtn").addEventListener("click",()=>{ const order=["auto","day","night"]; S.skin=order[(order.indexOf(S.skin||"auto")+1)%3]; save(); applySkin(); });
+$("#skinBtn").addEventListener("click",()=>{ const want = skinNow==="night"?"day":"night"; S.skinOverride = want===sunSkin() ? null : {skin:want, until:nextSunEvent().toISOString()}; save(); applySkin(); });
 
 // ---------- the ring: 67 dots, lit as legs are run; the leg on screen is the big dot ----------
 function legRing(S, i){ const r=S/2-7, c=S/2, cur=currentIndex(); let h=""; for(let k=0;k<N;k++){ const a=-Math.PI/2+k/N*Math.PI*2; const cls=k===i?"now":k<cur?"done":""; h+=`<circle class="${cls}" cx="${(c+r*Math.cos(a)).toFixed(1)}" cy="${(c+r*Math.sin(a)).toFixed(1)}" r="${cls==="now"?4.5:2.4}"/>`; } return `<div class="ring"><svg viewBox="0 0 ${S} ${S}">${h}</svg></div>`; }
@@ -1627,11 +1652,11 @@ function renderLeg(){
   </div>
   <div class="muted" style="font-size:13px;margin-top:6px">Planned ${dayhm(plannedStart(i))}${L.interp?" (booklet gave no time; interpolated by distance)":""}${Math.abs(drift)>=1?` · running ${signed(drift)} vs plan`:""}. Cumulative ${km1(kmBefore(i))} km of ${km1(totalKm)} at the start of this leg.</div>
   <div class="seg" role="tablist"><button role="tab" data-mode="run" aria-selected="${S.mode==="run"}">Run</button><button role="tab" data-mode="drive" aria-selected="${S.mode==="drive"}">Drive</button></div>
-  ${HAS_L?`<div class="mapwrap" id="legmapSlot"></div><div class="row" style="justify-content:space-between"><div class="legend" id="legLegend"></div><div class="row" style="gap:6px"><button class="pill" id="legFollow" aria-pressed="${following}">${following?"Following":"Follow me"}</button><button class="pill" id="legFull">Full map</button></div></div>`:""}`;
+  ${HAS_L?`<div class="mapwrap" id="legmapSlot"></div><div class="row" style="justify-content:space-between"><div class="legend" id="legLegend"></div><div class="row" style="gap:6px"><button class="pill" id="legFollow" aria-pressed="${following}">${following?"Following":"Follow me"}</button><button class="pill" id="legFull">Full screen</button></div></div>`:""}`;
 
   if (S.mode==="run"){
     h+=`<div class="card"><div class="point"><div class="dot"></div><div><div class="lbl">Start</div><p>${esc(startLabel(i))}</p><div class="coords">${startPt(i).join(", ")}${startApprox(i)?" · approx":""}</div></div></div></div>
-    <div><h2>Directions</h2><ol class="steps">${L.dirs.map((d,k)=>`<li${k===L.dirs.length-1?' class="final"':''}>${esc(d)}</li>`).join("")}</ol></div>
+    <div><h2>Directions</h2><ol class="steps">${L.dirs.map((d,k)=>`<li${k===L.dirs.length-1?' class="final"':''}>${esc(d)}</li>`).join("")}</ol>${legSteps(i).length?`<details class="turnsbox"><summary>Turn by turn, ${legSteps(i).length} turns on the map</summary><ol class="turns">${legSteps(i).map((s,k)=>`<li><span class="tn">${k+1}</span><span>${esc(stepText(s))}</span><span class="td">${s[4]>=1000?km1(s[4]/1000)+" km":s[4]+" m"}</span></li>`).join("")}</ol></details>`:""}</div>
     <div class="card accent"><div class="point"><div class="dot end"></div><div><div class="lbl">${isLast?"Finish":"Exchange"}</div><p>${esc(L.ex)}</p><div class="coords">${L.pt.join(", ")}${L.approx?" · approx":""}</div></div></div></div>
     ${L.notes.length?`<div><h2>Runner notes</h2><ul class="notes">${L.notes.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></div>`:""}
     <div><h2>Run route, start to exchange</h2>${navButtons(startPt(i),L.pt,"run",legLine(i,"run"))}</div>
@@ -1677,7 +1702,7 @@ function timeSensitive(L_){ if(L_.n===26) return "ferry sailing"; if(L_.n===27) 
 function renderLegs(){
   const cur=currentIndex();
   let h=`<div class="stack"><div><div class="eyebrow">${km1(totalKm)} km, ${N} legs</div><h1>All legs</h1>
-  <p class="muted" style="margin:6px 0 0">Times are projected from the race start you set, shifted by the latest recorded leg start. Finish projected ${dayhm(projEnd(N-1))}.</p></div><div>`;
+  <p class="muted" style="margin:6px 0 0">Times are projected from the race start you set, shifted by the latest recorded leg start. Finish projected ${dayhm(projEnd(N-1))}.</p></div>${HAS_L?`<div class="mapwrap" id="legsmapSlot"></div>`:""}<div>`;
   let lastDay=null;
   LEGS.forEach((L,i)=>{ const ps=projStart(i), st=status(i); const day=ps.toDateString();
     if(day!==lastDay){ h+=`<div class="daysep">${DAYS[ps.getDay()]} ${ps.getDate()} ${ps.toLocaleString(undefined,{month:"short"})}</div>`; lastDay=day; }
@@ -1685,7 +1710,7 @@ function renderLegs(){
     h+=`<button class="legrow ${st}" data-i="${i}"><div class="n">${L.n}</div><div><div class="name">${esc(L.name)}${rn?` <span class="muted" style="font-weight:500">· ${esc(rn)}</span>`:""}</div><div class="sub">${km1(L.km)} km${dk==="dark"?" · 🌙 night":dk?" · 🌙 dusk/dawn":""}${ts?` · <span style="color:var(--warn)">⏱ ${esc(ts)}</span>`:""}${S.actual[L.n]?" · started "+hm(new Date(S.actual[L.n])):""}</div></div><div class="t">${hm(ps)}<small>${st==="now"?"now":st==="done"?"done":"start"}</small></div></button>`;
   });
   h+=`</div></div>`;
-  $("#v-legs").innerHTML=h;
+  $("#v-legs").innerHTML=h; if(HAS_L) mountLegsMap();
   $("#v-legs").querySelectorAll(".legrow").forEach(b=>b.addEventListener("click",()=>{ S.viewLeg=LEGS[+b.dataset.i].n; save(); setView("leg"); $("main").scrollTop=0; }));
   const nowRow=$("#v-legs .legrow.now"); if(nowRow) nowRow.scrollIntoView({block:"center"});
 }
@@ -1736,7 +1761,7 @@ function mapFooter(i,mode){
   }
   if (HAS_L) h += `<div class="card"><h2>Offline map tiles</h2><p style="margin:0 0 10px;font-size:14px">Saves the street map along this leg (zoom 12 to 16) so it still draws with no signal. About ${tileCount(i)} tiles.</p><div class="row"><button class="btn" id="saveTiles">Save leg ${L_.n}</button><button class="btn ghost" id="saveAllTiles">Save all legs</button></div><div class="progress" style="margin-top:10px"><i id="tileBar"></i></div><div class="muted" id="tileMsg" style="font-size:13px;margin-top:6px">${tileStatus()}</div></div>`;
   else h += `<p class="muted" style="font-size:13px;margin:10px 0 0">The routed line is drawn to scale with its turns numbered; there's no street map behind it in this viewer. The hosted build shows the same line on a street map.</p>`;
-  $("#mapFoot").innerHTML = h;
+  $("#mapFoot").innerHTML = "";
   $("#saveTiles")?.addEventListener("click",()=>saveTiles([i]));
   $("#saveAllTiles")?.addEventListener("click",()=>saveTiles(LEGS.map((_,k)=>k)));
 }
@@ -1783,6 +1808,15 @@ function mountLegMap(i){ const slot=$("#legmapSlot"); if(!slot) return;
   const lg=$("#legLegend"); if(lg) lg.innerHTML = S.mode==="run" ? `<span class="l-now">Runner's route, turns numbered</span>` : `<span class="l-now">Drive to exchange ${LEGS[i].n}</span>`;
   $("#legFollow")?.addEventListener("click",()=>{ following=!following; syncFollowPills(); if(following){ startPosShare(); if(lastPosFix) onOwnFix(lastPosFix); } else if(!S.sharePos) stopPosShare(); });
   $("#legFull")?.addEventListener("click",()=>{ mapScope="leg"; setView("map"); }); }
+// The whole relay on one map at the top of the Legs tab: done legs solid, the current one in pink, tap any leg to open it.
+let lmap3=null, lLayer3=null, LEGSMAP_EL=null;
+function mountLegsMap(){ const slot=$("#legsmapSlot"); if(!slot) return; if(!LEGSMAP_EL){ LEGSMAP_EL=document.createElement("div"); LEGSMAP_EL.id="legsmap"; } slot.appendChild(LEGSMAP_EL);
+  if(!lmap3){ lmap3=L.map(LEGSMAP_EL,{zoomControl:false,attributionControl:false,scrollWheelZoom:false}); L.tileLayer(TILE_URL,{maxZoom:19,maxNativeZoom:17}).addTo(lmap3); L.control.zoom({position:"topright"}).addTo(lmap3); lLayer3=L.layerGroup().addTo(lmap3); lmap3.fitBounds(L.latLngBounds(pts()),{padding:[14,14]}); }
+  lmap3.invalidateSize(); lLayer3.clearLayers(); const accent=cssVar("--accent"), fg=cssVar("--fg"), dim=cssVar("--muted"), cur=currentIndex();
+  LEGS.forEach((lg,k)=>{ const st=status(k); const pl=L.polyline(legLine(k,"run"),{color: st==="now"?accent: st==="done"?fg: dim, weight: st==="now"?7:4, opacity: st==="upcoming"?.6:1}); pl.on("click",()=>{ S.viewLeg=lg.n; save(); setView("leg"); $("main").scrollTop=0; }); lLayer3.addLayer(pl); });
+  const L_=LEGS[cur], mid=legLine(cur,"run")[Math.floor(legLine(cur,"run").length/2)];
+  lLayer3.addLayer(L.marker(mid,{icon:L.divIcon({className:"",html:`<div class="legpin">${L_.n}</div>`,iconSize:[30,30],iconAnchor:[15,15]})}).on("click",()=>{ S.viewLeg=null; save(); setView("leg"); }));
+  drawLiveDots(lmap3,null); }
 function syncFollowPills(){ document.querySelectorAll("#followMe,#legFollow").forEach(b=>{ b.setAttribute("aria-pressed",String(following)); b.textContent=following?"Following":"Follow me"; }); }
 function activeMap(){ return view==="map"?lmap: view==="leg"?lmap2: null; }
 function drawLeaflet(i,mode){
@@ -2229,7 +2263,6 @@ function renderSetup(){
   const sw = ("serviceWorker" in navigator);
   let h=`<div class="stack">
   <div><div class="eyebrow">Setup</div><h1>Race clock</h1></div>
-  <div><label class="f" for="skinSel">Look</label><select id="skinSel"><option value="auto" ${(S.skin||"auto")==="auto"?"selected":""}>Paper by day, black by night (flips at sunset where the runner is)</option><option value="day" ${S.skin==="day"?"selected":""}>Always day</option><option value="night" ${S.skin==="night"?"selected":""}>Always night</option></select></div>
   <div><label class="f" for="raceStart">Race start (gun time)</label><input type="datetime-local" id="raceStart" value="${S.raceStart}">
     <div class="muted" style="font-size:13px;margin-top:6px">Every planned time is an offset from this. The booklet's schedule ran from a 9:00 PM Tuesday start and finished about ${dur(finishOff)} later.</div></div>
   <div><label class="f" for="manualNow">Current leg</label><select id="manualNow"><option value="">Auto (from clock and recorded starts)</option>${LEGS.map(l=>`<option value="${l.n}" ${S.manualNow===l.n?"selected":""}>Leg ${l.n} · ${esc(l.name)}</option>`).join("")}</select>
@@ -2266,13 +2299,14 @@ function renderSetup(){
     <div class="muted" style="font-size:12px;margin-top:4px">Phones only report while the app is open and on screen. Best setup: the bike support rider's phone on a handlebar mount with a power bank, Map tab open on the leg with "Follow me" on, position sharing on. That one phone gives everyone the runner's live ETA.</div>
     <div class="row" style="margin-top:12px;justify-content:space-between"><label for="wake" style="font-size:15px">Keep the screen awake while the app is open</label><input type="checkbox" id="wake" ${S.wake?"checked":""} style="width:22px;height:22px"></div>`:""}
     ${liveRows().length?`<div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:6px">Team positions</div><div class="kv">${liveRows().map(r=>`<div>${esc(r.label)}</div><div class="v">${ageText(posAge(r))}</div>`).join("")}</div></div>`:""}</div>
+  ${HAS_L?`<div class="card"><h2>Save maps for offline</h2><p style="margin:0 0 10px;font-size:15px">Do this once on wifi before the race. It stores the street map along every leg (zoom 12 to 16) so maps still draw with no signal.</p><div class="row"><button class="btn" id="saveAllTiles">Save all legs</button><button class="btn ghost" id="saveTiles">Just leg ${LEGS[currentIndex()].n}</button></div><div class="progress" style="margin-top:10px"><i id="tileBar"></i></div><div class="muted" id="tileMsg" style="font-size:13px;margin-top:6px">${tileStatus()}</div></div>`:""}
   <div class="card"><h2>Offline</h2><p style="margin:0;font-size:15px">Directions, notes and the schematic map are all inside this page and need no signal once loaded. ${sw?`Offline caching: <span id="swstate">checking</span>.`:`This copy is running inside a viewer that doesn't allow offline caching; the hosted build does. Pre-download the Toronto to Montréal corridor in Google Maps for offline nav.`}</p></div>
   <div class="card"><h2>Reset</h2><p style="margin:0 0 10px;font-size:15px">This phone only: forgets the role and settings here; the team's tags and starts come straight back from the server.</p><button class="pill" id="resetAll">Reset this phone</button>
     ${HAS_L?`<p style="margin:14px 0 10px;font-size:15px">The whole team: wipes starts, tags, positions, cheers and photos for everyone, and puts the race start back to ${dayhm(new Date(RACE_START_REAL))}. For testing, before race day.</p><button class="pill" id="resetTeam" style="border-color:var(--bad);color:var(--bad)">Reset the whole team</button><div class="muted" id="resetTeamMsg" style="font-size:13px;margin-top:6px"></div>`:""}</div>
   </div>`;
   $("#v-setup").innerHTML=h;
   $("#reloadApp")?.addEventListener("click",()=>location.reload());
-  $("#skinSel").addEventListener("change",e=>{ S.skin=e.target.value; save(); applySkin(); });
+  $("#saveAllTiles")?.addEventListener("click",()=>saveTiles(LEGS.map((_,k)=>k))); $("#saveTiles")?.addEventListener("click",()=>saveTiles([currentIndex()]));
   $("#clearCheers")?.addEventListener("click",async()=>{ const ok=await clearCheers(); const m=$("#clearCheersMsg"); if(m) m.textContent= ok?"Cleared.":"Couldn't clear; run supabase-update.sql first."; });
   $("#simFast")?.addEventListener("click",()=>simStart(10)); $("#simReal")?.addEventListener("click",()=>simStart(1)); $("#simStop")?.addEventListener("click",simStop);
   $("#raceStart").addEventListener("change",e=>{ if(e.target.value){ setShared("raceStart",()=>{ S.raceStart=e.target.value; S.startSet=true; }); } });

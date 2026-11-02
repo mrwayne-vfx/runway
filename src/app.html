@@ -280,7 +280,17 @@ body.mapfull #mapFoot,body.mapfull #mapLegend{display:none}
 .legpanel{background:var(--soft);border-radius:var(--r);padding:14px;margin:2px 0 12px}
 .legpanel .stat{background:var(--bg)}
 .legrow.open{border-bottom-color:transparent}
-.legrow .rn{color:var(--fg);font-weight:600}.legrow .norun{color:var(--warn)}
+.legrow .rn{color:var(--accent);font-weight:700;font-size:14px}.legrow .norun{color:var(--warn)}
+/* header controls: solid chips, readable at arm's length; the role chip in the accent so you always see who this phone is */
+.hright{gap:6px}
+.hright .skin{font-size:14px;font-weight:600;color:var(--fg);background:var(--soft);border:1.5px solid var(--fg);padding:6px 11px;line-height:1.1;min-height:32px}
+.hright #roleBtn{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.clock{font-size:22px;font-weight:400}
+/* tab bar: a solid panel, full-contrast labels, the open tab as a filled pill */
+nav.tabs{background:var(--soft);border-top:2px solid var(--fg)!important;gap:4px;padding:6px max(6px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))!important}
+nav.tabs button{color:var(--fg)!important;font-size:16px!important;font-weight:700!important;padding:10px 2px!important;border-radius:999px}
+nav.tabs button[aria-selected="true"]{background:var(--fg);color:var(--bg)!important}
+nav.tabs button[aria-selected="true"]::before{display:none}
 
 .testbar{display:none;background:#F5C400;color:#000;font-weight:700;font-size:13px;padding:6px 16px;text-align:center}
 html.testmode .testbar{display:block}

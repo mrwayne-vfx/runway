@@ -116,11 +116,11 @@ const LEGS = [
 {n:26,name:"Mad Dash for the Ferry!",km:9.3,off:1381,approx:true,pt:[44.044,-77.054],
  ex:"Glenora ferry docks",
  dirs:["Head northeast on Main St W / Picton Main St, 750 m (past Tim Hortons and Acoustic Grill)","Turn right on Bridge St (signs for ON-33), 1.1K, until Bridge St becomes Loyalist Pkwy, 7.5K","Run right onto the ferry docks"],
- notes:["Lots of stores and restaurants on this leg for quick stops"],drive:["GLENORA FERRY. Free, runs continuously (roughly every 15 to 30 min depending on hour). Vehicle and runner cross together; the next leg starts on the Adolphustown side. Check the current MTO schedule before race day. Be at the dock before the runner so you don't miss a sailing."]},
+ notes:["Lots of stores and restaurants on this leg for quick stops"],drive:["GLENORA FERRY. Free. Winter schedule: leaves Glenora at :00 and :30 from 6 AM to 1 AM, then nothing until 6 AM. Vehicle and runner cross together; the next leg starts on the Adolphustown side. Be at the dock before the runner so you don't miss a sailing."]},
 {n:27,name:"Back on Dry Land",km:8,off:1477,approx:true,pt:[44.066,-76.960],
  ex:"Corner of Loyalist Pkwy and 33a Rd, next to Bergeron Estate Winery",
  dirs:["From the ferry parking lot, in 25 m head toward Hwy 33 / Loyalist Pkwy","In 8 km turn right onto 33a Rd, just east of Loyalist Barkway Boarding Kennels","Transition zone at Loyalist Pkwy and 33a Rd, next to Bergeron Estate Winery"],
- notes:["This leg comes off the ferry","Booklet schedule allows about 40 min for the crossing"],drive:["Off the ferry, 8 km up Hwy 33. Pull in at the winery."]},
+ notes:["This leg comes off the ferry","The plan takes the next :00 or :30 sailing after the runner reaches the dock, plus 20 min to cross and get off"],drive:["Off the ferry, 8 km up Hwy 33. Pull in at the winery."]},
 {n:28,name:"Loyalist Parkway 1",km:8.2,off:1521,approx:true,pt:[44.117,-76.878],
  ex:"In front of St Paul's Anglican Church, just past Richmond St (Sandhurst)",
  dirs:["Head east on Hwy 33 / Loyalist Pkwy / ON-33, 8.2K","Exchange in front of St Paul's Anglican Church, just past Richmond St"],
@@ -282,3 +282,14 @@ const LEGS = [
  dirs:["Head north on Avenue Atwater","In 2.3K turn right on Avenue du Docteur-Penfield","In 180 m quick left on Chemin de la Côte-des-Neiges","In 80 m quick right on Avenue des Pins","In 1.7K veer left onto Avenue du Parc","Veer onto the Chemin Olmsted path and follow the main path up toward the lookout","At Lac aux Castors the rest of the team joins for the last part to the finish at the Chalet du Mont-Royal lookout"],
  notes:["POP THE CHAMPAGNE"],drive:["Park at the Lac aux Castors lot (Chemin Remembrance) and walk the team in to meet the runner."]}
 ];
+
+// Glenora ferry, after leg 26. Winter schedule: leaves Glenora at :00 and :30 from 6:00 AM to 1:00 AM, then nothing until 6:00 AM.
+// The plan allows 5 min to board after the runner reaches the dock, and 20 min from sailing to the leg 27 start (crossing and unloading).
+const FERRY = { afterLeg:26, board:5, cross:20 };
+let FERRY_FMT = null;
+function ferryDeparture(arrival){ const t=new Date(arrival.getTime()+FERRY.board*60000);
+  if(!FERRY_FMT) FERRY_FMT=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Toronto",hour:"numeric",minute:"numeric",second:"numeric",hourCycle:"h23"});
+  const p=FERRY_FMT.formatToParts(t), g=k=>+(p.find(x=>x.type===k)||{value:0}).value; const m=(g("hour")%24)*60+g("minute")+g("second")/60;
+  let next=Math.ceil(m/30)*30; if(next>60 && next<360) next=360; // no sailings between 1:00 and 6:00 AM
+  return new Date(t.getTime()+(next-m)*60000); }
+function ferryLegStart(arrival){ return new Date(ferryDeparture(arrival).getTime()+FERRY.cross*60000); }

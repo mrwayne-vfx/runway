@@ -964,6 +964,16 @@ body.mapfull #mapFoot,body.mapfull #mapLegend{display:none}
 
 .testbar{display:none;background:#F5C400;color:#000;font-weight:700;font-size:13px;padding:6px 16px;text-align:center}
 html.testmode .testbar{display:block}
+
+.trackstate{display:flex;gap:12px;align-items:center;background:var(--soft);border-radius:var(--r);padding:14px 16px}
+.trackstate i{flex:none;width:14px;height:14px;border-radius:50%;background:var(--muted)}
+.trackstate.on i{background:var(--accent);box-shadow:0 0 0 6px var(--glow);animation:sp-startdot 1.6s ease-in-out infinite}
+.trackstate.other i{background:var(--fg)}
+.trackstate b{display:block;font-size:18px;line-height:1.2}.trackstate span{font-size:13px;color:var(--muted)}
+.btn.go.stop{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+#tmap{height:300px;width:100%;background:var(--soft)}#tmap .leaflet-tile-pane{filter:var(--tilefilter)}
+ol.setup{margin:0;padding-left:20px;font-size:15px}ol.setup li{margin:6px 0}
+@keyframes sp-startdot{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
 </style>
 
 <script>/* @preserve
@@ -996,6 +1006,7 @@ html.testmode .testbar{display:block}
       </div>
     </section>
     <section id="v-team" hidden></section>
+    <section id="v-track" hidden></section>
     <section id="v-rv" hidden>
       <div class="stack">
         <div><div class="eyebrow">Support RV</div><h1>Jump ahead</h1><p class="muted" style="margin:6px 0 0">Pick where the RV is and which exchange it's heading to. The route joins the vehicle legs in between, so it works with no signal; with signal the fastest road route is added for comparison.</p></div>
@@ -1020,7 +1031,7 @@ html.testmode .testbar{display:block}
   <nav class="tabs" role="tablist">
     <button role="tab" data-view="leg" aria-selected="true">Now</button>
     <button role="tab" data-view="legs" aria-selected="false">Legs</button>
-    <button role="tab" data-view="team" aria-selected="false">Team</button>
+    <button role="tab" data-view="track" aria-selected="false">Tracker</button>
     <button role="tab" data-view="rv" aria-selected="false">RV</button>
     <button role="tab" data-view="social" aria-selected="false">Social</button>
   </nav>
@@ -1375,7 +1386,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 // Test mode keeps rehearsals off the live friends page: its own team code and its own copy of this phone's data.
 // Enter with ?test=1 on any link, or the switch in Setup; leave with ?test=0 or the same switch.
 let TEST=false; try{ const q=new URLSearchParams(location.search).get("test"); if(q==="1") localStorage.setItem("runway.mode","test"); if(q==="0") localStorage.removeItem("runway.mode"); TEST = localStorage.getItem("runway.mode")==="test"; }catch(e){}
-const KEY = TEST ? "runway.v1.test" : "runway.v1"; const BUILD = "Nov 01, 09:16";
+const KEY = TEST ? "runway.v1.test" : "runway.v1"; const BUILD = "Nov 01, 19:51";
 // Team connection baked in so every phone joins the same team on first open. The anon key is public by design;
 // the database policies decide what it can do.
 const TEAM = { url:"https://sajvndlspknvaquqnakb.supabase.co", key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhanZuZGxzcGtudmFxdXFuYWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzAyNDQsImV4cCI6MjEwODk0NjI0NH0.jZWUIEY7-EKES_8XJi0xxEpT9q_PsqksU4Fb_xouOj8", team:"runway2026" };
@@ -1507,15 +1518,15 @@ function navButtons(from,to,mode,line){
 let view = "leg";
 let prevView="leg";
 function setView(v){ if(v==="legs" && view!=="legs") legsScrolled=false; if(v==="map" && view!=="map") prevView=view==="role"?"leg":view; view=v; document.body.classList.toggle("mapfull", v==="map"); document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected", String(b.dataset.view===v)));
-  ["leg","legs","map","team","rv","social","setup","role"].forEach(id=>{ $("#v-"+id).hidden = id!==v; });
+  ["leg","legs","map","team","track","rv","social","setup","role"].forEach(id=>{ $("#v-"+id).hidden = id!==v; });
   if (location.hash !== "#"+v) { try{ history.replaceState(null,"","#"+v);}catch(e){} }
   render(); if(v==="map" && typeof lmap!=="undefined" && lmap){ setTimeout(()=>{ lmap.invalidateSize(); drawMap(); },50); }
   if(v==="rv" && typeof rvmap!=="undefined" && rvmap){ setTimeout(()=>{ rvmap.invalidateSize(); renderRv(); },50); } }
 document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
 $("#mapClose").addEventListener("click",()=>{ mapHighlight=null; setView(prevView&&prevView!=="map"?prevView:"leg"); });
-window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(["leg","legs","map","team","rv","social","setup","role"].includes(h)) setView(h); });
+window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(["leg","legs","map","team","track","rv","social","setup","role"].includes(h)) setView(h); });
 
-function render(){ if(view==="leg") renderLeg(); else if(view==="legs") renderLegs(); else if(view==="map") drawMap(); else if(view==="team") renderTeam(); else if(view==="rv") renderRv(); else if(view==="social") renderSocial(); else if(view==="role") {} else renderSetup(); }
+function render(){ if(view==="leg") renderLeg(); else if(view==="legs") renderLegs(); else if(view==="map") drawMap(); else if(view==="team") renderTeam(); else if(view==="track") renderTrack(); else if(view==="rv") renderRv(); else if(view==="social") renderSocial(); else if(view==="role") {} else renderSetup(); }
 $("#setupBtn").addEventListener("click",()=>setView("setup"));
 function renderTeam(){
   const cur=currentIndex(); const curId=S.assign[LEGS[cur].n]; const nextIdx=Math.min(N-1,cur+1); const nextId=S.assign[LEGS[nextIdx].n];
@@ -1565,7 +1576,7 @@ function applyRole(kind){ S.me.kind=kind; S.roleSet=true;
   if(kind==="bike"){ S.mode="run"; S.sharePos=true; }
   if(kind==="crew"){ S.mode="run"; }
   save(); startPosShare(); }
-function homeView(){ const k=S.me.kind; return k==="rv"?"rv": k==="bike"?"map": "leg"; }
+function homeView(){ const k=S.me.kind; return k==="rv"?"rv": k==="bike"?"track": "leg"; }
 document.querySelectorAll(".rolebtn").forEach(b=>b.addEventListener("click",()=>{ applyRole(b.dataset.role); document.querySelector("nav.tabs").hidden=false;
   if(b.dataset.role==="bike"){ following=true; } setView(homeView()); }));
 
@@ -1620,6 +1631,7 @@ function legDark(i){ const a=isDark(projStart(i),startPt(i)), b=isDark(projEnd(i
 function darkNote(i){ const d=legDark(i); if(!d) return ""; const st=sunTimes(projStart(i),startPt(i)[0],startPt(i)[1]);
   return `<div class="alert" style="font-size:14px">${d==="dark"?"Night leg":"Starts or ends around dusk/dawn"}: headlamp and reflective vest. ${st?`Sunset ${hm(st.set)}, sunrise ${hm(st.rise)} here.`:""}</div>`; }
 const runnerName = n => { const id=S.assign[n]; const r=S.runners.find(r=>r.id===id); return r?r.name:""; };
+document.addEventListener("click",e=>{ const a=e.target.closest&&e.target.closest(".runnerline .av, .legpanel .av"); if(!a) return; const sel=$("#runnerPick")||$("#legPick"); const id=sel&&sel.value; if(id){ S.teamSel=id; save(); setView("team"); } });
 function runnerRow(i){
   const L_=LEGS[i]; const id=S.assign[L_.n]; const nextId = i<N-1 ? S.assign[LEGS[i+1].n] : null;
   return `<div class="card"><div class="runnerline">${id?avatar(id,52,"on"):`<span class="av" style="--sz:52px"><span>?</span></span>`}<div style="flex:1;min-width:0">
@@ -2037,7 +2049,7 @@ let myDot2=null;
 // Auto-start from the bike: seen at the exchange, then moving off along the next leg's route, means the next runner is out.
 // The start is recorded at the last moment the bike was at the exchange. Crew can still tap Start or correct it.
 let autoAtEx=null;
-function autoStart(fix){ if(S.me.kind!=="bike" || (S.sim&&S.sim.on)) return; const cur=currentIndex(); if(cur>=N-1) return;
+function autoStart(fix, fromTracker){ if(!(fromTracker || S.me.kind==="bike" || amTracker()) || (S.sim&&S.sim.on)) return; const cur=currentIndex(); if(cur>=N-1) return;
   const p=[fix.coords.latitude,fix.coords.longitude], t=fix.timestamp||Date.now(); const ex=LEGS[cur].pt; const nxt=LEGS[cur+1];
   if(S.actual[nxt.n]) { autoAtEx=null; return; }
   const act=S.actual[LEGS[cur].n]; if(act){ const planned=(plannedStart(cur+1)-plannedStart(cur)); if(t-new Date(act) < planned*0.4) return; }
@@ -2077,7 +2089,7 @@ async function pushPublic(){ if(!sb) return; if(Date.now()-lastPublic<20000) ret
       along_km:+(lv?lv.a.alongKm:(fix?fix.along:0)).toFixed(2), next_runner: i<N-1 ? (runnerName(LEGS[i+1].n)||"") : "", exchange_eta: projEnd(i).toISOString(), legs};
     await sb.from("runway_public").upsert(row); }catch(e){} }
 setInterval(()=>{ if(sb&&!document.hidden) pushPublic(); },30000);
-async function pushPos(fix){ const row={device:S.device,team:S.sync.team,label:meLabel(),kind:S.me.kind,runner_id:S.me.runnerId||null,lat:+fix.coords.latitude.toFixed(6),lng:+fix.coords.longitude.toFixed(6),acc:Math.round(fix.coords.accuracy||0),speed:fix.coords.speed==null?null:+fix.coords.speed.toFixed(2),at:new Date().toISOString()};
+async function pushPos(fix){ const row={device:S.device,team:S.sync.team,label:amTracker()?"Tracker, "+meLabel():meLabel(),kind:amTracker()?"bike":S.me.kind,runner_id:S.me.runnerId||null,lat:+fix.coords.latitude.toFixed(6),lng:+fix.coords.longitude.toFixed(6),acc:Math.round(fix.coords.accuracy||0),speed:fix.coords.speed==null?null:+fix.coords.speed.toFixed(2),at:new Date().toISOString()};
   POS[S.device]=row; refreshLive(); if(!sb) return; try{ await sb.from("runway_pos").upsert(row); pushPublic(); const el=$("#posState"); if(el) el.textContent=`Sharing as ${meLabel()}, last sent ${hm(new Date())}.`; }catch(e){} }
 async function pullPos(){ if(!sb) return; try{ const {data}=await sb.from("runway_pos").select("*").eq("team",S.sync.team); if(data){ data.forEach(r=>{ if(r.device!==S.device) POS[r.device]=r; }); refreshLive(); } }catch(e){} }
 const posAge = r => Math.round((Date.now()-new Date(r.at))/1000);
@@ -2088,7 +2100,7 @@ function alongLine(line, pt){ let best={d:1e9,along:0}, acc=0; for(let k=0;k<lin
     const kx=Math.cos(pt[0]*Math.PI/180)*111.32, ky=110.54; const px=(pt[1]-a[1])*kx, py=(pt[0]-a[0])*ky, bx=(b[1]-a[1])*kx, by=(b[0]-a[0])*ky; const L2=bx*bx+by*by; const t=L2?Math.max(0,Math.min(1,(px*bx+py*by)/L2)):0;
     const d=Math.hypot(px-bx*t,py-by*t); if(d<best.d) best={d,along:acc+segLen*t}; acc+=segLen; } return {offKm:best.d, alongKm:best.along, totalKm:acc}; }
 function liveRunnerFor(i){ const L_=LEGS[i]; const rows=liveRows().filter(r=>(r.kind==="runner"||r.kind==="bike") && posAge(r)<900); if(!rows.length) return null;
-  const tagged=rows.find(r=>r.runner_id && r.runner_id===S.assign[L_.n]); const cands=tagged?[tagged]:rows; const line=legLine(i,"run");
+  const tk=rows.filter(r=>isTrackerDevice(r.device)); const tagged=rows.find(r=>r.runner_id && r.runner_id===S.assign[L_.n]); const cands=tk.length?tk:tagged?[tagged]:rows; const line=legLine(i,"run");
   let best=null; cands.forEach(r=>{ const a=alongLine(line,[r.lat,r.lng]); if(a.offKm<0.25 && (!best||a.offKm<best.a.offKm)) best={r,a}; }); return best; }
 function liveCard(i){ const lv=liveRunnerFor(i); if(!lv) return ""; const {r,a}=lv; const L_=LEGS[i]; const act=S.actual[L_.n];
   const elapsedMin = act ? (Date.now()-new Date(act))/60000 : null; const pace = (elapsedMin && a.alongKm>0.3) ? elapsedMin/a.alongKm : paceMinPerKm;
@@ -2105,7 +2117,7 @@ function drawLiveDots(map, layerRef){ if(!map) return null; if(layerRef) layerRe
       S.viewLeg=LEGS[best.i].n; save(); mapScope="leg"; mapHighlight=null; if(view==="map") drawMap(); else setView("map"); });
     layerRef.addLayer(m); });
   return layerRef; }
-function refreshLive(){ if(view==="leg"){ renderLeg(); } if(view==="social") renderSocial(); if(HAS_L){ if(view==="map"&&lmap) liveLayer=drawLiveDots(lmap,liveLayer); if(view==="rv"&&rvmap) rvLiveLayer=drawLiveDots(rvmap,rvLiveLayer); } }
+function refreshLive(){ if(view==="track") renderTrack(); if(view==="leg"){ renderLeg(); } if(view==="social") renderSocial(); if(HAS_L){ if(view==="map"&&lmap) liveLayer=drawLiveDots(lmap,liveLayer); if(view==="rv"&&rvmap) rvLiveLayer=drawLiveDots(rvmap,rvLiveLayer); } }
 setInterval(()=>{ if(sb&&!document.hidden) pullPos(); },30000);
 window.__runwayPos = r => { POS[r.device]=r; refreshLive(); }; // test hook
 window.__fix = (lat,lng,ts) => onOwnFix({coords:{latitude:lat,longitude:lng,accuracy:5},timestamp:ts||Date.now()}); // test hook
@@ -2191,6 +2203,41 @@ async function shareStatus(i){ const btn=$("#shareCard"); if(btn) btn.textConten
   else { const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=file.name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(u); a.remove(); },1000); }
   if(btn) btn.textContent="Share status"; const m=$("#photoMsg"); if(m) m.textContent="Card made. Caption with the link is on your clipboard; paste it in Instagram."; }
 
+// ---------- tracker: one phone is the runner's position for everyone ----------
+// It reports while the app is open (screen kept awake). For screen-off tracking it hands over to OwnTracks, which posts
+// to the database in the background under the device id "ot-" + its two-letter tracker id.
+const TID = () => (S.device||"xx").replace(/[^a-z0-9]/gi,"").slice(0,2).toUpperCase();
+function amTracker(){ return !!(S.tracker && S.tracker.device===S.device); }
+function isTrackerDevice(d){ return !!(S.tracker && (d===S.tracker.device || d===S.tracker.alt)); }
+function trackerRow(){ if(!S.tracker) return null; const rows=Object.values(POS).filter(r=>isTrackerDevice(r.device)).sort((a,b)=>new Date(b.at)-new Date(a.at)); return rows[0]||null; }
+function startTracking(){ setShared("tracker",()=>{ S.tracker={device:S.device, alt:"ot-"+TID(), label:meLabel(), at:new Date().toISOString()}; }); S.trackingOn=true; S.sharePos=true; S.wake=true; save(); applyWake(); startPosShare(); renderTrack(); }
+function stopTracking(){ if(amTracker()) setShared("tracker",()=>{ S.tracker=null; }); S.trackingOn=false; save(); if(S.me.kind!=="bike") { S.sharePos=false; stopPosShare(); } renderTrack(); }
+function otConfigLink(){ const live=!TEST; const url=`${TEAM.url}/rest/v1/rpc/${live?"owntracks":"owntracks_test"}?apikey=${TEAM.key}`;
+  const cfg={_type:"configuration", mode:3, url, httpHeaders:`apikey:${TEAM.key}\nAuthorization:Bearer ${TEAM.key}`, monitoring:2, locatorInterval:30, locatorDisplacement:25, tid:TID(), deviceId:"runway-"+TID(), auth:false};
+  return "owntracks:///config?inline="+btoa(JSON.stringify(cfg)); }
+let tmap=null, tLayer=null, TMAP_EL=null;
+function renderTrack(){ const me=amTracker(), row=trackerRow(); const who=S.tracker?(S.tracker.label||"a crew phone"):"";
+  const bg=Object.values(POS).find(r=>S.tracker&&r.device===S.tracker.alt);
+  const fresh=row&&posAge(row)<180;
+  let h=`<div class="stack"><div><div class="eyebrow">The phone the friends page follows</div><h1>Tracker</h1></div>
+    <div class="trackstate ${me?"on":S.tracker?"other":"off"}"><i></i><div><b>${me?"This phone is the tracker":S.tracker?`Tracking: ${esc(who)}`:"No phone is tracking"}</b><span>${row?`Last position ${ageText(posAge(row))}${fresh?"":", waiting for the next one"}`:me?"Waiting for the first position…":S.tracker?"No position yet":"Tap the button on the phone that rides with the runner."}</span></div></div>
+    <button class="btn go ${me?"stop":""}" id="trackBtn"><span>${me?"Stop tracking":"Track this phone"}</span><small>${me?"hand it to another phone":S.tracker?"takes over from "+esc(who):"use the bike phone"}</small></button>
+    ${HAS_L?`<div class="mapwrap" id="tmapSlot"></div>`:""}
+    ${me?`<div class="card"><h2>Keep tracking with the screen off</h2>
+      <p style="margin:0 0 10px;font-size:15px">A web page can only report while it's open on screen. To keep going with the phone locked or in a pocket, this phone also runs <b>OwnTracks</b>, a free tracking app, set up for you in one tap.</p>
+      <ol class="setup"><li>Install OwnTracks: <a class="lnk" href="https://apps.apple.com/app/owntracks/id692424691" target="_blank" rel="noopener">iPhone</a> or <a class="lnk" href="https://play.google.com/store/apps/details?id=org.owntracks.android" target="_blank" rel="noopener">Android</a>.</li>
+      <li>Come back here and tap <b>Set up background tracking</b>. OwnTracks opens and loads the settings.</li>
+      <li>Allow location <b>Always</b> when it asks, and leave OwnTracks in <b>Move</b> mode.</li></ol>
+      <a class="btn primary" href="${otConfigLink()}" style="margin-top:10px">Set up background tracking</a>
+      <div class="muted" style="font-size:13px;margin-top:8px">${bg?`Background tracking is working: last report ${ageText(posAge(bg))}.`:"Not seen yet. Once it's set up, a report appears here within a minute of the phone moving."} Move mode uses more battery: keep the phone on a power bank.</div></div>`:""}
+    <div class="muted" style="font-size:13px">Only one phone tracks at a time. Pressing Track on another phone hands it over. The tracker's position also starts each next leg automatically when it leaves an exchange.</div></div>`;
+  $("#v-track").innerHTML=h;
+  $("#trackBtn").addEventListener("click",()=>{ if(me) stopTracking(); else if(!S.tracker || confirm(`${who} is tracking right now. Make this phone the tracker instead?`)) startTracking(); });
+  if(HAS_L){ const slot=$("#tmapSlot"); if(!TMAP_EL){ TMAP_EL=document.createElement("div"); TMAP_EL.id="tmap"; } slot.appendChild(TMAP_EL);
+    if(!tmap){ tmap=L.map(TMAP_EL,{zoomControl:false,attributionControl:false}); L.tileLayer(TILE_URL,{maxZoom:19,maxNativeZoom:17}).addTo(tmap); L.control.zoom({position:"topright"}).addTo(tmap); tLayer=L.layerGroup().addTo(tmap); }
+    tmap.invalidateSize(); tLayer.clearLayers(); const i=currentIndex(); tLayer.addLayer(L.polyline(legLine(i,"run"),{color:cssVar("--accent"),weight:5}));
+    const p = me&&lastPosFix ? [lastPosFix.coords.latitude,lastPosFix.coords.longitude] : row ? [row.lat,row.lng] : null;
+    if(p){ tLayer.addLayer(L.circleMarker(p,{radius:10,color:cssVar("--bg"),weight:3,fillColor:cssVar("--accent"),fillOpacity:1})); tmap.setView(p, Math.max(tmap.getZoom()||15,15)); } else tmap.fitBounds(L.latLngBounds(legLine(i,"run")),{padding:[20,20]}); } }
 // ---------- rehearsal: a pretend bike rides the route so the whole system can be tried before race day ----------
 const RACE_START_REAL = "2026-11-04T21:00";
 const SIM_PACE = 5.5; // min per km, close to the booklet average
@@ -2219,6 +2266,7 @@ function simStop(){ clearInterval(simTimer); const dev=S.sim&&S.sim.device; S.si
   if(dev){ delete POS[dev]; if(sb) sb.from("runway_pos").delete().eq("device",dev).then(()=>{ lastPublic=0; pushPublic(); }).catch(()=>{}); }
   clearCheers(); save(); refreshLive(); renderSetup(); }
 if(S.sim&&S.sim.on) setTimeout(simRun,3000);
+if(S.trackingOn){ S.sharePos=true; setTimeout(()=>{ if(amTracker()) startPosShare(); },1500); }
 
 // ---------- cheers from the friends page ----------
 async function pullCheers(){ if(!sb) return; try{
@@ -2253,17 +2301,17 @@ function downloadText(name, text){ const blob=new Blob([text],{type:"application
 function gpxButtons(i){ if(!HAS_L) return ""; const L_=LEGS[i]; return `<div class="card"><h2>GPX for a watch</h2><p style="margin:0 0 10px;font-size:14px">Load the leg on a Garmin (Connect → Training → Courses → Import), on Apple Watch (WorkOutDoors or Komoot) or any GPS watch, and follow the line on the wrist. Waypoints mark the start and the exchange.</p><div class="row"><button class="btn" id="gpxLeg">Leg ${L_.n} GPX</button><button class="btn ghost" id="gpxAll">All legs, one file</button></div></div>`; }
 
 // ---------- sync (hosted build): one row per team in Supabase, merged per key by timestamp ----------
-const SHARED_KEYS = () => ["raceStart","manualNow","runners",...Object.keys(S.actual).map(n=>"actual."+n),...Object.keys(S.assign).map(n=>"assign."+n),...Object.keys(S.stamps)];
+const SHARED_KEYS = () => ["raceStart","manualNow","runners","tracker",...Object.keys(S.actual).map(n=>"actual."+n),...Object.keys(S.assign).map(n=>"assign."+n),...Object.keys(S.stamps)];
 function syncStatus(){ if(!S.sync.url) return "Not connected."; return syncInfo.state==="ok"?`Connected as team "${esc(S.sync.team)}"${syncInfo.last?`, last sync ${hm(syncInfo.last)}`:""}.`: syncInfo.state==="offline"?`Offline; changes are kept on this phone and sent when signal returns.`: syncInfo.state==="error"?`Problem: ${esc(syncInfo.err)}`:"Connecting…"; }
 function setSyncState(st,err){ syncInfo.state=st; syncInfo.err=err||""; if(st==="ok") syncInfo.last=new Date(); const el=$("#syncState"); if(el) el.innerHTML=syncStatus(); }
-function sharedSnapshot(){ return {epoch:S.epoch||0,raceStart:S.raceStart,startSet:S.startSet,actual:S.actual,manualNow:S.manualNow,runners:S.runners,assign:S.assign,stamps:S.stamps,device:S.device,at:new Date().toISOString()}; }
+function sharedSnapshot(){ return {epoch:S.epoch||0,tracker:S.tracker||null,raceStart:S.raceStart,startSet:S.startSet,actual:S.actual,manualNow:S.manualNow,runners:S.runners,assign:S.assign,stamps:S.stamps,device:S.device,at:new Date().toISOString()}; }
 let inPush=false;
 function mergeRemote(r){ if(!r||!r.stamps) return false; let changed=false, mineNewer=false;
   // a team reset bumps the epoch: anything this phone remembers from before it is thrown away, not pushed back
   if((r.epoch||0) > (S.epoch||0)){ S.epoch=r.epoch; S.actual={}; S.assign={}; S.stamps={}; S.manualNow=null; S.sim={on:false}; clearInterval(simTimer); POS={}; changed=true; }
   const keys=new Set([...Object.keys(r.stamps),...Object.keys(S.stamps)]);
   keys.forEach(k=>{ const rs=r.stamps[k]||"", ls=S.stamps[k]||""; if(rs>ls){ changed=true; S.stamps[k]=rs;
-      if(k==="raceStart"){ S.raceStart=r.raceStart; S.startSet=r.startSet; } else if(k==="manualNow"){ S.manualNow=r.manualNow; } else if(k==="runners"){ /* roster is fixed in the app */ }
+      if(k==="raceStart"){ S.raceStart=r.raceStart; S.startSet=r.startSet; } else if(k==="manualNow"){ S.manualNow=r.manualNow; } else if(k==="runners"){ /* roster is fixed in the app */ } else if(k==="tracker"){ S.tracker=r.tracker||null; if(!amTracker()&&S.trackingOn){ S.trackingOn=false; save(); } }
       else if(k.startsWith("actual.")){ const n=k.slice(7); if(r.actual&&r.actual[n]) S.actual[n]=r.actual[n]; else delete S.actual[n]; }
       else if(k.startsWith("assign.")){ const n=k.slice(7); if(r.assign&&r.assign[n]) S.assign[n]=r.assign[n]; else delete S.assign[n]; } }
     else if(ls>rs) mineNewer=true; });
@@ -2274,7 +2322,7 @@ async function startSync(){ stopSync(); if(!HAS_L||!S.sync.url||!S.sync.key||!S.
   try{ sb=window.supabase.createClient(S.sync.url,S.sync.key); await pullOnce(); await pullPos(); pullCheers(); startPosShare();
     sb.channel("runway-cheers-"+S.sync.team).on("postgres_changes",{event:"INSERT",schema:"public",table:"runway_cheers",filter:"team=eq."+S.sync.team},payload=>{ const r=payload.new; if(!r) return; CHEERS.counts[r.emoji]=(CHEERS.counts[r.emoji]||0)+1; CHEERS.recent.unshift(r); CHEERS.recent=CHEERS.recent.slice(0,30); if(view==="social") renderSocial(); }).subscribe();
     pullPhotos(); sb.channel("runway-photos-"+S.sync.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_photos",filter:"team=eq."+S.sync.team},()=>pullPhotos()).subscribe();
-    sb.channel("runway-pos-"+S.sync.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_pos",filter:"team=eq."+S.sync.team},payload=>{ const r=payload.new; if(r&&r.device!==S.device){ POS[r.device]=r; refreshLive(); } }).subscribe();
+    sb.channel("runway-pos-"+S.sync.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_pos",filter:"team=eq."+S.sync.team},payload=>{ const r=payload.new; if(r&&r.device!==S.device){ POS[r.device]=r; if(isTrackerDevice(r.device)) autoStart({coords:{latitude:r.lat,longitude:r.lng},timestamp:new Date(r.at).getTime()},true); refreshLive(); } }).subscribe();
     syncChan=sb.channel("runway-"+S.sync.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_state",filter:"team=eq."+S.sync.team},payload=>{ if(payload.new&&payload.new.data&&payload.new.data.device!==S.device){ mergeRemote(payload.new.data); setSyncState("ok"); } }).subscribe();
     schedulePush(); }catch(e){ setSyncState("error",String(e.message||e)); }
 }
@@ -2379,7 +2427,7 @@ function renderLegIfChanged(){ const c=currentIndex(); if(c!==lastCur){ lastCur=
 applySkin(true); startSync(); applyWake();
 const h0=location.hash.slice(1);
 if(!S.roleSet && HAS_L){ document.querySelector("nav.tabs").hidden=true; setView("role"); }
-else setView(["leg","legs","map","team","rv","social","setup"].includes(h0)?h0:homeView());
+else setView(["leg","legs","map","team","track","rv","social","setup"].includes(h0)?h0:homeView());
 })();
 </script>
 

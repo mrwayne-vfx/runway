@@ -396,7 +396,7 @@ function hk(a,b){ const R=6371,r=x=>x*Math.PI/180; const h=Math.sin(r(b[0]-a[0])
 function lineLen(ln){ let s=0; for(let k=1;k<ln.length;k++) s+=hk(ln[k-1],ln[k]); return s; }
 function pointAt(ln,km){ let acc=0; for(let k=1;k<ln.length;k++){ const d=hk(ln[k-1],ln[k]); if(acc+d>=km){ const f=d?(km-acc)/d:0; return [ln[k-1][0]+(ln[k][0]-ln[k-1][0])*f, ln[k-1][1]+(ln[k][1]-ln[k-1][1])*f]; } acc+=d; } return ln[ln.length-1]; }
 function derive(raw){ if(!raw||!raw.started||raw.finished) return raw;
-  const lv=(raw.legs&&raw.legs.live)||{}; const pace=Math.max(3.5,Math.min(9,lv.pace||lv.booklet_pace||5.6));
+  const lv=(raw.legs&&raw.legs.live)||{}; const pace=Math.max(3.5,Math.min(9,lv.pace||lv.booklet_pace||6));
   let n0=lv.leg||raw.leg, base, t0;
   if(lv.fix_at && lv.fix_along!=null && lv.leg===raw.leg){ base=lv.fix_along; t0=new Date(lv.fix_at); }
   else if(lv.leg_start){ base=0; t0=new Date(lv.leg_start); }

@@ -420,23 +420,21 @@ LEGS.forEach(l=>{ const r=ROUTE(l.n); if(!r||!r.end) return; l.pt=r.end; l.src=r
 const N = LEGS.length;
 const totalKm = LEGS.reduce((a,l)=>a+l.km,0);
 const kmBefore = i => LEGS.slice(0,i).reduce((a,l)=>a+l.km,0);
-const paceMinPerKm = LEGS[N-1].off / kmBefore(N-1); // booklet average pace to the last exchange
-const finishOff = Math.round(LEGS[N-1].off + LEGS[N-1].km * paceMinPerKm);
+// The plan: every runner at 6:00 /km, plus the Glenora ferry crossing after leg 26 (the booklet allows about 40 min).
+const paceMinPerKm = 6;
+const WAIT_AFTER = {26:40};
+const legMins = k => LEGS[k].km*paceMinPerKm + (WAIT_AFTER[LEGS[k].n]||0);
+const PLAN_OFF = LEGS.reduce((a,l,k)=>{ a.push(k ? a[k-1]+legMins(k-1) : 0); return a; }, []); // planned start, minutes after the gun
+const finishOff = Math.round(PLAN_OFF[N-1] + LEGS[N-1].km*paceMinPerKm);
 const raceStartDate = () => new Date(S.raceStart);
-const plannedStart = i => new Date(raceStartDate().getTime() + LEGS[i].off*60000);
+const plannedStart = i => new Date(raceStartDate().getTime() + PLAN_OFF[i]*60000);
 const plannedEnd = i => i < N-1 ? plannedStart(i+1) : new Date(raceStartDate().getTime() + finishOff*60000);
-// Projection: from the latest recorded start, the remaining plan is stretched by how the team has actually been running
-// (real elapsed time over planned time across the recorded legs), so the finish moves after every start. Clamped to
-// 0.8–1.3× so one odd leg can't throw it, and only once three legs have been recorded; before that it's plain drift.
-function paceFactor(){ const rec=LEGS.map((l,k)=>S.actual[l.n]?k:-1).filter(k=>k>=0); if(rec.length<3) return 1;
-  const a=rec[0], b=rec[rec.length-1]; const planned=plannedStart(b)-plannedStart(a); if(planned<=0) return 1;
-  const real=new Date(S.actual[LEGS[b].n])-new Date(S.actual[LEGS[a].n]); return Math.max(.8, Math.min(1.3, real/planned)); }
+// Projection: from the latest recorded start, every later leg follows at 6:00 /km (and the ferry), so all of them move after each start.
 function projStart(i){
   const a = S.actual[LEGS[i].n]; if (a) return new Date(a);
   let last=-1; for (let k=i-1;k>=0;k--){ if(S.actual[LEGS[k].n]){ last=k; break; } }
   if (last<0) return plannedStart(i);
-  const f = (S.sim&&S.sim.on) ? 1 : paceFactor();
-  return new Date(new Date(S.actual[LEGS[last].n]).getTime() + (plannedStart(i)-plannedStart(last))*f);
+  return new Date(new Date(S.actual[LEGS[last].n]).getTime() + (PLAN_OFF[i]-PLAN_OFF[last])*60000);
 }
 const projEnd = i => i < N-1 ? projStart(i+1) : new Date(projStart(i).getTime() + LEGS[i].km*paceMinPerKm*60000);
 const startPt = i => i===0 ? RACE.startPt : LEGS[i-1].pt;
@@ -626,7 +624,7 @@ function startControls(i){
   // what this start did to the rest of the schedule
   let shiftNote="";
   if (act){ const d=(new Date(act)-plannedStart(i))/60000; let prevDrift=0; for(let k=i-1;k>=0;k--){ const ak=S.actual[LEGS[k].n]; if(ak){ prevDrift=(new Date(ak)-plannedStart(k))/60000; break; } }
-    shiftNote=`Legs after this moved ${signed(d-prevDrift)} relative to the previous estimate; every later leg now runs ${signed(d)} vs the booklet plan.`; }
+    shiftNote=`Legs after this moved ${signed(d-prevDrift)} relative to the previous estimate; every later leg now runs ${signed(d)} vs the plan.`; }
   const next = i<N-1 ? `Exchange ${L_.n} now expected ${dayhm(projEnd(i))}.` : `Finish now expected ${dayhm(projEnd(i))}.`;
   if (act) return `<div class="card accent"><div class="row" style="justify-content:space-between;align-items:baseline"><div><div class="eyebrow">Leg started</div><div style="font-size:22px;font-family:var(--display);font-weight:700">${dayhm(new Date(act))} <span class="muted" style="font-size:15px">${signed((new Date(act)-plannedStart(i))/60000)} vs plan</span></div></div><div class="row" style="gap:6px"><button class="pill" id="editStart">Edit</button><button class="pill" id="clearStart">Undo</button></div></div>
     <div class="muted" style="font-size:13px;margin-top:6px">${shiftNote} ${next}</div>
@@ -659,7 +657,7 @@ function renderLeg(){
     <div class="stat"><div class="v">${hm(ps)}</div><div class="k">${act?"started":"start"} ${DAYS[ps.getDay()]}</div></div>
     <div class="stat hot"><div class="v">${hm(pe)}</div><div class="k">${isLast?"finish":"exchange"} ${DAYS[pe.getDay()]}</div></div>
   </div>
-  <div class="muted" style="font-size:13px;margin-top:6px">Planned ${dayhm(plannedStart(i))}${L.interp?" (booklet gave no time; interpolated by distance)":""}${Math.abs(drift)>=1?` · running ${signed(drift)} vs plan`:""}. Cumulative ${km1(kmBefore(i))} km of ${km1(totalKm)} at the start of this leg.</div>
+  <div class="muted" style="font-size:13px;margin-top:6px">Planned ${dayhm(plannedStart(i))} at 6:00 /km${Math.abs(drift)>=1?` · running ${signed(drift)} vs plan`:""}. Cumulative ${km1(kmBefore(i))} km of ${km1(totalKm)} at the start of this leg.</div>
   <div class="seg" role="tablist"><button role="tab" data-mode="run" aria-selected="${S.mode==="run"}">Run</button><button role="tab" data-mode="drive" aria-selected="${S.mode==="drive"}">Drive</button></div>
   ${HAS_L?`<div class="mapwrap" id="legmapSlot"></div><div class="row" style="justify-content:space-between"><div class="legend" id="legLegend"></div><div class="row" style="gap:6px"><button class="pill" id="legFollow" aria-pressed="${following}">${following?"Following":"Follow me"}</button><button class="pill" id="legFull">Full screen</button></div></div>`:""}`;
 
@@ -1090,7 +1088,7 @@ function liveCard(i){ const lv=liveRunnerFor(i); if(!lv) return ""; const {r,a}=
   const remain=Math.max(0,a.totalKm-a.alongKm); const eta=new Date(Date.now()+remain*pace*60000); const de=driveEst(i); const slack=(eta-Date.now())/60000-de.min;
   return `<div class="card accent"><div class="eyebrow">Live · ${esc(r.label)}${r.kind==="bike"?" (riding with the runner)":""} · ${ageText(posAge(r))}</div>
     <div class="stats" style="margin-top:8px"><div class="stat"><div class="k">Done</div><div class="v">${km1(a.alongKm)}<small> km</small></div></div><div class="stat"><div class="k">To go</div><div class="v">${km1(remain)}<small> km</small></div></div><div class="stat"><div class="k">Exchange</div><div class="v">${hm(eta)}</div></div></div>
-    <div class="muted" style="font-size:13px;margin-top:6px">Pace ${elapsedMin&&a.alongKm>0.3?`${Math.floor(pace)}:${p2(Math.round((pace%1)*60))}/km on this leg`:"booklet average (leg start not recorded yet)"}. SUV slack to exchange ${L_.n}: <b style="color:${slack<10?'var(--bad)':slack<20?'var(--warn)':'var(--ok)'}">${Math.round(slack)} min</b> after a ${Math.round(de.min)} min drive.</div></div>`; }
+    <div class="muted" style="font-size:13px;margin-top:6px">Pace ${elapsedMin&&a.alongKm>0.3?`${Math.floor(pace)}:${p2(Math.round((pace%1)*60))}/km on this leg`:"the 6:00 /km plan (leg start not recorded yet)"}. SUV slack to exchange ${L_.n}: <b style="color:${slack<10?'var(--bad)':slack<20?'var(--warn)':'var(--ok)'}">${Math.round(slack)} min</b> after a ${Math.round(de.min)} min drive.</div></div>`; }
 function drawLiveDots(map, layerRef){ if(!map) return null; if(layerRef) layerRef.clearLayers(); else layerRef=L.layerGroup().addTo(map);
   const accent=cssVar("--accent"), fg=cssVar("--fg"), bg=cssVar("--bg");
   liveRows().forEach(r=>{ const isRunner = r.kind==="runner"||r.kind==="bike"; const stale=posAge(r)>300;
@@ -1331,7 +1329,7 @@ function renderSetup(){
   let h=`<div class="stack">
   <div><div class="eyebrow">Setup</div><h1>Race clock</h1></div>
   <div><label class="f" for="raceStart">Race start (gun time)</label><input type="datetime-local" id="raceStart" value="${S.raceStart}">
-    <div class="muted" style="font-size:13px;margin-top:6px">Every planned time is an offset from this. The booklet's schedule ran from a 9:00 PM Tuesday start and finished about ${dur(finishOff)} later.</div></div>
+    <div class="muted" style="font-size:13px;margin-top:6px">Every planned time is an offset from this. At 6:00 /km for every runner, plus about 40 min for the Glenora ferry, the finish is about ${dur(finishOff)} after the start.</div></div>
   <div><label class="f" for="manualNow">Current leg</label><select id="manualNow"><option value="">Auto (from clock and recorded starts)</option>${LEGS.map(l=>`<option value="${l.n}" ${S.manualNow===l.n?"selected":""}>Leg ${l.n} · ${esc(l.name)}</option>`).join("")}</select>
     <div class="muted" style="font-size:13px;margin-top:6px">Override if the clock is wrong about where you are. Marking a leg start clears this.</div></div>
   <div class="card"><h2>Runners</h2><p style="margin:0;font-size:15px">The ten runners from the team page, with their faces and words. Tag them to legs here or on the Now tab.</p>
@@ -1354,7 +1352,7 @@ function renderSetup(){
     <div>Total distance</div><div class="v">${km1(totalKm)} km</div>
     <div>Legs</div><div class="v">${N}</div>
     <div>App build</div><div class="v">${BUILD} <button class="pill" id="reloadApp" style="margin-left:6px">Reload</button></div>
-    <div>Booklet average pace</div><div class="v">${Math.floor(paceMinPerKm)}:${p2(Math.round((paceMinPerKm%1)*60))} /km</div>
+    <div>Planned pace</div><div class="v">${Math.floor(paceMinPerKm)}:${p2(Math.round((paceMinPerKm%1)*60))} /km</div>
     <div>Exchange pins from GPS</div><div class="v">${N-approxCount+1}</div>
     <div>Exchange pins placed from description (approx)</div><div class="v">${approxCount}</div>
     <div>Start times interpolated</div><div class="v">${interpCount} (legs 2 to 10)</div>

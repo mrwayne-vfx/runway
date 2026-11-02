@@ -299,7 +299,7 @@ ol.setup{margin:0;padding-left:20px;font-size:15px}ol.setup li{margin:6px 0}
 <div id="app">
   <header>
     <div class="brand"><img class="logo d" src="SP_BLACK" alt="Shift & Play"><img class="logo n" src="SP_WHITE" alt="Shift & Play"></div>
-    <div class="hright"><button class="skin" id="skinBtn" title="Day or night look">Auto</button><button class="skin" id="setupBtn" aria-label="Setup" title="Setup">Setup</button><div class="clock" id="clock">--:--</div></div>
+    <div class="hright"><button class="skin" id="roleBtn" title="Switch role" hidden>Role</button><button class="skin" id="skinBtn" title="Day or night look">Auto</button><button class="skin" id="setupBtn" aria-label="Setup" title="Setup">Setup</button><div class="clock" id="clock">--:--</div></div>
   </header>
   <div class="testbar">Test mode. Nothing here reaches the live friends page.</div>
   <button id="updBar" hidden style="width:100%;background:var(--accent);color:var(--accent-ink);font-weight:600;padding:10px 16px;text-align:left">A newer version is ready. Tap to reload.</button>
@@ -334,11 +334,12 @@ ol.setup{margin:0;padding-left:20px;font-size:15px}ol.setup li{margin:6px 0}
     <section id="v-setup" hidden></section>
     <section id="v-role" hidden>
       <div class="stack" style="padding-top:8px">
-        <div><div class="eyebrow">First thing</div><h1>Who's carrying this phone?</h1><p class="muted" style="margin:6px 0 0">Sets what the app opens on. Change it any time in Setup.</p></div>
+        <div><h1>Who's carrying this phone?</h1><p class="muted" style="margin:6px 0 0">Sets what the app opens on. Switch any time with the role button at the top.</p></div>
         <button class="btn rolebtn" data-role="suv"><span><b>SUV driver</b><small>Shuttling runners exchange to exchange. Opens on the drive to the next exchange.</small></span></button>
         <button class="btn rolebtn" data-role="rv"><span><b>RV driver</b><small>Jumping ahead with the resting runners. Opens on the RV planner.</small></span></button>
         <button class="btn rolebtn" data-role="bike"><span><b>Bike support</b><small>Riding behind the runner. Opens on the map following you, and reports the runner's position.</small></span></button>
         <button class="btn rolebtn" data-role="crew"><span><b>Crew / everything</b><small>Full app, opens on the current leg.</small></span></button>
+        <button class="btn" id="roleCancel" hidden>Keep the current role</button>
       </div>
     </section>
   </main>
@@ -420,21 +421,22 @@ LEGS.forEach(l=>{ const r=ROUTE(l.n); if(!r||!r.end) return; l.pt=r.end; l.src=r
 const N = LEGS.length;
 const totalKm = LEGS.reduce((a,l)=>a+l.km,0);
 const kmBefore = i => LEGS.slice(0,i).reduce((a,l)=>a+l.km,0);
-// The plan: every runner at 6:00 /km, plus the Glenora ferry crossing after leg 26 (the booklet allows about 40 min).
+// The plan: every runner at 6:00 /km. After leg 26 the team waits for the next Glenora ferry sailing (see FERRY in data.js).
 const paceMinPerKm = 6;
-const WAIT_AFTER = {26:40};
-const legMins = k => LEGS[k].km*paceMinPerKm + (WAIT_AFTER[LEGS[k].n]||0);
-const PLAN_OFF = LEGS.reduce((a,l,k)=>{ a.push(k ? a[k-1]+legMins(k-1) : 0); return a; }, []); // planned start, minutes after the gun
-const finishOff = Math.round(PLAN_OFF[N-1] + LEGS[N-1].km*paceMinPerKm);
+const runMins = k => LEGS[k].km*paceMinPerKm;
+const nextStart = (t, k) => { const end=new Date(t.getTime()+runMins(k)*60000); return LEGS[k].n===FERRY.afterLeg ? ferryLegStart(end) : end; }; // t = start of leg index k
 const raceStartDate = () => new Date(S.raceStart);
-const plannedStart = i => new Date(raceStartDate().getTime() + PLAN_OFF[i]*60000);
-const plannedEnd = i => i < N-1 ? plannedStart(i+1) : new Date(raceStartDate().getTime() + finishOff*60000);
-// Projection: from the latest recorded start, every later leg follows at 6:00 /km (and the ferry), so all of them move after each start.
+let planCache = {key:null, arr:null};
+function planStarts(){ if(planCache.key!==S.raceStart){ const a=[raceStartDate()]; for(let k=1;k<N;k++) a.push(nextStart(a[k-1],k-1)); planCache={key:S.raceStart, arr:a}; } return planCache.arr; }
+const plannedStart = i => new Date(planStarts()[i]);
+const plannedEnd = i => i < N-1 ? plannedStart(i+1) : new Date(plannedStart(i).getTime() + runMins(i)*60000);
+const finishMins = () => (plannedEnd(N-1) - raceStartDate())/60000;
+// Projection: from the latest recorded start, every later leg follows at 6:00 /km (and the ferry wait), so all of them move after each start.
 function projStart(i){
   const a = S.actual[LEGS[i].n]; if (a) return new Date(a);
   let last=-1; for (let k=i-1;k>=0;k--){ if(S.actual[LEGS[k].n]){ last=k; break; } }
   if (last<0) return plannedStart(i);
-  return new Date(new Date(S.actual[LEGS[last].n]).getTime() + (PLAN_OFF[i]-PLAN_OFF[last])*60000);
+  let t=new Date(S.actual[LEGS[last].n]); for(let k=last;k<i;k++) t=nextStart(t,k); return t;
 }
 const projEnd = i => i < N-1 ? projStart(i+1) : new Date(projStart(i).getTime() + LEGS[i].km*paceMinPerKm*60000);
 const startPt = i => i===0 ? RACE.startPt : LEGS[i-1].pt;
@@ -558,8 +560,16 @@ function applyRole(kind){ S.me.kind=kind; S.roleSet=true;
   if(kind==="crew"){ S.mode="run"; }
   save(); startPosShare(); }
 function homeView(){ const k=S.me.kind; return k==="rv"?"rv": k==="bike"?"track": "leg"; }
-document.querySelectorAll(".rolebtn").forEach(b=>b.addEventListener("click",()=>{ applyRole(b.dataset.role); document.querySelector("nav.tabs").hidden=false;
-  if(b.dataset.role==="bike"){ following=true; } setView(homeView()); }));
+const ROLE_SHORT = {suv:"SUV", rv:"RV", bike:"Bike", crew:"Crew", runner:"Runner"};
+function showRoleBtn(){ const b=$("#roleBtn"); if(!b) return; b.hidden=!S.roleSet; b.textContent=(ROLE_SHORT[S.me.kind]||"Role")+" \u25BE"; }
+function openRolePicker(){ document.querySelector("nav.tabs").hidden=true; const c=$("#roleCancel"); if(c) c.hidden=!S.roleSet;
+  document.querySelectorAll(".rolebtn").forEach(b=>b.classList.toggle("primary", S.roleSet && b.dataset.role===S.me.kind)); setView("role"); $("main").scrollTop=0; }
+function closeRolePicker(){ document.querySelector("nav.tabs").hidden=false; showRoleBtn(); setView(homeView()); }
+document.querySelectorAll(".rolebtn").forEach(b=>b.addEventListener("click",()=>{ applyRole(b.dataset.role);
+  following = b.dataset.role==="bike"; const fb=$("#followMe"); if(fb){ fb.setAttribute("aria-pressed",String(following)); fb.textContent=following?"Following":"Follow me"; }
+  closeRolePicker(); }));
+$("#roleBtn").addEventListener("click",openRolePicker);
+$("#roleCancel").addEventListener("click",closeRolePicker);
 
 function viewIndex(){ return (S.viewLeg ? S.viewLeg-1 : currentIndex()); }
 
@@ -679,7 +689,7 @@ function renderLeg(){
     </div>
     <div class="muted" style="font-size:13px">Runner planned ${dur(runnerMin)} for this leg. Drive figures are ${de.routed?"routed by road, without traffic":"straight-line estimates"}. Slack is time at the exchange before the runner arrives, if you leave as soon as they do.</div>
     ${L.drive.length?`<div><h2>Vehicle notes</h2><ul class="notes">${L.drive.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></div>`:""}
-    ${L.n===26?`<div class="alert">Ferry leg. Confirm the Glenora ferry schedule for race day; the booklet allowed ~40 min between the dock and the Leg 27 start.</div>`:""}
+    ${L.n===26?`<div class="alert">Ferry leg. The Glenora ferry leaves at :00 and :30 from 6 AM to 1 AM, then not until 6 AM. The plan takes the next sailing after the runner reaches the dock (allowing 5 min to board) and 20 min to cross and get off. Next planned sailing: ${hm(ferryDeparture(projEnd(i)))}.</div>`:""}
     <div><h2>Navigate to exchange ${L.n}</h2>
     ${navButtons(startPt(i),L.pt,"drive")}</div>
     ${i<N-1?`<div class="card" style="font-size:14px"><span class="eyebrow">After this</span><br>Leg ${LEGS[i+1].n} · ${esc(LEGS[i+1].name)} · ${km1(LEGS[i+1].km)} km · exchange at ${esc(LEGS[i+1].ex)}</div>`:""}`;
@@ -1329,7 +1339,7 @@ function renderSetup(){
   let h=`<div class="stack">
   <div><div class="eyebrow">Setup</div><h1>Race clock</h1></div>
   <div><label class="f" for="raceStart">Race start (gun time)</label><input type="datetime-local" id="raceStart" value="${S.raceStart}">
-    <div class="muted" style="font-size:13px;margin-top:6px">Every planned time is an offset from this. At 6:00 /km for every runner, plus about 40 min for the Glenora ferry, the finish is about ${dur(finishOff)} after the start.</div></div>
+    <div class="muted" style="font-size:13px;margin-top:6px">Every planned time is an offset from this. At 6:00 /km for every runner, catching the next half-hourly Glenora ferry after leg 26, the finish is about ${dur(Math.round(finishMins()))} after the start.</div></div>
   <div><label class="f" for="manualNow">Current leg</label><select id="manualNow"><option value="">Auto (from clock and recorded starts)</option>${LEGS.map(l=>`<option value="${l.n}" ${S.manualNow===l.n?"selected":""}>Leg ${l.n} · ${esc(l.name)}</option>`).join("")}</select>
     <div class="muted" style="font-size:13px;margin-top:6px">Override if the clock is wrong about where you are. Marking a leg start clears this.</div></div>
   <div class="card"><h2>Runners</h2><p style="margin:0;font-size:15px">The ten runners from the team page, with their faces and words. Tag them to legs here or on the Now tab.</p>
@@ -1380,7 +1390,7 @@ function renderSetup(){
   $("#manualNow").addEventListener("change",e=>{ setShared("manualNow",()=>{ S.manualNow=e.target.value?+e.target.value:null; }); });
   $("#clearAll")?.addEventListener("click",()=>{ Object.keys(S.actual).forEach(n=>setShared("actual."+n,()=>{ delete S.actual[n]; })); renderSetup(); });
   $("#meLabel").addEventListener("change",e=>{ S.me.label=e.target.value.trim().slice(0,24); save(); });
-  $("#meKind").addEventListener("change",e=>{ applyRole(e.target.value); renderSetup(); });
+  $("#meKind").addEventListener("change",e=>{ applyRole(e.target.value); showRoleBtn(); renderSetup(); });
   $("#meRunner")?.addEventListener("change",e=>{ S.me.runnerId=e.target.value; save(); if(S.sharePos) startPosShare(); });
   $("#sharePos")?.addEventListener("change",e=>{ S.sharePos=e.target.checked; save(); if(S.sharePos) startPosShare(); else stopPosShare(); renderSetup(); });
   $("#wake")?.addEventListener("change",e=>{ S.wake=e.target.checked; save(); applyWake(); });
@@ -1409,5 +1419,6 @@ applySkin(true); startSync(); applyWake();
 const h0=location.hash.slice(1);
 if(!S.roleSet && HAS_L){ document.querySelector("nav.tabs").hidden=true; setView("role"); }
 else setView(["leg","legs","map","team","track","rv","social","setup"].includes(h0)?h0:homeView());
+showRoleBtn();
 })();
 </script>

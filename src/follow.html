@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F6F4F1">
+<title>The Runway, Toronto to Montréal</title>
+<meta property="og:title" content="#RUNTOMTL, The Runway">
+<meta property="og:description" content="650 km, 67 legs, one team. Follow us live and send a cheer.">
+<style>/*FONTS*/</style>
+<style>
+/*LEAFLETCSS*/
+</style>
+<style>
+/* Friends page, Ring. One layout, day and night: the ring of 67 legs around whoever is running, big display type, cards.
+   Only the colours change at sunset: paper and deep pink by day, black and the #RUNTOMTL pink by night. */
+:root{ --d:"Big Shoulders Display","Arial Narrow",Impact,sans-serif; --f:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif }
+html[data-skin="day"],html:not([data-skin]){ --bg:#F6F4F1; --fg:#0A0A0A; --accent:#E8559F; --onacc:#fff; --mute:#6E6C66; --dim:#D9D6CF; --soft:#ECE9E3; --card:#fff; --tilefilter:saturate(.85); --glow:rgba(232,85,159,.22); --nowdot:#0A0A0A; color-scheme:light }
+html[data-skin="night"]{ --bg:#050505; --fg:#fff; --accent:#F18DCB; --onacc:#000; --mute:#9A9A9A; --dim:#262626; --soft:#121212; --card:#121212; --tilefilter:brightness(.7) contrast(1.05) saturate(.55); --glow:rgba(241,141,203,.35); --nowdot:#fff; color-scheme:dark }
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--f);font-size:16px;line-height:1.4;-webkit-text-size-adjust:100%;font-optical-sizing:auto;transition:background-color .3s,color .3s}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){ body{transition:none} .ticker div{animation:none!important} .teampin.live{animation:none} }
+.wrap{max-width:460px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-right,0px)) calc(28px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+section[hidden]{display:none}
+.stack{display:flex;flex-direction:column;gap:14px;padding-top:6px}
+
+/* embed: the host site supplies the header */
+html.embed header .logo{display:none!important} html.embed header{padding-top:8px;justify-content:flex-end}
+html.embed .wrap{padding-bottom:12px} html.embed,html.embed body{height:auto}
+/* masthead */
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;padding:calc(16px + env(safe-area-inset-top,0px)) 0 4px}
+header .logo{height:60px;display:block}
+.logo.n{display:none} html[data-skin="night"] .logo.n{display:block} html[data-skin="night"] .logo.d{display:none}
+.hright{display:flex;align-items:center;gap:8px;padding-bottom:6px}
+.live{display:flex;align-items:center;gap:6px;background:var(--accent);color:var(--onacc);font-weight:700;font-size:12px;letter-spacing:.5px;padding:5px 10px;border-radius:999px}
+.live i{width:7px;height:7px;border-radius:50%;background:var(--onacc);opacity:.5}.live i.on{opacity:1}
+.skin{font-size:12px;color:var(--mute);border:1px solid var(--dim);border-radius:999px;padding:4px 10px;white-space:nowrap}
+.ticker{overflow:hidden;white-space:nowrap;margin:6px -16px 0;padding:8px 0;border-top:1px solid var(--dim);border-bottom:1px solid var(--dim);font-size:14px;color:var(--accent)}
+.ticker div{display:inline-block;animation:slide 30s linear infinite;padding-left:100%}.ticker span{margin-right:36px;display:inline-flex;align-items:center;gap:6px;vertical-align:middle}.ticker .te{width:18px;height:18px;display:inline-block;--sprite-ink:var(--fg)}
+@keyframes slide{to{transform:translateX(-100%)}}
+
+/* hero: the ring */
+.hero{text-align:center;padding:20px 0 0;position:relative}
+.glowbg{position:absolute;left:50%;top:0;width:440px;height:440px;transform:translateX(-50%);background:radial-gradient(circle,var(--glow),rgba(0,0,0,0) 60%);pointer-events:none}
+.ringwrap{position:relative;width:290px;height:290px;margin:0 auto}
+.ring{position:absolute;inset:0}.ring svg{width:100%;height:100%;display:block}.ring circle{fill:var(--dim)}.ring circle.done{fill:var(--accent)}.ring circle.now{fill:var(--nowdot)}
+html[data-skin="night"] .ring circle.now{filter:drop-shadow(0 0 8px #fff)}
+.portrait{position:absolute;inset:34px;border-radius:50%;overflow:hidden;border:5px solid var(--accent);box-shadow:0 0 60px var(--glow);background:var(--soft);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:48px;color:var(--mute)}
+.portrait img{width:100%;height:100%;object-fit:cover;display:block}
+.legtag{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%) skewX(-8deg);background:var(--fg);color:var(--bg);font-family:var(--d);font-weight:900;font-size:36px;line-height:1;padding:6px 16px 4px;white-space:nowrap}
+.legtag small{font-family:var(--f);font-size:12px;font-weight:700;margin-right:6px;vertical-align:middle}
+.hero h1{margin:26px 0 0;font-family:var(--d);font-weight:900;font-size:60px;line-height:.86;text-transform:uppercase;letter-spacing:-1px;transform:skewX(-8deg);text-wrap:balance}
+.hero h1 span{display:block;color:var(--accent);font-size:38px}
+.hero .word{margin-top:12px;font-size:18px;font-weight:600;color:var(--accent)}
+.hero .sub{color:var(--mute);font-size:14px;margin-top:4px}.hero .sub b{color:var(--fg);font-weight:500}
+@media (max-width:360px){ .hero h1{font-size:50px} .ringwrap{width:250px;height:250px} }
+
+/* figures */
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px}
+.stat{background:var(--soft);border-radius:10px;padding:14px 12px 12px;min-width:0;display:flex;flex-direction:column}
+.stat .k{font-size:13px;color:var(--mute);margin-top:4px}.stat .v{font-family:var(--d);font-weight:900;font-size:44px;line-height:.9;letter-spacing:-.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat .v small{font-family:var(--f);font-size:13px;color:var(--mute);font-weight:500;letter-spacing:0;margin-left:2px}.stat.hot .v{color:var(--accent)}
+@media (max-width:360px){ .stat .v{font-size:36px} }
+
+/* route */
+.schem{position:relative;background:var(--soft);border-radius:10px;padding:6px 0}.schem svg{width:100%;height:auto;display:block}
+.schem .c1,.schem .c2,.schem .hint{position:absolute;font-size:13px;color:var(--mute)}.schem .c1{left:10px;top:10px}.schem .c2{right:10px;bottom:10px}.schem .hint{left:50%;transform:translateX(-50%);bottom:10px;font-size:12px;white-space:nowrap}
+.schem .posdot{cursor:pointer}
+
+h2{font-family:var(--d);font-weight:900;font-size:30px;text-transform:uppercase;letter-spacing:.3px;margin:18px 0 10px;display:flex;gap:10px;align-items:baseline;line-height:1}
+h2>span{transform:skewX(-8deg);transform-origin:left;display:inline-block}
+h2 em{font-style:normal;color:var(--accent)}h2 small{font-family:var(--f);text-transform:none;letter-spacing:0;font-size:13px;color:var(--mute);font-weight:400;margin-left:auto;text-align:right}
+
+/* team */
+.strip{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.strip::-webkit-scrollbar{display:none}
+.pm{flex:none;width:68px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;color:var(--mute);font-size:11px}
+.pm .av{width:58px;height:58px;border-radius:50%;border:2px solid var(--dim);overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:17px;color:var(--fg);background:var(--soft)}
+.pm .av img{width:100%;height:100%;object-fit:cover;display:block}
+.pm.on .av{border-color:var(--accent);box-shadow:0 0 18px var(--glow)}.pm.on{color:var(--fg);font-weight:600}.pm.done .av{opacity:.7}
+
+/* photos */
+.film{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 4px}.film::-webkit-scrollbar{display:none}
+.ph{flex:none;width:72%;position:relative;aspect-ratio:4/5;overflow:hidden;border-radius:10px;background:var(--soft);padding:0;display:block;text-align:left}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph .cap{position:absolute;left:0;right:0;bottom:0;padding:30px 12px 10px;font-size:12px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.8))}.ph .cap b{display:block;font-size:15px;font-weight:600}
+.lightbox{position:fixed;inset:0;z-index:900;background:#000;display:flex;flex-direction:column}
+.lightbox img{flex:1;min-height:0;object-fit:contain;width:100%}
+.lightbox .lb{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));color:#ECE9E2;font-size:14px;background:#000}
+.lightbox .lb button{color:#ECE9E2;border:1px solid #8C8982;border-radius:999px;padding:5px 12px}
+
+/* cheers: the round badges with the pink offset, both skins */
+.cheers{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding-right:4px}
+.cheers button{background:var(--card);border:2px solid var(--fg);border-radius:50%;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:4px 4px 0 var(--accent);transition:transform .08s,background .2s}
+.cheers button:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--accent)}
+.cheers .e{width:46%;height:46%;position:relative;display:block;--sprite-ink:var(--fg)}
+.cheers .c{font-size:13px;font-weight:600;color:var(--mute);font-variant-numeric:tabular-nums}
+.cheers button.sent{background:var(--accent);border-color:var(--accent)}.cheers button.sent .c{color:var(--onacc)}
+.msg{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:14px}
+.msg input,.name input{width:100%;min-width:0;padding:13px 14px;border:0;border-radius:10px;background:var(--soft);color:var(--fg);font:inherit;font-size:15px}
+.name{margin-top:8px}
+.msg .send{background:var(--accent);color:var(--onacc);border-radius:10px;padding:0 18px;font-weight:700}.msg .send:disabled{opacity:.4}
+input::placeholder{color:var(--mute)}
+.muted{color:var(--mute);font-size:13px}
+.feed{margin:12px 0 0;padding:0;list-style:none}.feed li{display:grid;grid-template-columns:30px 1fr auto;gap:8px;align-items:baseline;padding:8px 0;border-top:1px solid var(--dim);font-size:15px}
+.feed .e{width:24px;height:24px;display:block;align-self:center;--sprite-ink:var(--fg)}.feed .w{color:var(--mute);font-size:12px;white-space:nowrap}.feed q{quotes:none;display:block;color:var(--mute)}.feed .nm{font-weight:600}
+
+/* social */
+.social{margin:30px 0 0;text-align:center}
+.social .rt{width:66%;max-width:260px;display:block;margin:0 auto 18px}
+.social .links{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.social a{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 10px;background:var(--accent);color:var(--onacc);text-decoration:none;font-weight:700;font-size:14px;transform:skewX(-8deg)}
+.social a>*{transform:skewX(8deg)}.social a small{display:block;font-weight:500;font-size:12px}.social svg{width:26px;height:26px;flex:none}
+.social .tag{color:var(--mute);font-size:12px;margin-top:14px}
+footer{margin-top:24px;text-align:center}footer img{height:34px;opacity:.7;margin:0 auto}
+footer .logo.d{display:block} html[data-skin="night"] footer .logo.d{display:none}
+.toast{position:fixed;left:50%;bottom:calc(40px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);font-weight:600;font-size:16px;padding:9px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:950}
+.toast.show{opacity:1}
+.lnk{color:var(--accent);font-weight:500;text-decoration:underline;text-underline-offset:3px}
+.btn{display:flex;align-items:center;justify-content:center;padding:13px 14px;border-radius:10px;border:2px solid var(--fg);font-weight:600;font-size:16px;width:100%}
+
+/* runner sheet */
+.rhead{display:grid;grid-template-columns:120px 1fr;gap:16px;align-items:center}
+.rhead .ringwrap{width:120px;height:120px;margin:0}.rhead .portrait{inset:14px;border-width:3px;box-shadow:none}
+.rhead h1{margin:0;font-family:var(--d);font-weight:900;font-size:40px;line-height:.9;text-transform:uppercase;transform:skewX(-8deg);transform-origin:left}
+.rhead .word{color:var(--accent);font-weight:600;margin-top:8px}.rhead .sub{color:var(--mute);font-size:14px;margin-top:2px}
+.legrow{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--dim);width:100%;text-align:left}
+.legrow .n{font-family:var(--d);font-weight:900;font-size:36px;color:var(--mute);font-variant-numeric:tabular-nums;line-height:1}
+.legrow.now .n{color:var(--accent)}.legrow.done .n{color:var(--fg);opacity:.5}
+.legrow .name{font-weight:500;font-size:16px;line-height:1.2}.legrow .sub{font-size:13px;color:var(--mute);font-variant-numeric:tabular-nums}
+.legrow .t{font-weight:300;font-size:22px;font-variant-numeric:tabular-nums;text-align:right;line-height:1.05}.legrow .t small{display:block;font-size:12px;color:var(--mute);font-weight:400}
+
+.rmapwrap{position:relative;border-radius:10px;overflow:hidden;background:var(--soft)}
+#rmap{height:270px;width:100%}#rmap .leaflet-tile-pane{filter:var(--tilefilter)}
+.rmaphint{font-size:12px;color:var(--mute);padding:8px 12px}
+.legpin{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--onacc);border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;font:900 15px var(--d);box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.legpin.upcoming{background:var(--bg);color:var(--accent);border-color:var(--accent)}.legpin.now{background:var(--fg);color:var(--bg)}
+button.legrow{font:inherit;color:inherit;cursor:pointer}
+
+.ring circle.start{fill:var(--accent);animation:sp-startdot 1.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes sp-startdot{0%,100%{transform:scale(1)}50%{transform:scale(2.2)}}
+.countdown{flex-direction:column;gap:2px;color:var(--fg);background:var(--soft)}
+.countdown .cdD{display:flex;flex-direction:column;align-items:center;line-height:.8}
+.countdown .cdD b{font-family:var(--d);font-weight:900;font-size:110px;letter-spacing:-3px}
+.countdown .cdD small{font-size:14px;font-weight:600;color:var(--accent);margin-top:6px;text-transform:uppercase;letter-spacing:1px}
+.countdown .cdT{font-family:var(--d);font-weight:900;font-size:34px;letter-spacing:.5px;font-variant-numeric:tabular-nums;margin-top:6px}
+@media (prefers-reduced-motion:reduce){ .ring circle.start{animation:none} }
+
+/* Powered by Narro: the logo files are used as masks so they take the page colour, black by day and white by night */
+footer.powered{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:26px;color:var(--mute)}
+footer.powered span{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+footer.powered a{display:inline-flex;align-items:center;gap:6px;color:var(--fg);text-decoration:none}
+footer.powered i{display:block;background:currentColor;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-position:center;mask-position:center}
+footer.powered .nm{width:13px;height:14px;-webkit-mask-image:url(NARRO_MARK);mask-image:url(NARRO_MARK)}
+footer.powered .nw{width:53px;height:12px;-webkit-mask-image:url(NARRO_WORD);mask-image:url(NARRO_WORD)}
+footer.powered a:hover{color:var(--accent)}
+/* full map */
+#mapview{position:fixed;inset:0;z-index:800;background:var(--bg);display:flex;flex-direction:column}#mapview[hidden]{display:none}
+#mapview .bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));border-bottom:2px solid var(--fg)}
+#mapview .bar .ttl{font-weight:600;font-size:17px;line-height:1.15}#mapview .bar .ttl small{display:block;font-weight:400;font-size:13px;color:var(--mute)}
+#mapview .back{border:2px solid var(--fg);border-radius:10px;padding:8px 12px;font-weight:500;white-space:nowrap}
+#fmap{flex:1;background:var(--soft)}#fmap .leaflet-tile-pane{filter:var(--tilefilter)}
+.leaflet-container{font-family:var(--f)}
+.teampin{width:46px;height:46px;border-radius:50%;background:var(--accent);border:3px solid var(--bg);box-shadow:0 0 0 6px var(--glow);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;font-weight:600;color:var(--onacc)}
+.teampin img{width:100%;height:100%;object-fit:cover;display:block}
+@keyframes pulse{0%{box-shadow:0 0 0 0 var(--glow)}100%{box-shadow:0 0 0 26px rgba(0,0,0,0)}}.teampin.live{animation:pulse 1.8s infinite}
+.endpin{border-radius:50%;width:16px;height:16px;border:3px solid var(--bg);box-shadow:0 0 0 2px var(--fg)}
+.leaflet-tooltip{font-family:var(--f);font-weight:600;border-radius:6px;background:var(--bg);color:var(--fg);border:1px solid var(--fg)}
+.leaflet-tooltip-top::before{border-top-color:var(--fg)}.leaflet-tooltip-right::before{border-right-color:var(--fg)}
+.leaflet-bar a{background:var(--bg);color:var(--fg);border-bottom-color:var(--dim)}.leaflet-control-attribution{background:var(--bg);color:var(--mute);font-size:10px}.leaflet-control-attribution a{color:var(--mute)}
+.pre{text-align:center;padding:30px 0 10px}.pre .n{font-family:var(--d);font-weight:900;font-size:140px;line-height:.8;letter-spacing:-4px}.pre p{margin:12px 0 0;font-size:18px;font-weight:300}
+@media (min-width:900px){ .wrap{max-width:520px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><img class="logo d" src="SP_BLACK" alt="Shift & Play"><img class="logo n" src="SP_WHITE" alt="Shift & Play"><div class="hright"><span class="live" id="liveTag"><i></i><span>Live</span></span><button class="skin" id="skinBtn">Auto</button></div></header>
+  <section id="home"><div class="stack" id="homeBody"></div></section>
+  <section id="runner" hidden><div class="stack" id="runnerBody"></div></section>
+</div>
+<div id="mapview" hidden><div class="bar"><div class="ttl" id="mapTtl"></div><button class="back" id="mapBack">Back</button></div><div id="fmap"></div></div>
+<div class="toast" id="toast">Sent!</div>
+
+<script>/*LEAFLETJS*/</script>
+<script>/*DATA*/</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(function(){
+"use strict";
+const TEAM = { url:"https://sajvndlspknvaquqnakb.supabase.co", key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhanZuZGxzcGtudmFxdXFuYWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzAyNDQsImV4cCI6MjEwODk0NjI0NH0.jZWUIEY7-EKES_8XJi0xxEpT9q_PsqksU4Fb_xouOj8", team:"runway2026" };
+if(new URLSearchParams(location.search).get("test")==="1") TEAM.team += "-test";
+const BUILD = "/*BUILD*/";
+const RACE_START_DEFAULT = "2026-11-04T21:00:00-05:00";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const N=LEGS.length, totalKm=LEGS.reduce((a,l)=>a+l.km,0);
+const line = n => { const r=ROUTES[String(n)]; return (r&&r.run&&r.run.length>1)? r.run : [n===1?RACE.startPt:LEGS[n-2].pt, LEGS[n-1].pt]; };
+const pts = [RACE.startPt, ...LEGS.map(l=>l.pt)];
+const ROSTER = (typeof TEAM_ROSTER!=="undefined"?TEAM_ROSTER:[]);
+const byName = n => ROSTER.find(t=>t.name===n) || null;
+const initials = n => String(n||"").split(/\s+/).map(w=>w[0]).filter(Boolean).slice(0,2).join("").toUpperCase();
+const face = t => t&&t.photo ? `<img src="${t.photo}" alt="${esc(t.name)}">` : `<span>${esc(initials(t?t.name:"?"))}</span>`;
+const DAYS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]; const p2=n=>String(n).padStart(2,"0");
+const hm=d=>`${p2(d.getHours())}:${p2(d.getMinutes())}`; const dayhm=d=>`${DAYS[d.getDay()]} ${hm(d)}`;
+const dur=m=>{ m=Math.round(m); const h=Math.floor(m/60), r=m%60; return h?`${h}h ${p2(r)}`:`${r} min`; };
+const ageText=sec=>sec<60?`${Math.round(sec)} s ago`:sec<3600?`${Math.round(sec/60)} min ago`:`${(sec/3600).toFixed(1)} h ago`;
+const km1=k=>(Math.round(k*10)/10).toFixed(1);
+// Embed mode (…/follow.html?embed=1 inside an iframe on shiftandplay.com): the host page sizes the frame to fit,
+// and anything that needs the full screen (the leg map, a photo) opens the full page in a new tab instead.
+const EMBED = new URLSearchParams(location.search).has("embed") && window.parent!==window;
+const FULL_URL = location.origin + location.pathname;
+if(EMBED){ document.documentElement.classList.add("embed");
+  const post=()=>{ const w=document.querySelector(".wrap"); if(!w) return; try{ window.parent.postMessage({runwayHeight: Math.ceil(w.getBoundingClientRect().height)+4}, "*"); }catch(e){} };
+  try{ new ResizeObserver(post).observe(document.querySelector(".wrap")); }catch(e){ setInterval(post,1500); } window.addEventListener("load",post); setTimeout(post,500); }
+const toTop=()=>{ if(EMBED){ try{ window.parent.postMessage({runwayTop:true},"*"); }catch(e){} } else window.scrollTo(0,0); };
+const IG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>';
+
+// ---- skin ----
+function sunTimes(date, lat, lng){ const rad=Math.PI/180; const d0=Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()); const n=Math.round(d0/86400000)-10957; const Jstar=n-lng/360;
+  const M=(357.5291+0.98560028*Jstar)%360; const C=1.9148*Math.sin(M*rad)+0.02*Math.sin(2*M*rad)+0.0003*Math.sin(3*M*rad); const lam=(M+C+180+102.9372)%360;
+  const Jt=2451545+Jstar+0.0053*Math.sin(M*rad)-0.0069*Math.sin(2*lam*rad); const dec=Math.asin(Math.sin(lam*rad)*Math.sin(23.44*rad));
+  const cosw=(Math.sin(-0.83*rad)-Math.sin(lat*rad)*Math.sin(dec))/(Math.cos(lat*rad)*Math.cos(dec)); if(cosw<-1||cosw>1) return null; const w=Math.acos(cosw)/rad;
+  const toDate=J=>new Date((J-2440587.5)*86400000); return {rise:toDate(Jt-w/360), set:toDate(Jt+w/360)}; }
+// Day or night: it follows the sun where the runner is; tapping flips it until the next sunrise or sunset.
+let skinNow="", skinOv=null; try{ skinOv=JSON.parse(localStorage.getItem("runway.skinOv")||"null"); }catch(e){}
+function sunPt(){ return PUB&&PUB.lat!=null ? [PUB.lat,PUB.lng] : RACE.startPt; }
+function sunSkin(){ const pt=sunPt(), st=sunTimes(new Date(),pt[0],pt[1]), t=new Date(); return (st && (t<st.rise||t>st.set)) ? "night":"day"; }
+function nextSunEvent(){ const pt=sunPt(), now=new Date(), s=sunTimes(now,pt[0],pt[1]); if(!s) return new Date(now.getTime()+6*3600e3); if(now<s.rise) return s.rise; if(now<s.set) return s.set; const s2=sunTimes(new Date(now.getTime()+86400e3),pt[0],pt[1]); return s2?s2.rise:new Date(now.getTime()+12*3600e3); }
+function applySkin(){ let s=sunSkin(); if(skinOv && Date.now()<new Date(skinOv.until)) s=skinOv.skin; else skinOv=null;
+  skinNow=s; document.documentElement.dataset.skin=s; $("#skinBtn").textContent = s==="night"?"Night":"Day";
+  const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content=s==="night"?"#050505":"#F6F4F1"; }
+$("#skinBtn").addEventListener("click",()=>{ const want=skinNow==="night"?"day":"night"; skinOv = want===sunSkin()?null:{skin:want,until:nextSunEvent().toISOString()}; try{ localStorage.setItem("runway.skinOv",JSON.stringify(skinOv)); }catch(e){} applySkin(); });
+
+// ---- pieces ----
+function curIdx(){ return PUB ? Math.max(0,Math.min(N-1,PUB.leg-1)) : 0; }
+function legStatus(n){ const c=PUB&&PUB.started?PUB.leg:0; return n<c?"done":n===c?"now":"upcoming"; }
+// the ring: 67 dots, one per leg, lit as they are run; the current leg is the big one. Optional highlight set for a runner's own legs.
+function ringSvg(size, hi){ const S=size, r=S/2-9, c=S/2; let h=""; const started=PUB&&PUB.started; const cur=started?PUB.leg:0;
+  for(let k=0;k<N;k++){ const a=-Math.PI/2+(k/N)*Math.PI*2; const x=c+r*Math.cos(a), y=c+r*Math.sin(a); const n=k+1; let cls = n<cur?"done":n===cur?"now":"todo"; if(hi){ cls = hi.has(n) ? (n<cur?"done":n===cur?"now":"mine") : "todo"; }
+    if(!started && k===0) cls="start";
+    h+=`<circle class="${cls}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${cls==="now"?6:cls==="mine"?4:3.2}"${cls==="mine"?' style="fill:var(--accent);opacity:.55"':''}/>`; }
+  return `<div class="ring"><svg viewBox="0 0 ${S} ${S}">${h}</svg></div>`; }
+function schematicSvg(o){ o=o||{}; const lats=pts.map(p=>p[0]), lngs=pts.map(p=>p[1]);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLng=Math.min(...lngs),maxLng=Math.max(...lngs); const kx=Math.cos(44.5*Math.PI/180);
+  const W=400,H=o.h||170,pad=20, sc=Math.min((W-2*pad)/((maxLng-minLng)*kx),(H-2*pad)/(maxLat-minLat));
+  const X=p=>(pad+(p[1]-minLng)*kx*sc).toFixed(1), Y=p=>(H-pad-(p[0]-minLat)*sc).toFixed(1);
+  const cur=curIdx(), hi=o.highlight||new Set(), started=PUB&&PUB.started;
+  let paths=`<path d="${pts.map((p,k)=>(k?"L":"M")+X(p)+" "+Y(p)).join(" ")}" fill="none" stroke="var(--dim)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if(started) paths+=`<path d="${pts.slice(0,cur+1).map((p,k)=>(k?"L":"M")+X(p)+" "+Y(p)).join(" ")}" fill="none" stroke="var(--fg)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="${hi.size?.35:1}"/>`;
+  hi.forEach(k=>{ paths+=`<path d="M${X(pts[k])} ${Y(pts[k])} L${X(pts[k+1])} ${Y(pts[k+1])}" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round"/>`; });
+  let dot=""; if(started && !o.noPos){ const f=Math.max(0,Math.min(1,(PUB.along_km||0)/LEGS[cur].km)); const a=pts[cur], b=pts[cur+1]; const cx=(+X(a)+(+X(b)-X(a))*f).toFixed(1), cy=(+Y(a)+(+Y(b)-Y(a))*f).toFixed(1);
+    dot=`<g class="posdot"><circle cx="${cx}" cy="${cy}" r="18" fill="var(--accent)" opacity=".22"/><circle cx="${cx}" cy="${cy}" r="7" fill="var(--accent)"/></g>`; }
+  return `<div class="schem"><svg viewBox="0 0 ${W} ${H}" aria-label="Route overview">${paths}<circle cx="${X(pts[0])}" cy="${Y(pts[0])}" r="4" fill="var(--fg)"/><circle cx="${X(pts[N])}" cy="${Y(pts[N])}" r="4" fill="none" stroke="var(--fg)" stroke-width="2"/>${dot}</svg><span class="c1">Toronto</span><span class="c2">Montréal</span>${o.hint?`<span class="hint">${o.hint}</span>`:""}</div>`; }
+function runnerLegs(name){ const a=PUB&&PUB.legs&&PUB.legs.assign||{}; return LEGS.map((l,i)=>({l,i})).filter(x=>a[x.l.n]===name); }
+function legElapsed(n){ const ac=PUB&&PUB.legs&&PUB.legs.actual||{}; const a=ac[n], b=ac[n+1]; return (a&&b)?(new Date(b)-new Date(a))/60000:null; }
+function stripHtml(){ const runners=ROSTER.filter(t=>t.runner), crew=ROSTER.filter(t=>!t.runner); const who=PUB&&PUB.started?PUB.runner:"";
+  return `<div class="strip" id="strip">${runners.concat(crew).map(t=>{ const on=t.name===who; const legs=runnerLegs(t.name); const done=legs.length&&legs.every(x=>legStatus(x.l.n)==="done");
+    return `<button class="pm ${on?"on":done?"done":""}" data-name="${esc(t.name)}"><span class="av">${face(t)}</span><span>${esc(t.name.split(" ")[0])}</span></button>`; }).join("")}</div>`; }
+const EMOJI=["🔥","💪","❤️","🏃"]; const SPR_NAME={"🔥":"Fire","💪":"Strength","❤️":"Love","🏃":"Run"};
+const spr = e => (typeof SPRITES!=="undefined" && SPRITES[e]) ? SPRITES[e] : esc(e);
+if(typeof SPRITE_CSS!=="undefined") document.head.insertAdjacentHTML("beforeend","<style>"+SPRITE_CSS+"</style>");
+function cheersHtml(pre){ let nm=""; try{ nm=localStorage.getItem("runway.cheerName")||""; }catch(e){}
+  return `<div><h2><span>${pre?"Wish us <em>luck</em>":"Send <em>a cheer</em>"}</span><small>${pre?"we'll read every one":"they see it in the van"}</small></h2><div class="cheers" id="cheers">${EMOJI.map(e=>`<button data-e="${e}"><span class="e">${spr(e)}</span><span class="c">${counts[e]||0}</span></button>`).join("")}</div>
+    <div class="msg"><input id="msgIn" placeholder="${pre?"A few words for the team":"A few words for the runner"}" maxlength="80"><button class="send" id="sendMsg" disabled>Send</button></div>
+    <div class="name"><input id="nm" placeholder="Your name, if you want them to know" maxlength="24" value="${esc(nm)}"></div>
+    <div class="muted" id="status" style="margin-top:8px">Tap one to send it; add words if you like.</div>
+    ${recent.length?`<ul class="feed">${recent.slice(0,6).map(r=>`<li><span class="e">${spr(r.emoji)}</span><span>${r.name?`<span class="nm">${esc(r.name)}</span>`:`<span class="muted">someone</span>`}${r.msg?`<q>${esc(r.msg)}</q>`:""}</span><span class="w">${ageText((Date.now()-new Date(r.at))/1000)}</span></li>`).join("")}</ul>`:""}</div>`; }
+function socialHtml(){ return `<div class="social"><img class="rt" src="RUNTOMTL_PNG" alt="#RUNTOMTL The Runway"><div class="links">
+    <a href="https://www.instagram.com/shiftandplayrelay/" target="_blank" rel="noopener">${IG}<span>@shiftandplayrelay<small>the relay team</small></span></a>
+    <a href="https://www.instagram.com/runtomtl/" target="_blank" rel="noopener">${IG}<span>@runtomtl<small>the race</small></span></a></div>
+    <div class="tag">650 km, 67 legs, Toronto to Montréal on foot.</div></div>
+    <footer class="powered"><span>Powered by</span><a href="https://www.narro.cloud" target="_blank" rel="noopener" aria-label="Narro"><i class="nw"></i><i class="nm"></i></a></footer>`; }
+function tickerHtml(){ const items=recent.filter(r=>r.name||r.msg).slice(0,8); if(!items.length) return ""; const s=items.map(r=>`<span><i class="te">${spr(r.emoji)}</i>${esc(r.name||"someone")}${r.msg?`: ${esc(r.msg)}`:""}</span>`).join(""); return `<div class="ticker"><div>${s}${s}</div></div>`; }
+function liveTag(on, text){ const el=$("#liveTag"); el.innerHTML=`<i class="${on?"on":""}"></i><span>${text}</span>`; }
+
+// ---- before the gun: the ready-to-start page ----
+function raceStart(){ return new Date((RAW&&RAW.race_start)||RACE_START_DEFAULT); }
+function splashHtml(){ const rs=raceStart(); const assign=(RAW&&RAW.legs&&RAW.legs.assign)||{}; const first=byName(assign[1]);
+  const when=`${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][rs.getDay()]} ${rs.toLocaleString(undefined,{month:"long"})} ${rs.getDate()}, ${rs.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}`;
+  return `<div class="hero"><div class="glowbg"></div><div class="ringwrap">${ringSvg(290)}<div class="portrait countdown"><div class="cdD"><b id="cdD">–</b><small id="cdDl">days</small></div><div class="cdT" id="cdT">--:--:--</div></div><div class="legtag"><small>LEG</small>1</div></div>
+    <h1>Ready<span>to run</span></h1><div class="word">Toronto to Montréal</div><div class="sub">${esc(when)}, from the TORONTO sign</div></div>
+    <div class="stats"><div class="stat"><div class="v">650<small>km</small></div><div class="k">on foot</div></div><div class="stat hot"><div class="v">67</div><div class="k">legs, day and night</div></div><div class="stat"><div class="v">10</div><div class="k">runners, one team</div></div></div>
+    ${schematicSvg({noPos:true})}
+    <div><h2><span>Meet <em>the team</em></span><small>${first?`${esc(first.name.split(" ")[0])} runs first`:"tap a runner"}</small></h2>${stripHtml()}</div>
+    ${cheersHtml(true)}
+    ${socialHtml()}`; }
+let cdTimer=null;
+function tickCountdown(){ const upd=()=>{ const d=raceStart()-Date.now(); const D=$("#cdD"), T=$("#cdT"), Dl=$("#cdDl"); if(!D) return;
+    if(d<=0){ D.textContent="GO"; Dl.textContent="any minute now"; T.textContent=""; return; }
+    const days=Math.floor(d/86400e3), h=Math.floor(d%86400e3/3600e3), m=Math.floor(d%3600e3/60e3), s=Math.floor(d%60e3/1000);
+    D.textContent=days; Dl.textContent=days===1?"day":"days"; T.textContent=`${p2(h)}:${p2(m)}:${p2(s)}`; };
+  upd(); if(!cdTimer) cdTimer=setInterval(upd,1000); }
+// ---- home ----
+let homeFirst=true;
+function patchHome(el, html){ const keep={msg:$("#msgIn")?.value||"", nm:$("#nm")?.value, focus:document.activeElement&&document.activeElement.id, film:$(".film")?.scrollLeft||0, strip:$("#strip")?.scrollLeft||0};
+  const tmp=document.createElement("div"); tmp.innerHTML=html; const nw=[...tmp.children], old=[...el.children];
+  if(homeFirst || nw.length!==old.length){ el.innerHTML=""; nw.forEach(c=>el.appendChild(c)); }
+  else nw.forEach((c,k)=>{ if(old[k].outerHTML!==c.outerHTML) el.replaceChild(c,old[k]); });
+  wireHome();
+  if($("#msgIn")){ $("#msgIn").value=keep.msg; $("#sendMsg").disabled=!keep.msg.trim(); } if(keep.nm!=null&&$("#nm")) $("#nm").value=keep.nm;
+  if(keep.focus&&$("#"+keep.focus)) $("#"+keep.focus).focus({preventScroll:true});
+  if($(".film")) $(".film").scrollLeft=keep.film;
+  if(homeFirst){ const on=el.querySelector(".pm.on"); if(on&&$("#strip")) $("#strip").scrollLeft=on.offsetLeft-$("#strip").clientWidth/2+on.clientWidth/2; homeFirst=false; } else if($("#strip")) $("#strip").scrollLeft=keep.strip; }
+function renderHome(){
+  const el=$("#homeBody");
+  if(!PUB || !PUB.started){ liveTag(false,"Ready"); patchHome(el, splashHtml()); tickCountdown(); return; }
+  if(false){ patchHome(el,`<div class="pre"><div class="n">650</div><p>kilometres, Toronto to Montréal, 67 legs, one team.<br>Waiting for the team to go live.</p></div>${schematicSvg({noPos:true})}<div><h2><span>The <em>team</em></span></h2>${stripHtml()}</div>${cheersHtml()}${socialHtml()}`); return; }
+  const cur=curIdx(), L_=LEGS[cur]; const done=Math.min(totalKm,Math.max(0,PUB.km_done||0)), left=Math.max(0,totalKm-done);
+  const age=(Date.now()-new Date(PUB.at))/1000, live=age<180;
+  const who = PUB.finished ? "" : (PUB.runner || (PUB.legs&&PUB.legs.assign&&PUB.legs.assign[PUB.started?PUB.leg:1]) || "");
+  const t=byName(who);
+  let hero;
+  if(PUB.finished){ liveTag(true,"Finished"); hero=`<div class="ringwrap">${ringSvg(290)}<div class="portrait"><img class="logo n" src="SP_WHITE" alt=""><img class="logo d" src="SP_BLACK" alt=""></div></div><h1>We made it<span>Montréal</span></h1><div class="word">${km1(totalKm)} km, 67 legs, one team</div><div class="sub">Finished ${dayhm(new Date(PUB.eta_finish))} at the Chalet du Mont-Royal.</div>`; }
+  else if(!PUB.started){ liveTag(false,"Soon"); hero=`<div class="ringwrap">${ringSvg(290)}<div class="portrait">${t?face(t):"67"}</div><div class="legtag"><small>LEG</small>1</div></div><h1>${t?esc(t.name):"The team"}<span>goes first</span></h1>${t&&t.word?`<div class="word">${esc(t.word)}</div>`:""}<div class="sub">Gun goes <b>${dayhm(new Date(PUB.race_start))}</b> at the TORONTO sign.</div>`; }
+  else { liveTag(true,"Live"); hero=`<div class="ringwrap">${ringSvg(290)}<div class="portrait">${t?face(t):"🏃"}</div><div class="legtag"><small>LEG</small>${PUB.leg}</div></div><h1>${esc(who||"The team")}<span>is running</span></h1>${t&&t.word?`<div class="word">${esc(t.word)}</div>`:""}<div class="sub">${esc(L_.name)}, ${km1(L_.km)} km.${PUB.next_runner?` Next up <b>${esc(PUB.next_runner)}</b>.`:""}</div>`; }
+  const tDate = new Date(PUB.finished ? PUB.eta_finish : !PUB.started ? PUB.race_start : PUB.eta_finish), tLabel = PUB.finished ? "finished" : !PUB.started ? "starts" : "finish about";
+  const html=`${tickerHtml()}<div class="hero"><div class="glowbg"></div>${hero}</div>
+    <div class="stats"><div class="stat"><div class="v">${Math.round(done)}<small>km</small></div><div class="k">run so far</div></div><div class="stat hot"><div class="v">${Math.round(left)}<small>km</small></div><div class="k">still to go</div></div><div class="stat"><div class="v">${hm(tDate)}</div><div class="k">${tLabel} ${DAYS[tDate.getDay()]}</div></div></div>
+    ${schematicSvg({hint:PUB.started&&!PUB.finished?"Tap the dot for the map":""})}
+    <div><h2><span>The <em>team</em></span><small>tap a runner for their legs</small></h2>${stripHtml()}</div>
+    ${galleryHtml()}
+    ${cheersHtml()}
+    ${socialHtml()}`;
+  patchHome(el, html);
+}
+// Each element is wired once; blocks that didn't change keep their listeners.
+const once=(el,ev,fn)=>{ if(!el) return; const k="__w_"+ev; if(el[k]) return; el[k]=1; el.addEventListener(ev,fn); };
+function wireHome(){
+  once($("#homeBody .posdot"),"click",openMap);
+  document.querySelectorAll("#homeBody .ph").forEach(b=>once(b,"click",()=>openPhoto(+b.dataset.id)));
+  document.querySelectorAll("#homeBody .pm").forEach(b=>once(b,"click",()=>{ openRunner(b.dataset.name); }));
+  document.querySelectorAll("#cheers button").forEach(b=>once(b,"click",()=>send(b.dataset.e,"",b)));
+  const mi=$("#msgIn"), sm=$("#sendMsg"); if(mi&&sm){ once(mi,"input",()=>{ sm.disabled=!mi.value.trim(); }); once(sm,"click",()=>{ const m=$("#msgIn"); const txt=m.value.trim(); if(!txt) return; send(lastEmoji||"❤️",txt,null); m.value=""; $("#sendMsg").disabled=true; }); }
+  once($("#nm"),"change",()=>{ try{ localStorage.setItem("runway.cheerName",$("#nm").value.trim().slice(0,24)); }catch(e){} });
+}
+
+// ---- runner sheet ----
+function openRunner(name){ const t=byName(name); if(!t) return; const legs=runnerLegs(name); const done=legs.filter(x=>legStatus(x.l.n)==="done"), now=legs.find(x=>legStatus(x.l.n)==="now");
+  const kmAll=legs.reduce((a,x)=>a+x.l.km,0), kmDone=done.reduce((a,x)=>a+x.l.km,0)+(now?(PUB.along_km||0):0);
+  const timed=done.map(x=>({x,m:legElapsed(x.l.n)})).filter(y=>y.m); const pace=timed.length?timed.reduce((a,y)=>a+y.m,0)/timed.reduce((a,y)=>a+y.x.l.km,0):null;
+  const proj=PUB&&PUB.legs&&PUB.legs.proj||{}, ac=PUB&&PUB.legs&&PUB.legs.actual||{};
+  const row=x=>{ const st=legStatus(x.l.n); const a=ac[x.l.n]; const el=legElapsed(x.l.n); const when=a?new Date(a):proj[x.l.n]?new Date(proj[x.l.n]):null;
+    return `<button class="legrow ${st}" data-leg="${x.l.n}"><div class="n">${x.l.n}</div><div><div class="name">${esc(x.l.name)}</div><div class="sub">${km1(x.l.km)} km${when?`, ${a?"left":"planned"} ${dayhm(when)}`:""}${el?`, ${dur(el)} (${Math.floor(el/x.l.km)}:${p2(Math.round(((el/x.l.km)%1)*60))}/km)`:""}</div></div><div class="t">${st==="now"?"now":st==="done"?"done":when?hm(when):""}<small>${st==="upcoming"&&when?"start":""}</small></div></button>`; };
+  $("#runnerBody").innerHTML=`<button class="lnk" id="rBack" style="align-self:flex-start">Back to the team</button>
+    <div class="rhead"><div class="ringwrap">${ringSvg(120,new Set(legs.map(x=>x.l.n)))}<div class="portrait">${face(t)}</div></div><div><h1>${esc(t.name)}</h1>${t.word?`<div class="word">${esc(t.word)}</div>`:""}<div class="sub">${t.runner?`${legs.length||"No"} ${legs.length===1?"leg":"legs"}${kmAll?`, ${km1(kmAll)} km`:""}`:esc(t.role)}</div></div></div>
+    ${legs.length?`<div class="rmapwrap"><div id="rmap"></div><div class="rmaphint">${esc(t.name.split(" ")[0])}'s legs in pink. Tap a leg below to zoom in.</div></div>`:""}
+    ${t.runner?`<div class="stats"><div class="stat"><div class="v">${km1(kmDone)}<small>km</small></div><div class="k">run so far</div></div><div class="stat"><div class="v">${km1(Math.max(0,kmAll-kmDone))}<small>km</small></div><div class="k">still to run</div></div><div class="stat hot"><div class="v">${pace?`${Math.floor(pace)}:${p2(Math.round((pace%1)*60))}`:"–"}</div><div class="k">${pace?"min/km so far":"pace, after a timed leg"}</div></div></div>`:""}
+    ${legs.length?`<div>${legs.map(row).join("")}</div>`:`<p class="muted">${t.runner?"Legs not posted yet.":"Keeps the runners fed, watered and on time."}</p>`}
+    ${now?`<button class="btn" id="rMap">See leg ${now.l.n} on the map</button>`:""}`;
+  $("#home").hidden=true; $("#runner").hidden=false; toTop();
+  $("#rBack").addEventListener("click",()=>{ $("#runner").hidden=true; $("#home").hidden=false; toTop(); });
+  $("#rMap")?.addEventListener("click",openMap);
+  $("#runnerBody .posdot")?.addEventListener("click",openMap);
+  if(legs.length) setTimeout(()=>drawRunnerMap(legs),30); }
+// The runner's own legs on the street map: whole route faint, their legs heavy pink with the leg number on each.
+let rmap=null, rLayer=null, rLines={};
+function drawRunnerMap(legs){ const el=$("#rmap"); if(!el) return; if(rmap){ rmap.remove(); rmap=null; }
+  rmap=L.map(el,{zoomControl:false,attributionControl:false,scrollWheelZoom:false}); L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:18,maxNativeZoom:17}).addTo(rmap); L.control.zoom({position:"topright"}).addTo(rmap);
+  const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim(); const accent=css("--accent"), fg=css("--fg"), dim=css("--mute"), bg=css("--bg");
+  rLayer=L.layerGroup().addTo(rmap); rLines={};
+  rLayer.addLayer(L.polyline(LEGS.map((l,i)=>line(i+1)).flat(),{color:dim,weight:3,opacity:.6}));
+  const mine=new Set(legs.map(x=>x.l.n)); const all=[];
+  legs.forEach(x=>{ const ln=line(x.l.n); all.push(...ln); const st=legStatus(x.l.n);
+    rLayer.addLayer(L.polyline(ln,{color:bg,weight:11,opacity:.7})); const pl=L.polyline(ln,{color:accent,weight:7,opacity:st==="upcoming"?.55:1,dashArray:st==="upcoming"?"8 8":null}); rLayer.addLayer(pl); rLines[x.l.n]=ln;
+    const mid=ln[Math.floor(ln.length/2)]; rLayer.addLayer(L.marker(mid,{icon:L.divIcon({className:"",html:`<div class="legpin ${st}">${x.l.n}</div>`,iconSize:[30,30],iconAnchor:[15,15]})}).on("click",()=>rmap.fitBounds(L.latLngBounds(ln),{padding:[30,30]}))); });
+  if(PUB&&PUB.started&&mine.has(PUB.leg)&&PUB.lat!=null){ const t=byName(PUB.runner); rLayer.addLayer(L.marker([PUB.lat,PUB.lng],{icon:L.divIcon({className:"",html:`<div class="teampin live" style="width:38px;height:38px">${t?face(t):""}</div>`,iconSize:[38,38],iconAnchor:[19,19]})})); }
+  rmap.fitBounds(L.latLngBounds(all),{padding:[16,16]});
+  document.querySelectorAll("#runnerBody .legrow").forEach(b=>b.addEventListener("click",()=>{ const ln=rLines[b.dataset.leg]; if(ln){ rmap.fitBounds(L.latLngBounds(ln),{padding:[30,30]}); $("#rmap").scrollIntoView({behavior:"smooth",block:"center"}); } })); }
+
+// ---- full map on the current leg ----
+let map=null, routeLayer=null, teamMarker=null;
+function openMap(){ if(!PUB||!PUB.started) return; if(EMBED){ window.open(FULL_URL+"#map","_blank","noopener"); return; } const cur=curIdx(), L_=LEGS[cur];
+  $("#mapview").hidden=false; $("#mapTtl").innerHTML=`Leg ${L_.n}, ${esc(L_.name)}<small>${esc(PUB.runner||"The team")}, ${km1(L_.km)} km, exchange about ${PUB.exchange_eta?hm(new Date(PUB.exchange_eta)):"–"}</small>`;
+  if(!map){ map=L.map("fmap",{zoomControl:false}); L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",{maxZoom:18,maxNativeZoom:17,attribution:'Tiles © Esri'}).addTo(map); L.control.zoom({position:"topright"}).addTo(map); routeLayer=L.layerGroup().addTo(map); }
+  routeLayer.clearLayers(); const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim(); const accent=css("--accent"), fg=css("--fg"), dim=css("--dim"), bg=css("--bg");
+  LEGS.forEach((l,i)=>{ const n=i+1; if(n===PUB.leg) return; routeLayer.addLayer(L.polyline(line(n),{color:n<PUB.leg?fg:dim,weight:3,opacity:n<PUB.leg?.9:.8})); });
+  const ln=line(PUB.leg); routeLayer.addLayer(L.polyline(ln,{color:bg,weight:9,opacity:.6})); routeLayer.addLayer(L.polyline(ln,{color:accent,weight:5}));
+  const pin=(p,label)=>L.marker(p,{icon:L.divIcon({className:"",html:`<div class="endpin" style="background:${bg}"></div>`,iconSize:[16,16],iconAnchor:[8,8]})}).bindTooltip(label,{permanent:true,direction:"top",offset:[0,-8]});
+  routeLayer.addLayer(pin(ln[0], cur===0?"Start":`Exchange ${L_.n-1}`)); routeLayer.addLayer(pin(ln[ln.length-1], cur===N-1?"Finish":`Exchange ${L_.n}`));
+  const pos=(PUB.lat!=null&&PUB.lng!=null)?[PUB.lat,PUB.lng]:ln[0]; const live=(Date.now()-new Date(PUB.at))/1000<180; const t=byName(PUB.runner);
+  const icon=L.divIcon({className:"",html:`<div class="teampin ${live?"live":""}">${t?face(t):"🏃"}</div>`,iconSize:[46,46],iconAnchor:[23,23]});
+  if(!teamMarker){ teamMarker=L.marker(pos,{icon}).addTo(map); } else { teamMarker.setLatLng(pos); teamMarker.setIcon(icon); }
+  teamMarker.bindTooltip(PUB.runner||"The team",{permanent:true,direction:"right",offset:[26,0]});
+  setTimeout(()=>{ map.invalidateSize(); map.fitBounds(L.latLngBounds(ln).extend(pos),{padding:[40,40]}); },60); }
+$("#mapBack").addEventListener("click",()=>{ $("#mapview").hidden=true; });
+
+// ---- data ----
+const sb = window.supabase ? window.supabase.createClient(TEAM.url,TEAM.key) : null;
+let RAW=null, PUB=null, counts={}, recent=[], lastEmoji="", PHOTOS=[];
+// Dead reckoning. RAW is what the crew last sent. PUB is what we show: the runner carried forward along the route at
+// their pace from the last real position (or from the leg start), across exchanges if needed, for up to four hours.
+// A fresh position from the bike replaces the estimate the moment it arrives.
+function hk(a,b){ const R=6371,r=x=>x*Math.PI/180; const h=Math.sin(r(b[0]-a[0])/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(r(b[1]-a[1])/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
+function lineLen(ln){ let s=0; for(let k=1;k<ln.length;k++) s+=hk(ln[k-1],ln[k]); return s; }
+function pointAt(ln,km){ let acc=0; for(let k=1;k<ln.length;k++){ const d=hk(ln[k-1],ln[k]); if(acc+d>=km){ const f=d?(km-acc)/d:0; return [ln[k-1][0]+(ln[k][0]-ln[k-1][0])*f, ln[k-1][1]+(ln[k][1]-ln[k-1][1])*f]; } acc+=d; } return ln[ln.length-1]; }
+function derive(raw){ if(!raw||!raw.started||raw.finished) return raw;
+  const lv=(raw.legs&&raw.legs.live)||{}; const pace=Math.max(3.5,Math.min(9,lv.pace||lv.booklet_pace||5.6));
+  let n0=lv.leg||raw.leg, base, t0;
+  if(lv.fix_at && lv.fix_along!=null && lv.leg===raw.leg){ base=lv.fix_along; t0=new Date(lv.fix_at); }
+  else if(lv.leg_start){ base=0; t0=new Date(lv.leg_start); }
+  else { base=raw.along_km||0; t0=new Date(raw.at); }
+  const mins=Math.max(0,Math.min(240,(Date.now()-t0)/60000)); let along=base+mins/pace; let i=Math.max(0,Math.min(N-1,n0-1));
+  while(i<N-1 && along>LEGS[i].km){ along-=LEGS[i].km; i++; } if(i===N-1) along=Math.min(along,LEGS[i].km);
+  const n=i+1, assign=(raw.legs&&raw.legs.assign)||{}; const ln=line(n); const L_=lineLen(ln)||LEGS[i].km;
+  const pos=pointAt(ln, along*(L_/LEGS[i].km));
+  return Object.assign({},raw,{ leg:n, leg_name:LEGS[i].name, runner: n===raw.leg?(raw.runner||assign[n]||""):(assign[n]||""), along_km:along,
+    km_done:kmBeforeF(i)+along, lat:pos[0], lng:pos[1], next_runner: assign[n+1]||"", exchange_eta:new Date(Date.now()+(LEGS[i].km-along)*pace*60000).toISOString(), at:new Date().toISOString() }); }
+function kmBeforeF(i){ let s=0; for(let k=0;k<i;k++) s+=LEGS[k].km; return s; }
+const photoAge=p=>ageText((Date.now()-new Date(p.at))/1000);
+function galleryHtml(){ if(!PHOTOS.length) return "";
+  return `<div><h2><span>From <em>the road</em></span><small>${PHOTOS.length} photo${PHOTOS.length>1?"s":""}</small></h2><div class="film">${PHOTOS.slice(0,30).map(p=>`<button class="ph" data-id="${p.id}"><img src="${esc(p.url)}" alt="${esc(p.caption||"")}" loading="lazy"><span class="cap">${p.leg?`Leg ${p.leg}`:""}${p.by?`, ${esc(p.by)}`:""}, ${photoAge(p)}${p.caption?`<b>${esc(p.caption)}</b>`:""}</span></button>`).join("")}</div></div>`; }
+function openPhoto(id){ const p=PHOTOS.find(x=>x.id===id); if(!p) return; if(EMBED){ window.open(FULL_URL+"#photo-"+id,"_blank","noopener"); return; } const ov=document.createElement("div"); ov.className="lightbox"; ov.innerHTML=`<img src="${esc(p.url)}" alt=""><div class="lb"><div><b>${p.leg?`Leg ${p.leg}`:""}${p.by?`, ${esc(p.by)}`:""}</b>, ${photoAge(p)}${p.caption?`<br>${esc(p.caption)}`:""}</div><button id="lbClose">Close</button></div>`;
+  document.body.appendChild(ov); ov.querySelector("#lbClose").addEventListener("click",()=>ov.remove()); ov.querySelector("img").addEventListener("click",()=>ov.remove()); }
+let deepDone=false;
+function render(){ PUB=derive(RAW); applySkin(); if($("#runner").hidden) renderHome();
+  if(!deepDone && PUB){ const h=location.hash; if(h==="#map"&&PUB.started){ deepDone=true; openMap(); } else if(h.startsWith("#photo-")&&PHOTOS.length){ deepDone=true; openPhoto(+h.slice(7)); } } }
+async function pull(){ if(!sb){ render(); return; } try{
+  const {data,error}=await sb.from("runway_public").select("*").eq("team",TEAM.team).maybeSingle(); if(!error) RAW=data||null;
+  // light polling: the summary every 30 s; cheers and photos every 2 min (live updates arrive in between by realtime)
+  if(pullN++%4===0){ await pullCheersAndPhotos(); }
+  }catch(e){} render(); }
+let pullN=0;
+async function pullCheersAndPhotos(){ try{
+  const n={}; await Promise.all(EMOJI.map(async e=>{ const {count,error}=await sb.from("runway_cheers").select("id",{count:"exact",head:true}).eq("team",TEAM.team).eq("emoji",e); if(!error) n[e]=count||0; }));
+  if(Object.keys(n).length) counts=n;
+  const {data:ch}=await sb.from("runway_cheers").select("emoji,name,msg,at").eq("team",TEAM.team).or("name.not.is.null,msg.not.is.null").order("at",{ascending:false}).limit(20); if(ch) recent=ch;
+  const {data:ph}=await sb.from("runway_photos").select("id,url,leg,by,caption,at").eq("team",TEAM.team).order("at",{ascending:false}).limit(60); if(ph) PHOTOS=ph; }catch(e){} }
+pull(); setInterval(pull,30000); setInterval(applySkin,60000);
+// New version published? Reload on its own if the reader isn't typing or looking at a photo or map; otherwise offer it.
+async function checkUpdate(){ try{ const r=await fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"}); const txt=await r.text(); const m=txt.match(/const BUILD = "([^"]+)"/);
+  if(!m||m[1]===BUILD||m[1].includes("BUILD")) return;
+  const busy=($("#msgIn")&&$("#msgIn").value.trim())||document.querySelector(".lightbox")||!$("#mapview").hidden||!$("#runner").hidden||(document.activeElement&&document.activeElement.tagName==="INPUT");
+  if(!busy){ location.reload(); return; }
+  if(!$("#updBar")){ const b=document.createElement("button"); b.id="updBar"; b.textContent="Updated. Tap to refresh."; b.style.cssText="position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:960;background:var(--accent);color:var(--onacc);font:700 14px var(--f);padding:10px 18px;border-radius:999px;box-shadow:0 4px 16px rgba(0,0,0,.25)"; b.onclick=()=>location.reload(); document.body.appendChild(b); } }catch(e){} }
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) checkUpdate(); }); setInterval(checkUpdate,5*60000); setTimeout(checkUpdate,20000);
+setInterval(()=>{ if(document.hidden||!RAW||!RAW.started) return; render(); if(teamMarker&&!$("#mapview").hidden&&PUB&&PUB.lat!=null) teamMarker.setLatLng([PUB.lat,PUB.lng]); },15000);
+window.__pub = (r,c,rc,ph) => { RAW=r; if(c) counts=c; if(rc) recent=rc; if(ph) PHOTOS=ph; render(); }; // test hook
+if(sb){ sb.channel("pub-"+TEAM.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_public",filter:"team=eq."+TEAM.team},p=>{ if(p.new){ RAW=p.new; render(); if(!$("#mapview").hidden) openMap(); } })
+  .on("postgres_changes",{event:"*",schema:"public",table:"runway_photos",filter:"team=eq."+TEAM.team},()=>{ pullCheersAndPhotos().then(render); })
+  .on("postgres_changes",{event:"INSERT",schema:"public",table:"runway_cheers",filter:"team=eq."+TEAM.team},p=>{ const r=p.new; if(!r) return; counts[r.emoji]=(counts[r.emoji]||0)+1; if(r.name||r.msg) recent.unshift(r); const b=document.querySelector(`#cheers button[data-e="${r.emoji}"]`); if(b) b.querySelector(".c").textContent=counts[r.emoji]; }).subscribe(); }
+
+// ---- sending ----
+let lastSend=0;
+async function send(emoji,msg,btn){ const now=Date.now(); if(now-lastSend<1200) return; lastSend=now; lastEmoji=emoji;
+  const name=($("#nm")?$("#nm").value:"").trim().slice(0,24); try{ localStorage.setItem("runway.cheerName",name); }catch(e){}
+  if(btn){ const s=btn.querySelector(".e"); if(s&&typeof spriteBurst!=="undefined") spriteBurst(s); const c=btn.querySelector(".c"); c.textContent=+c.textContent+1; }
+  const t=$("#toast"); t.textContent=msg?"Sent to the road":`${SPR_NAME[emoji]||"Cheer"} sent${name?", thanks "+name:""}`; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1400);
+  const st=$("#status"); if(!sb){ if(st) st.textContent="Can't reach the team right now."; return; }
+  try{ await sb.from("runway_cheers").insert({team:TEAM.team,emoji,name:name||null,msg:msg||null}); if(st) st.textContent=msg?"Sent. It shows up on the crew's phones with your name.":"Sent. The crew sees cheers as they come in."; }
+  catch(e){ if(st) st.textContent="Couldn't send that one; try again in a moment."; } }
+})();
+</script>
+</body>
+</html>

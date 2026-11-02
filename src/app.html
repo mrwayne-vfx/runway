@@ -1,0 +1,1415 @@
+<title>The Runway Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>/*FONTS*/
+</style>
+<style>
+/* Race Bib. Paper, ink and one orange by day; black, warm white and dash-light amber by night.
+   The skin flips at sunset automatically (Setup can pin it). One body face, one display face for the numbers. */
+:root{ --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif; --body:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif; --r:4px; }
+html[data-skin="day"],html:not([data-skin]){ --bg:#F4F3EF; --fg:#141414; --accent:#FF4D00; --accent-ink:#FFFFFF; --muted:#6E6C66; --line:#CFCDC4; --soft:#E8E6DF; --dim:#D6D4CC;
+  --panel:#F4F3EF; --panel2:#E8E6DF; --ok:#1E7F4F; --warn:#9A5B00; --bad:#C2291C; --glow:rgba(255,77,0,.25); --tilefilter:saturate(.85); color-scheme:light }
+html[data-skin="night"]{ --bg:#000000; --fg:#ECE9E2; --accent:#FFB000; --accent-ink:#000000; --muted:#8C8982; --line:#2A2A2E; --soft:#141416; --dim:#2A2A2E;
+  --panel:#000000; --panel2:#141416; --ok:#6CCB8E; --warn:#FFD166; --bad:#FF6B5B; --glow:rgba(255,176,0,.35); --tilefilter:brightness(.7) contrast(1.05) saturate(.55); color-scheme:dark }
+
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.4;-webkit-text-size-adjust:100%;font-optical-sizing:auto;transition:background-color .3s,color .3s}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:var(--fg)}
+@media (prefers-reduced-motion:reduce){ body{transition:none} }
+
+#app{height:100%;display:flex;flex-direction:column}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:2px solid var(--fg);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px 8px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-family:var(--display);font-weight:900;font-size:28px;letter-spacing:-.5px;line-height:1}
+.brand b{color:var(--accent);font-weight:900}
+.hright{display:flex;align-items:center;gap:8px}
+.clock{font-weight:300;font-size:24px;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.skin{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 10px;white-space:nowrap}
+main{flex:1;overflow:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 28px}
+main>section[hidden]{display:none}
+
+nav.tabs{display:grid;grid-template-columns:repeat(6,1fr);border-top:2px solid var(--fg);background:var(--bg);
+  padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px));padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.tabs button{padding:11px 2px 10px;font-weight:500;font-size:14px;color:var(--muted);border-top:3px solid transparent;margin-top:-2px}
+nav.tabs button[aria-selected="true"]{color:var(--fg);border-top-color:var(--accent)}
+
+/* type */
+.eyebrow{font-size:14px;color:var(--muted)}
+h1{font-weight:300;font-size:34px;line-height:1.05;letter-spacing:-.8px;margin:2px 0 0;text-wrap:balance}
+h1 b{font-weight:600}
+h2{font-weight:600;font-size:18px;letter-spacing:-.2px;margin:0 0 8px}
+.muted{color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.lnk{color:var(--accent);font-weight:500;text-decoration:underline;text-underline-offset:3px}
+.pill{display:inline-block;font-size:13px;font-weight:500;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);line-height:1.2}
+.pill.now{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.pill.done{color:var(--ok);border-color:var(--ok)}
+.pill.approx{color:var(--warn);border-color:var(--warn)}
+.pill[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+
+/* status line */
+.status{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:14px;min-height:22px}
+.status i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.status i.now{background:var(--accent);box-shadow:0 0 0 4px var(--glow)}
+.status i.done{background:var(--ok)}
+.status b{color:var(--fg);font-weight:500}
+.status em{color:var(--accent);font-style:normal;font-weight:500}
+
+/* bib block: the big leg number with the runner beside it */
+.bib{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;padding:10px 0 14px;border-top:3px solid var(--fg);border-bottom:3px solid var(--fg)}
+.bib .n{font-family:var(--display);font-weight:900;font-size:118px;line-height:.82;letter-spacing:-3px;margin-top:6px;font-variant-numeric:tabular-nums}
+.bib .t{font-size:28px;font-weight:300;line-height:1.05;letter-spacing:-.5px;min-width:0;text-wrap:balance}
+.bib .t b{font-weight:600;display:block;overflow-wrap:anywhere}
+.bib .t small{display:block;font-size:14px;color:var(--muted);margin-bottom:6px;font-weight:400;letter-spacing:0;line-height:1.3}
+.bib .t em{display:block;font-style:normal;color:var(--accent);font-size:16px;margin-top:8px;font-weight:500}
+.bib.sm .n{font-size:84px} .bib.sm .t{font-size:22px}
+@media (max-width:360px){ .bib .n{font-size:96px} .bib .t{font-size:24px} }
+
+/* instrument track: all 67 legs as ticks, lit as they are run */
+.inst{margin:4px 0 0;position:relative}
+.inst .scale{height:30px;position:relative}
+.inst .tick{position:absolute;bottom:0;width:1px;height:8px;background:var(--dim)}
+.inst .tick.maj{height:16px;background:var(--muted)}
+.inst .tick.maj span{position:absolute;bottom:18px;left:0;transform:translateX(-50%);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.inst .tick.done{background:var(--accent);opacity:.55} .inst .tick.maj.done{opacity:1}
+.inst .line{height:2px;background:var(--dim);position:relative}
+.inst .line i{position:absolute;left:0;top:0;height:100%;background:var(--accent)}
+.inst .pos{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);box-shadow:0 0 0 5px var(--glow);cursor:pointer}
+.inst .mark{position:absolute;top:50%;width:8px;height:8px;border-radius:50%;border:2px solid var(--fg);background:var(--bg);transform:translate(-50%,-50%)}
+.inst .ends{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:8px}
+.inst .ends b{color:var(--fg);font-weight:500}
+
+/* figures in ruled columns */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--fg);border-bottom:1px solid var(--fg);margin-top:4px}
+.stat{padding:12px 0 10px;min-width:0}
+.stat+.stat{border-left:1px solid var(--fg);padding-left:12px}
+.stat .k{font-size:13px;color:var(--muted);margin-top:4px;order:2}
+.stat .v{font-family:var(--display);font-weight:900;font-size:40px;line-height:.9;letter-spacing:-.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat .v small{font-family:var(--body);font-size:14px;color:var(--muted);font-weight:500;letter-spacing:0;margin-left:2px}
+.stat{display:flex;flex-direction:column}
+.stat.hot .v{color:var(--accent)}
+
+.seg{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--fg);border-radius:var(--r);overflow:hidden;margin-top:14px}
+.seg button{padding:11px;font-weight:500;font-size:16px;color:var(--muted);background:transparent}
+.seg button[aria-selected="true"]{background:var(--fg);color:var(--bg)}
+
+.pn{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 14px;border-radius:var(--r);border:2px solid var(--fg);background:transparent;font-weight:500;font-size:16px;text-decoration:none;color:var(--fg);min-width:0;line-height:1.2}
+.btn.primary{background:var(--fg);color:var(--bg)}
+.btn.go{justify-content:space-between;padding:16px 18px;font-size:20px;font-weight:600;letter-spacing:-.3px}
+.btn.go small{font-weight:400;font-size:13px;opacity:.7}
+.btn.ghost{border-color:var(--line);color:var(--muted)}
+.btn:disabled{opacity:.4;cursor:default}
+.navgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.navgrid .btn{font-size:16px;padding:12px 6px}
+.av{display:inline-flex;align-items:center;justify-content:center;width:var(--sz);height:var(--sz);border-radius:50%;background:var(--bg);border:2px solid var(--fg);overflow:hidden;flex:none;font-weight:600;font-size:calc(var(--sz)*.36);color:var(--fg)}
+.av img{width:100%;height:100%;object-fit:cover;display:block}
+.av.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:0 0 0 4px var(--glow)}
+.av.on img{opacity:1}
+.teamgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.tcard{border:1px solid var(--line);border-radius:var(--r);padding:14px 10px 12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;position:relative;width:100%}
+.tcard.on{border-color:var(--fg);border-width:2px}
+.tcard .nm{font-weight:600;font-size:15px;line-height:1.15}
+.tcard .wd{font-size:14px;color:var(--accent);font-weight:500}
+.tcard .st{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tcard .tag{position:absolute;top:8px;right:8px;font-size:11px;font-weight:600;background:var(--accent);color:var(--accent-ink);padding:2px 8px;border-radius:999px}
+.runnerline{display:flex;align-items:center;gap:12px}
+.runnerline .big{font-weight:600;font-size:22px;line-height:1.1;letter-spacing:-.3px}
+.runnerline .sub{font-size:13px;color:var(--muted)}
+.rolebtn{justify-content:flex-start;text-align:left;padding:14px 16px}
+.rolebtn b{display:block;font-size:20px;font-weight:600;letter-spacing:-.3px}
+.rolebtn small{display:block;font-weight:400;font-size:14px;color:var(--muted);margin-top:2px}
+
+/* cheers feed */
+.cheer{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cheer{display:grid!important;grid-template-columns:repeat(4,1fr);gap:8px}.cheer .em{display:inline-flex;align-items:center;justify-content:center;gap:4px;border:2px solid var(--fg);background:var(--card,transparent);border-radius:999px;padding:5px 8px 5px 6px;white-space:nowrap;box-shadow:3px 3px 0 var(--accent)}.cheer .se{width:26px;height:26px;display:block;--sprite-ink:var(--fg)}
+.cheer .em b{font-size:15px;margin-left:5px;color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums}
+.feed{margin:10px 0 0;padding:0;list-style:none}
+.feed li{display:grid;grid-template-columns:30px 1fr auto;gap:8px;align-items:baseline;padding:7px 0;border-top:1px solid var(--line);font-size:15px}
+.feed .e{width:24px;height:24px;display:block;align-self:center;--sprite-ink:var(--fg)}
+.feed .w{color:var(--muted);font-size:12px;white-space:nowrap}
+.feed q{quotes:none;display:block;color:var(--fg)}
+.feed .nm{font-weight:600}
+
+.card{border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.card.accent{border-color:var(--fg);border-left:4px solid var(--accent)}
+.point{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:start}
+.point .dot{width:12px;height:12px;border-radius:50%;margin-top:6px;background:var(--fg)}
+.point .dot.end{background:var(--accent)}
+.point .lbl{font-size:13px;color:var(--muted)}
+.point p{margin:0;font-size:17px;line-height:1.35}
+.coords{font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);word-break:break-all}
+
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s}
+ol.steps li{display:grid;grid-template-columns:40px 1fr;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:17px;line-height:1.4}
+ol.steps li:last-child{border-bottom:0}
+ol.steps li::before{counter-increment:s;content:counter(s);font-family:var(--display);font-weight:900;font-size:28px;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums;padding-top:1px}
+ol.steps li.final{font-weight:600}
+ul.notes{margin:0;padding-left:18px;font-size:16px}
+ul.notes li{margin:4px 0}
+
+.alert{border-left:4px solid var(--warn);padding:10px 12px;font-size:15px;background:var(--soft);border-radius:0 var(--r) var(--r) 0}
+.alert.info{border-left-color:var(--accent)}
+
+/* list */
+.legrow{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);width:100%;text-align:left}
+.legrow:last-child{border-bottom:0}
+.legrow .n{font-family:var(--display);font-weight:900;font-size:36px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1}
+.legrow.now .n{color:var(--accent)} .legrow.now .name{font-weight:600}
+.legrow.done .n{color:var(--fg);opacity:.5}
+.legrow .name{font-weight:500;font-size:16px;line-height:1.2}
+.legrow .sub{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.legrow .t{font-weight:300;font-size:22px;font-variant-numeric:tabular-nums;text-align:right;line-height:1.05;letter-spacing:-.5px}
+.legrow .t small{display:block;font-size:12px;color:var(--muted);letter-spacing:0;font-weight:400}
+.daysep{padding:18px 0 6px;font-weight:600;font-size:14px;border-bottom:2px solid var(--fg)}
+
+/* map */
+.mapwrap{overflow-x:auto;border:2px solid var(--fg);border-radius:var(--r);background:var(--soft);touch-action:pan-x pan-y}
+canvas#map{display:block}
+#lmap,#rvlmap{height:min(62vh,560px);min-height:340px;width:100%;background:var(--soft)}
+#rvlmap{height:min(48vh,440px);min-height:280px}
+#legmap{height:min(44vh,420px);min-height:260px;width:100%;background:var(--soft)}
+#legmap .leaflet-tile-pane{filter:var(--tilefilter)}
+#lmap .leaflet-tile-pane,#rvlmap .leaflet-tile-pane,#fmap .leaflet-tile-pane{filter:var(--tilefilter)}
+.turnpin{background:var(--fg);color:var(--bg);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font:600 11px var(--body);border:2px solid var(--bg)}
+.endpin{border-radius:50%;width:18px;height:18px;border:3px solid var(--bg);box-shadow:0 0 0 2px var(--fg)}
+.leaflet-container{font-family:var(--body)}
+.livetip{background:var(--bg);color:var(--fg);border:1px solid var(--fg);font:500 12px var(--body);padding:2px 6px;border-radius:var(--r);box-shadow:none}.livetip::before{display:none}
+.leaflet-popup-content{font-size:14px;margin:10px 12px}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--bg);color:var(--fg);border-radius:var(--r)}
+.leaflet-tooltip{font-family:var(--body);font-weight:600;border-radius:var(--r);background:var(--bg);color:var(--fg);border:1px solid var(--fg)}
+.leaflet-tooltip-top::before{border-top-color:var(--fg)}.leaflet-tooltip-right::before{border-right-color:var(--fg)}
+.leaflet-bar a{background:var(--bg);color:var(--fg);border-bottom-color:var(--line)}.leaflet-control-attribution{background:var(--bg);color:var(--muted);font-size:10px}.leaflet-control-attribution a{color:var(--muted)}
+ol.turns{list-style:none;margin:0;padding:0}
+ol.turns li{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);font-size:15px}
+ol.turns li:last-child{border-bottom:0}
+ol.turns .tn{font-family:var(--display);font-weight:900;font-size:20px;color:var(--accent)}
+ol.turns .td{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;white-space:nowrap}
+.progress{height:4px;background:var(--line);overflow:hidden}.progress i{display:block;height:100%;background:var(--accent);width:0}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;background:var(--fg)}
+.legend .l-done::before{background:var(--ok)} .legend .l-now::before{background:var(--accent)} .legend .l-approx::before{background:transparent;border:2px solid var(--warn);width:6px;height:6px}
+
+/* schematic route */
+.schem{position:relative;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:6px}
+.schem svg{width:100%;height:auto;display:block}
+.schem .c1,.schem .c2{position:absolute;font-size:13px;color:var(--muted)}
+.schem .c1{left:4px;top:8px}.schem .c2{right:4px;bottom:6px}
+.schem .hint{position:absolute;left:50%;transform:translateX(-50%);bottom:6px;font-size:12px;color:var(--muted);white-space:nowrap}
+
+/* photos */
+.phgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.ph{position:relative;aspect-ratio:1;overflow:hidden;border-radius:var(--r);background:var(--soft);padding:0;display:block;width:100%}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph span{position:absolute;left:0;right:0;bottom:0;padding:4px 6px;font-size:11px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.65));text-align:left}
+.lightbox{position:fixed;inset:0;z-index:900;background:#000;display:flex;flex-direction:column}
+.lightbox img{flex:1;min-height:0;object-fit:contain;width:100%}
+.lightbox .lb{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));color:#ECE9E2;font-size:14px;background:#000}
+.lightbox .lb .pill{color:#ECE9E2;border-color:#8C8982}
+label.btn input{display:none}
+/* setup */
+label.f{display:block;font-size:14px;color:var(--muted);margin-bottom:6px}
+input[type=datetime-local],input[type=text],input[type=url],select,textarea{width:100%;padding:10px 12px;border-radius:var(--r);border:1px solid var(--fg);background:transparent;color:var(--fg);font:inherit;font-size:16px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:15px}
+.kv .v{font-variant-numeric:tabular-nums;text-align:right}
+@media (max-width:360px){ .stats{grid-template-columns:1fr 1fr} .stat .v{font-size:34px} }
+@media (prefers-reduced-motion:no-preference){ main{scroll-behavior:smooth} }
+/* ===== Shift & Play ring design (overrides the bib styles above) ===== */
+html[data-skin="day"],html:not([data-skin]){ --bg:#F6F4F1; --fg:#0A0A0A; --accent:#E8559F; --accent-ink:#fff; --muted:#6E6C66; --line:#D9D6CF; --soft:#ECE9E3; --dim:#D9D6CF; --panel:#F6F4F1; --panel2:#ECE9E3; --glow:rgba(232,85,159,.22); --nowdot:#0A0A0A; --card:#fff; --r:10px }
+html[data-skin="night"]{ --bg:#050505; --fg:#fff; --accent:#F18DCB; --accent-ink:#000; --muted:#9A9A9A; --line:#262626; --soft:#121212; --dim:#262626; --panel:#050505; --panel2:#121212; --glow:rgba(241,141,203,.35); --nowdot:#fff; --card:#121212; --r:10px }
+header{border-bottom:0;padding-block:12px 6px}
+.brand .logo{height:36px;display:block}.brand .logo.n{display:none}html[data-skin="night"] .brand .logo.n{display:block}html[data-skin="night"] .brand .logo.d{display:none}
+nav.tabs{border-top:1px solid var(--line)}nav.tabs button{border-top:0;margin-top:0;position:relative;font-weight:600}
+nav.tabs button[aria-selected="true"]::before{content:"";position:absolute;left:25%;right:25%;top:0;height:3px;background:var(--accent);border-radius:0 0 3px 3px}
+h1{font-family:var(--display);font-weight:900;font-size:40px;line-height:.9;text-transform:uppercase;letter-spacing:-.5px;transform:skewX(-8deg);transform-origin:left}
+h1 b{color:var(--accent);font-weight:900}
+h2{font-family:var(--display);font-weight:900;font-size:24px;text-transform:uppercase;letter-spacing:.2px}
+.status i.now{background:var(--accent)}
+.rhero{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center;margin-top:2px}
+.ringwrap{position:relative;width:150px;height:150px}.ring{position:absolute;inset:0}.ring svg{width:100%;height:100%;display:block}.ring circle{fill:var(--dim)}.ring circle.done{fill:var(--accent)}.ring circle.now{fill:var(--nowdot)}
+.portrait{position:absolute;inset:18px;border-radius:50%;overflow:hidden;border:4px solid var(--accent);box-shadow:0 0 40px var(--glow);background:var(--soft);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:30px;color:var(--muted)}.portrait img{width:100%;height:100%;object-fit:cover;display:block}
+.legtag{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%) skewX(-8deg);background:var(--fg);color:var(--bg);font-family:var(--display);font-weight:900;font-size:28px;line-height:1;padding:4px 12px 3px;white-space:nowrap}.legtag small{font-family:var(--body);font-size:10px;font-weight:700;margin-right:4px;vertical-align:middle}
+.rhero h1{font-size:44px;margin:0;text-wrap:balance}.rhero h1 span{display:block;color:var(--accent);font-size:26px}
+.rhero .word{color:var(--accent);font-weight:600;margin-top:8px;font-size:15px}.rhero .sub{color:var(--muted);font-size:13px;margin-top:2px}
+.stats{border:0;gap:10px;margin-top:4px}.stat,.stat+.stat{background:var(--soft);border:0;border-radius:var(--r);padding:12px 12px 10px}
+.stat .v{font-size:36px}
+.card{border:0;background:var(--soft);border-radius:var(--r)}.card.accent{border:0;border-left:4px solid var(--accent)}
+.alert{border-radius:0 var(--r) var(--r) 0}
+.btn{border-radius:var(--r)}.btn.primary{background:var(--fg);color:var(--bg)}
+.btn.go{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);border-radius:0;transform:skewX(-6deg);font-weight:700;font-size:22px}.btn.go>*{transform:skewX(6deg)}.btn.go small{opacity:.85}
+.navgrid .btn{background:var(--card);border:2px solid var(--fg);box-shadow:3px 3px 0 var(--accent)}.navgrid .btn.primary{background:var(--card);color:var(--fg)}
+.seg{border:0;background:var(--soft);border-radius:999px;padding:4px}.seg button{border-radius:999px;font-weight:600}.seg button[aria-selected="true"]{background:var(--fg);color:var(--bg)}
+.mapwrap,#legmap{border:0;border-radius:var(--r);overflow:hidden}
+.pill[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.av{border-color:var(--line);background:var(--soft)}.av.on{border-color:var(--accent);background:var(--soft);box-shadow:0 0 18px var(--glow)}
+.tcard{background:var(--soft);border:0;border-radius:var(--r)}.tcard.on{outline:2px solid var(--accent)}
+.schem{background:var(--soft);border:0;border-radius:var(--r);padding:6px 0}
+.daysep{border-bottom:2px solid var(--accent)}
+input[type=datetime-local],input[type=text],input[type=url],select,textarea{border:0;background:var(--soft);border-radius:var(--r)}
+.bib{border:0;background:var(--soft);border-radius:var(--r);padding:14px 16px}
+ol.steps li::before,ol.turns .tn{color:var(--accent)}
+.skin{border-color:var(--line)}
+@media (max-width:360px){ .rhero{grid-template-columns:120px 1fr} .ringwrap{width:120px;height:120px} .portrait{inset:14px} .rhero h1{font-size:36px} }
+
+/* tab bar: five big labels, slim bar */
+nav.tabs{grid-template-columns:repeat(5,1fr)!important}
+nav.tabs button{padding:8px 2px 6px!important;font-size:16px!important;font-weight:600;letter-spacing:-.1px;color:var(--muted)}
+nav.tabs button[aria-selected="true"]{color:var(--fg)}
+/* full-screen map */
+body.mapfull nav.tabs, body.mapfull header{display:none}
+body.mapfull main{padding:0}
+body.mapfull #v-map{position:fixed;inset:0;z-index:30;background:var(--bg);padding:calc(10px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+body.mapfull #v-map>.stack{height:100%;gap:10px}
+body.mapfull #mapwrap{flex:1;min-height:0}
+body.mapfull #lmap{height:100%!important;min-height:0}
+body.mapfull #mapFoot,body.mapfull #mapLegend{display:none}
+.mapbar{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mapbar h1{font-size:28px}.mapbar .eyebrow{font-size:12px}
+.mapbar .btn{padding:9px 14px;flex:none}
+#legsmap{height:260px;width:100%;background:var(--soft)}#legsmap .leaflet-tile-pane{filter:var(--tilefilter)}
+.legpin{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);border:3px solid var(--bg);display:flex;align-items:center;justify-content:center;font:900 15px var(--display);box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.turnsbox{margin-top:10px;background:var(--soft);border-radius:var(--r);padding:10px 14px}
+.turnsbox summary{cursor:pointer;font-weight:600;font-size:15px}
+.turnsbox ol.turns{margin-top:8px}
+
+.legpanel{background:var(--soft);border-radius:var(--r);padding:14px;margin:2px 0 12px}
+.legpanel .stat{background:var(--bg)}
+.legrow.open{border-bottom-color:transparent}
+.legrow .rn{color:var(--fg);font-weight:600}.legrow .norun{color:var(--warn)}
+
+.testbar{display:none;background:#F5C400;color:#000;font-weight:700;font-size:13px;padding:6px 16px;text-align:center}
+html.testmode .testbar{display:block}
+
+.trackstate{display:flex;gap:12px;align-items:center;background:var(--soft);border-radius:var(--r);padding:14px 16px}
+.trackstate i{flex:none;width:14px;height:14px;border-radius:50%;background:var(--muted)}
+.trackstate.on i{background:var(--accent);box-shadow:0 0 0 6px var(--glow);animation:sp-startdot 1.6s ease-in-out infinite}
+.trackstate.other i{background:var(--fg)}
+.trackstate b{display:block;font-size:18px;line-height:1.2}.trackstate span{font-size:13px;color:var(--muted)}
+.btn.go.stop{background:var(--fg);border-color:var(--fg);color:var(--bg)}
+#tmap{height:300px;width:100%;background:var(--soft)}#tmap .leaflet-tile-pane{filter:var(--tilefilter)}
+ol.setup{margin:0;padding-left:20px;font-size:15px}ol.setup li{margin:6px 0}
+@keyframes sp-startdot{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+</style>
+
+<div id="app">
+  <header>
+    <div class="brand"><img class="logo d" src="SP_BLACK" alt="Shift & Play"><img class="logo n" src="SP_WHITE" alt="Shift & Play"></div>
+    <div class="hright"><button class="skin" id="skinBtn" title="Day or night look">Auto</button><button class="skin" id="setupBtn" aria-label="Setup" title="Setup">Setup</button><div class="clock" id="clock">--:--</div></div>
+  </header>
+  <div class="testbar">Test mode. Nothing here reaches the live friends page.</div>
+  <button id="updBar" hidden style="width:100%;background:var(--accent);color:var(--accent-ink);font-weight:600;padding:10px 16px;text-align:left">A newer version is ready. Tap to reload.</button>
+  <main>
+    <section id="v-leg"></section>
+    <section id="v-legs" hidden></section>
+    <section id="v-map" hidden>
+      <div class="stack">
+        <div class="mapbar"><div id="mapHead"></div><button class="btn" id="mapClose">Close</button></div>
+        <div class="seg" role="tablist" style="margin-top:0"><button role="tab" data-mm="run" aria-selected="true">Run</button><button role="tab" data-mm="drive" aria-selected="false">Drive</button></div>
+        <div class="row" style="justify-content:space-between">
+          <div class="row" style="gap:6px"><button class="pill" id="scopeLeg" aria-pressed="true">This leg</button><button class="pill" id="scopeAll" aria-pressed="false">Full route</button></div>
+          <div class="row" style="gap:6px"><button class="pill" id="followMe" hidden aria-pressed="false">Follow me</button><button class="pill" id="mapPrev">‹ Leg</button><button class="pill" id="mapNext">Leg ›</button></div>
+        </div>
+        <div class="mapwrap" id="mapwrap"><div id="lmap" hidden></div><canvas id="map" hidden></canvas></div>
+        <div class="legend" id="mapLegend"></div>
+        <div id="mapFoot"></div>
+      </div>
+    </section>
+    <section id="v-team" hidden></section>
+    <section id="v-track" hidden></section>
+    <section id="v-rv" hidden>
+      <div class="stack">
+        <div><div class="eyebrow">Support RV</div><h1>Jump ahead</h1><p class="muted" style="margin:6px 0 0">Pick where the RV is and which exchange it's heading to. The route joins the vehicle legs in between, so it works with no signal; with signal the fastest road route is added for comparison.</p></div>
+        <div class="pn"><div><label class="f" for="rvAt">RV is at</label><select id="rvAt"></select></div><div><label class="f" for="rvTo">Heading to</label><select id="rvTo"></select></div></div>
+        <div id="rvStats"></div>
+        <div class="mapwrap" id="rvwrap"><div id="rvlmap" hidden></div><canvas id="rvmap" hidden></canvas></div>
+        <div id="rvFoot"></div>
+      </div>
+    </section>
+    <section id="v-social" hidden></section>
+    <section id="v-setup" hidden></section>
+    <section id="v-role" hidden>
+      <div class="stack" style="padding-top:8px">
+        <div><div class="eyebrow">First thing</div><h1>Who's carrying this phone?</h1><p class="muted" style="margin:6px 0 0">Sets what the app opens on. Change it any time in Setup.</p></div>
+        <button class="btn rolebtn" data-role="suv"><span><b>SUV driver</b><small>Shuttling runners exchange to exchange. Opens on the drive to the next exchange.</small></span></button>
+        <button class="btn rolebtn" data-role="rv"><span><b>RV driver</b><small>Jumping ahead with the resting runners. Opens on the RV planner.</small></span></button>
+        <button class="btn rolebtn" data-role="bike"><span><b>Bike support</b><small>Riding behind the runner. Opens on the map following you, and reports the runner's position.</small></span></button>
+        <button class="btn rolebtn" data-role="crew"><span><b>Crew / everything</b><small>Full app, opens on the current leg.</small></span></button>
+      </div>
+    </section>
+  </main>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-view="leg" aria-selected="true">Now</button>
+    <button role="tab" data-view="legs" aria-selected="false">Legs</button>
+    <button role="tab" data-view="track" aria-selected="false">Tracker</button>
+    <button role="tab" data-view="rv" aria-selected="false">RV</button>
+    <button role="tab" data-view="social" aria-selected="false">Social</button>
+  </nav>
+</div>
+
+<script>
+// If the app script dies before it draws anything, say so on screen instead of leaving a blank page.
+window.addEventListener("error", e => { const m=document.querySelector("main"); if(!m || document.getElementById("bootErr") || document.getElementById("v-leg").innerHTML) return;
+  m.insertAdjacentHTML("afterbegin", `<div class="alert" id="bootErr" style="margin-bottom:12px">The app hit a problem while loading: ${String(e.message).replace(/</g,"&lt;")}<br><button class="pill" style="margin-top:8px" onclick="try{localStorage.removeItem('runway.v1')}catch(x){};location.reload()">Reset this phone's data and reload</button></div>`); });
+</script>
+<script>
+/*DATA*/
+</script>
+<script>
+(function(){
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---------- state ----------
+// Test mode keeps rehearsals off the live friends page: its own team code and its own copy of this phone's data.
+// Enter with ?test=1 on any link, or the switch in Setup; leave with ?test=0 or the same switch.
+let TEST=false; try{ const q=new URLSearchParams(location.search).get("test"); if(q==="1") localStorage.setItem("runway.mode","test"); if(q==="0") localStorage.removeItem("runway.mode"); TEST = localStorage.getItem("runway.mode")==="test"; }catch(e){}
+const KEY = TEST ? "runway.v1.test" : "runway.v1"; const BUILD = "/*BUILD*/";
+// Team connection baked in so every phone joins the same team on first open. The anon key is public by design;
+// the database policies decide what it can do.
+const TEAM = { url:"https://sajvndlspknvaquqnakb.supabase.co", key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNhanZuZGxzcGtudmFxdXFuYWtiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzAyNDQsImV4cCI6MjEwODk0NjI0NH0.jZWUIEY7-EKES_8XJi0xxEpT9q_PsqksU4Fb_xouOj8", team:"runway2026" };
+const defaults = () => {
+  const d = new Date(); d.setHours(21,0,0,0);
+  return { raceStart: toLocalISO(d), startSet:false, actual:{}, manualNow:null, viewLeg:null, mode:"run", zoom:1, rvAt:null, rvTo:null,
+           runners:[], assign:{}, stamps:{}, sync:{url:TEAM.url,key:TEAM.key,team:TEAM.team}, device:Math.random().toString(36).slice(2,8),
+           me:{kind:"",runnerId:"",label:""}, sharePos:false, wake:true, roleSet:false, skin:"auto", teamSel:null };
+};
+// Module-level state, declared before any code that runs at load touches it.
+let POS={}, posWatch=null, lastPosPush=0, lastPosFix=null, following=false, myDot=null;
+let liveLayer=null, rvLiveLayer=null;
+let sb=null, syncChan=null, pushTimer=null, syncInfo={state:"off",last:null,err:""};
+let CHEERS={counts:{},recent:[]};
+let rvmap=null, rvLayer=null, rvLive=null, rvLiveKey="";
+let lastPublic=0;
+let S = defaults();
+try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(defaults(), JSON.parse(raw)); } catch(e){}
+if (!S.sync || !S.sync.url) S.sync = {url:TEAM.url,key:TEAM.key,team:TEAM.team};
+S.sync.team = TEST ? TEAM.team+"-test" : (S.sync.team && !/-test$/.test(S.sync.team) ? S.sync.team : TEAM.team);
+if(TEST) document.documentElement.classList.add("testmode");
+if (!S.me) S.me = {kind:"",runnerId:"",label:""};
+// The roster is the published team, full stop. Names typed in older builds are matched onto it (by full or first name) and dropped.
+const ROSTER_RUNNERS = () => (typeof TEAM_ROSTER!=="undefined" ? TEAM_ROSTER : []).filter(t=>t.runner).map(t=>({id:t.id,name:t.name}));
+function normalizeRoster(){ const base=ROSTER_RUNNERS(); const old=(S.runners||[]).filter(r=>!base.some(b=>b.id===r.id));
+  const match = nm => { const n=String(nm||"").trim().toLowerCase(); if(!n) return null; return base.find(b=>b.name.toLowerCase()===n) || base.find(b=>b.name.toLowerCase().split(" ")[0]===n.split(" ")[0]) || null; };
+  const remap={}; old.forEach(r=>{ const m=match(r.name); if(m) remap[r.id]=m.id; });
+  Object.keys(S.assign||{}).forEach(n=>{ const id=S.assign[n]; if(base.some(b=>b.id===id)) return; if(remap[id]){ S.assign[n]=remap[id]; } else delete S.assign[n]; });
+  S.runners=base; }
+normalizeRoster();
+const PERSON = id => (typeof TEAM_ROSTER!=="undefined" ? TEAM_ROSTER.find(t=>t.id===id) : null) || null;
+const initials = n => n.split(/\s+/).map(w=>w[0]).filter(Boolean).slice(0,2).join("").toUpperCase();
+function avatar(id, size, cls){ const t=PERSON(id); const nm=t?t.name:(S.runners.find(r=>r.id===id)||{}).name||"?";
+  const inner = (t&&t.photo) ? `<img src="${t.photo}" alt="${esc(nm)}">` : `<span>${esc(initials(nm))}</span>`;
+  return `<span class="av ${cls||""}" style="--sz:${size}px">${inner}</span>`; }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+// Shared fields carry a timestamp per key so two phones can merge (newest wins per key, not per file).
+function stamp(key){ S.stamps[key]=new Date().toISOString(); }
+function setShared(key, fn){ fn(); stamp(key); save(); schedulePush(); }
+function toLocalISO(d){ const p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+// ---------- resolved exchange points (from the geocoding pass) ----------
+const ROUTE = n => (typeof ROUTES!=="undefined" && ROUTES[String(n)]) || null;
+LEGS.forEach(l=>{ const r=ROUTE(l.n); if(!r||!r.end) return; l.pt=r.end; l.src=r.endSrc||"";
+  l.approx = !( /^int|^place|^fixed|^booklet/.test(l.src) ); });
+
+// ---------- schedule ----------
+const N = LEGS.length;
+const totalKm = LEGS.reduce((a,l)=>a+l.km,0);
+const kmBefore = i => LEGS.slice(0,i).reduce((a,l)=>a+l.km,0);
+const paceMinPerKm = LEGS[N-1].off / kmBefore(N-1); // booklet average pace to the last exchange
+const finishOff = Math.round(LEGS[N-1].off + LEGS[N-1].km * paceMinPerKm);
+const raceStartDate = () => new Date(S.raceStart);
+const plannedStart = i => new Date(raceStartDate().getTime() + LEGS[i].off*60000);
+const plannedEnd = i => i < N-1 ? plannedStart(i+1) : new Date(raceStartDate().getTime() + finishOff*60000);
+// Projection: from the latest recorded start, the remaining plan is stretched by how the team has actually been running
+// (real elapsed time over planned time across the recorded legs), so the finish moves after every start. Clamped to
+// 0.8–1.3× so one odd leg can't throw it, and only once three legs have been recorded; before that it's plain drift.
+function paceFactor(){ const rec=LEGS.map((l,k)=>S.actual[l.n]?k:-1).filter(k=>k>=0); if(rec.length<3) return 1;
+  const a=rec[0], b=rec[rec.length-1]; const planned=plannedStart(b)-plannedStart(a); if(planned<=0) return 1;
+  const real=new Date(S.actual[LEGS[b].n])-new Date(S.actual[LEGS[a].n]); return Math.max(.8, Math.min(1.3, real/planned)); }
+function projStart(i){
+  const a = S.actual[LEGS[i].n]; if (a) return new Date(a);
+  let last=-1; for (let k=i-1;k>=0;k--){ if(S.actual[LEGS[k].n]){ last=k; break; } }
+  if (last<0) return plannedStart(i);
+  const f = (S.sim&&S.sim.on) ? 1 : paceFactor();
+  return new Date(new Date(S.actual[LEGS[last].n]).getTime() + (plannedStart(i)-plannedStart(last))*f);
+}
+const projEnd = i => i < N-1 ? projStart(i+1) : new Date(projStart(i).getTime() + LEGS[i].km*paceMinPerKm*60000);
+const startPt = i => i===0 ? RACE.startPt : LEGS[i-1].pt;
+const startLabel = i => i===0 ? RACE.startLabel : LEGS[i-1].ex;
+const startApprox = i => i===0 ? false : !!LEGS[i-1].approx;
+
+function currentIndex(){
+  if (S.manualNow) return S.manualNow-1;
+  let last=-1; LEGS.forEach((l,i)=>{ if(S.actual[l.n]) last=i; });
+  if (last>=0) return last;
+  const now = Date.now();
+  if (now < projStart(0)) return 0;
+  for (let i=0;i<N;i++){ if (now >= projStart(i) && now < projEnd(i)) return i; }
+  return N-1;
+}
+function status(i){
+  const cur = currentIndex();
+  if (i===cur) return "now";
+  if (i<cur) return "done";
+  return "upcoming";
+}
+
+// ---------- formatting ----------
+const DAYS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const p2 = n => String(n).padStart(2,"0");
+const hm = d => `${p2(d.getHours())}:${p2(d.getMinutes())}`;
+const dayhm = d => `${DAYS[d.getDay()]} ${hm(d)}`;
+const dur = m => { m=Math.round(m); const h=Math.floor(m/60), r=m%60; return h? `${h}h ${p2(r)}` : `${r} min`; };
+const signed = m => (m>0?"+":"") + Math.round(m) + " min";
+const km1 = k => (Math.round(k*10)/10).toFixed(1);
+
+// ---------- geo ----------
+function hav(a,b){ const R=6371, toR=x=>x*Math.PI/180; const dLat=toR(b[0]-a[0]), dLng=toR(b[1]-a[1]);
+  const h=Math.sin(dLat/2)**2+Math.cos(toR(a[0]))*Math.cos(toR(b[0]))*Math.sin(dLng/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
+function driveEst(i){ const r=ROUTE(LEGS[i].n); if(r&&r.driveKm!=null) return {km:r.driveKm, min:r.driveMin, routed:true};
+  const d=hav(startPt(i),LEGS[i].pt)*1.35; const urban=(i<=7||i>=61); const speed=urban?40:60; return {km:d, min:d/speed*60, routed:false}; }
+
+// Directions carry both ends of the leg. Change the origin to "current location" inside the app if you're not at the exchange.
+const IS_MOBILE = /iPhone|iPad|Android/i.test(navigator.userAgent);
+const gmaps = (from,to,mode,via) => `https://www.google.com/maps/dir/?api=1&origin=${from[0]},${from[1]}&destination=${to[0]},${to[1]}&travelmode=${mode}${via&&via.length?"&waypoints="+via.map(p=>p[0]+","+p[1]).join("|"):""}`;
+// Pick the k points that most define the shape of a line (iterative farthest-point selection), returned in route order,
+// so Google's walking directions are pinned to the booklet route. Google allows 3 waypoints on phones, 9 on desktop.
+function shapePoints(line,k){ if(!line||line.length<3) return []; const chosen=[0,line.length-1]; const P=line.map(p=>[p[0]*110540,p[1]*111320*Math.cos(p[0]*Math.PI/180)]);
+  const segd=(p,a,b)=>{ const dx=b[0]-a[0],dy=b[1]-a[1]; const L2=dx*dx+dy*dy; const t=L2?Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2)):0; return Math.hypot(p[0]-a[0]-dx*t,p[1]-a[1]-dy*t); };
+  while(chosen.length-2<k){ chosen.sort((a,b)=>a-b); let best=-1,bd=0; for(let c=0;c<chosen.length-1;c++){ for(let j=chosen[c]+1;j<chosen[c+1];j++){ const d=segd(P[j],P[chosen[c]],P[chosen[c+1]]); if(d>bd){bd=d;best=j;} } } if(best<0||bd<25) break; chosen.push(best); }
+  chosen.sort((a,b)=>a-b); return chosen.slice(1,-1).map(i=>[+line[i][0].toFixed(5),+line[i][1].toFixed(5)]); }
+const amaps = (from,to,flag) => `https://maps.apple.com/?saddr=${from[0]},${from[1]}&daddr=${to[0]},${to[1]}&dirflg=${flag}`;
+const waze = pt => `https://waze.com/ul?ll=${pt[0]},${pt[1]}&navigate=yes`; // Waze links take a destination only
+const pin = pt => `https://www.google.com/maps/search/?api=1&query=${pt[0]},${pt[1]}`;
+// Three nav apps, origin + destination preset. mode "run" = walking, "drive" = driving.
+function navButtons(from,to,mode,line){
+  const g=mode==="run"?"walking":"driving", a=mode==="run"?"w":"d";
+  const via = mode==="run" ? shapePoints(line, IS_MOBILE?3:9) : [];
+  const note = mode==="run"
+    ? `Google opens walking directions pinned to the booklet route with ${via.length} waypoint${via.length===1?"":"s"} (phones allow 3, so Google may still shortcut a twisty leg; the map above is the authority). Apple and Waze take only the two ends.`
+    : `Google and Apple open with both ends filled in; swap the origin for your location if you're not at the exchange. Waze takes only a destination.`;
+  return `<div class="navgrid"><a class="btn primary" href="${gmaps(from,to,g,via)}" target="_blank" rel="noopener">Google</a><a class="btn" href="${amaps(from,to,a)}" target="_blank" rel="noopener">Apple</a><a class="btn" href="${waze(to)}" target="_blank" rel="noopener">Waze</a></div>
+  <div class="muted" style="font-size:12px;margin-top:6px">${note}</div>`;
+}
+
+// ---------- views ----------
+let view = "leg";
+let prevView="leg";
+function setView(v){ if(v==="legs" && view!=="legs") legsScrolled=false; if(v==="map" && view!=="map") prevView=view==="role"?"leg":view; view=v; document.body.classList.toggle("mapfull", v==="map"); document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected", String(b.dataset.view===v)));
+  ["leg","legs","map","team","track","rv","social","setup","role"].forEach(id=>{ $("#v-"+id).hidden = id!==v; });
+  if (location.hash !== "#"+v) { try{ history.replaceState(null,"","#"+v);}catch(e){} }
+  render(); if(v==="map" && typeof lmap!=="undefined" && lmap){ setTimeout(()=>{ lmap.invalidateSize(); drawMap(); },50); }
+  if(v==="rv" && typeof rvmap!=="undefined" && rvmap){ setTimeout(()=>{ rvmap.invalidateSize(); renderRv(); },50); } }
+document.querySelectorAll("nav.tabs button").forEach(b=>b.addEventListener("click",()=>setView(b.dataset.view)));
+$("#mapClose").addEventListener("click",()=>{ mapHighlight=null; setView(prevView&&prevView!=="map"?prevView:"leg"); });
+window.addEventListener("hashchange",()=>{ const h=location.hash.slice(1); if(["leg","legs","map","team","track","rv","social","setup","role"].includes(h)) setView(h); });
+
+function render(){ if(view==="leg") renderLeg(); else if(view==="legs") renderLegs(); else if(view==="map") drawMap(); else if(view==="team") renderTeam(); else if(view==="track") renderTrack(); else if(view==="rv") renderRv(); else if(view==="social") renderSocial(); else if(view==="role") {} else renderSetup(); }
+$("#setupBtn").addEventListener("click",()=>setView("setup"));
+function renderTeam(){
+  const cur=currentIndex(); const curId=S.assign[LEGS[cur].n]; const nextIdx=Math.min(N-1,cur+1); const nextId=S.assign[LEGS[nextIdx].n];
+  const roster = (typeof TEAM_ROSTER!=="undefined"?TEAM_ROSTER:[]);
+  const runners = roster.filter(t=>t.runner);
+  const crew = roster.filter(t=>!t.runner);
+  const stats = id => { const legs=LEGS.filter(l=>S.assign[l.n]===id); const done=legs.filter(l=>status(LEGS.indexOf(l))==="done"); return {legs,km:legs.reduce((a,l)=>a+l.km,0),doneKm:done.reduce((a,l)=>a+l.km,0)}; };
+  const card = (t,tag) => { const st=stats(t.id); const nextLeg=st.legs.find(l=>status(LEGS.indexOf(l))!=="done");
+    return `<button class="tcard ${t.id===curId?"on":""}" data-id="${t.id}">${tag?`<span class="tag">${tag}</span>`:""}${avatar(t.id,64,t.id===curId?"on":"")}<div class="nm">${esc(t.name)}</div>${t.word?`<div class="wd">${esc(t.word)}</div>`:""}
+      <div class="st">${t.runner?`${st.legs.length?`${st.legs.length} leg${st.legs.length>1?"s":""}, ${km1(st.km)} km${st.doneKm?`, ${km1(st.doneKm)} done`:""}`:"no legs yet"}${nextLeg&&t.id!==curId?`<br>next: leg ${nextLeg.n} at ${hm(projStart(LEGS.indexOf(nextLeg)))}`:""}`:esc(t.role)}</div></button>`; };
+  const curName=runnerName(LEGS[cur].n);
+  const sel = S.teamSel ? runners.concat(crew).find(t=>t.id===S.teamSel) : null;
+  if (sel){ $("#v-team").innerHTML = runnerDetail(sel); wireRunnerDetail(sel); return; }
+  const lv=liveRunnerFor(cur);
+  let h=`<div class="stack"><div class="status"><i class="now"></i><span>${curName?`<b>${esc(curName)}</b> is running leg ${LEGS[cur].n}`:`Leg ${LEGS[cur].n}, no runner tagged`}${lv?`, <em>live</em> ${ageText(posAge(lv.r))}`:""}${nextId?`. Then ${esc(runnerName(LEGS[nextIdx].n))}.`:""}</span></div>
+    ${schematicSvg({alongKm: lv?lv.a.alongKm:0, hint:"Tap the dot to open the map"})}
+    <div><h2>Runners</h2><p class="muted" style="font-size:13px;margin:0 0 10px">Tap a runner for their legs.</p><div class="teamgrid">${runners.map(t=>card(t, t.id===curId?"Running":(t.id===nextId?"Up next":""))).join("")}</div></div>
+    <div><h2>Crew</h2><div class="teamgrid">${crew.map(t=>card(t,"")).join("")}</div></div>
+    </div>`;
+  $("#v-team").innerHTML=h;
+  $("#v-team").querySelectorAll(".tcard").forEach(c=>c.addEventListener("click",()=>{ S.teamSel=c.dataset.id; save(); renderTeam(); $("main").scrollTop=0; }));
+  $("#v-team .posdot")?.addEventListener("click",()=>{ S.viewLeg=null; save(); mapScope="leg"; setView("map"); });
+}
+// One runner: the legs they have run, are running and have coming, with those legs lit on the route.
+function runnerLegs(id){ return LEGS.map((l,i)=>({l,i})).filter(x=>S.assign[x.l.n]===id); }
+function legElapsed(i){ const a=S.actual[LEGS[i].n], b=i<N-1?S.actual[LEGS[i+1].n]:null; return (a&&b)? (new Date(b)-new Date(a))/60000 : null; }
+function runnerDetail(t){
+  const legs=runnerLegs(t.id), cur=currentIndex(); const done=legs.filter(x=>status(x.i)==="done"), now=legs.find(x=>status(x.i)==="now"), todo=legs.filter(x=>status(x.i)==="upcoming");
+  const kmDone=done.reduce((a,x)=>a+x.l.km,0)+(now?(liveRunnerFor(now.i)||{a:{alongKm:0}}).a.alongKm:0), kmAll=legs.reduce((a,x)=>a+x.l.km,0);
+  const timed=done.map(x=>({x,m:legElapsed(x.i)})).filter(y=>y.m); const pace = timed.length ? timed.reduce((a,y)=>a+y.m,0)/timed.reduce((a,y)=>a+y.x.l.km,0) : null;
+  const row=x=>{ const st=status(x.i); const a=S.actual[x.l.n]; const el=legElapsed(x.i);
+    return `<button class="legrow ${st}" data-i="${x.i}"><div class="n">${x.l.n}</div><div><div class="name">${esc(x.l.name)}</div><div class="sub">${km1(x.l.km)} km${a?`, left ${hm(new Date(a))}`:`, planned ${hm(projStart(x.i))}`}${el?`, ${dur(el)} (${Math.floor(el/x.l.km)}:${p2(Math.round(((el/x.l.km)%1)*60))}/km)`:""}</div></div><div class="t">${st==="now"?"now":st==="done"?"done":hm(projStart(x.i))}<small>${st==="upcoming"?"start":""}</small></div></button>`; };
+  return `<div class="stack"><button class="lnk" id="teamBack" style="align-self:flex-start">All of the team</button>
+    <div class="bib sm"><div class="n">${legs.length}</div><div class="t"><small>${legs.length===1?"leg":"legs"}, ${km1(kmAll)} km${t.role&&!t.runner?`, ${esc(t.role)}`:""}</small><b>${esc(t.name)}</b>${t.word?`<em>${esc(t.word)}</em>`:""}</div></div>
+    ${legs.length?schematicSvg({highlight:new Set(legs.map(x=>x.i)), alongKm:(liveRunnerFor(cur)||{a:{alongKm:0}}).a.alongKm, hint:`${esc(t.name.split(" ")[0])}'s legs in colour`}):""}
+    <div class="stats"><div class="stat"><div class="v">${km1(kmDone)}<small>km</small></div><div class="k">run so far</div></div><div class="stat"><div class="v">${km1(Math.max(0,kmAll-kmDone))}<small>km</small></div><div class="k">still to run</div></div><div class="stat hot"><div class="v">${pace?`${Math.floor(pace)}:${p2(Math.round((pace%1)*60))}`:"–"}</div><div class="k">${pace?"min/km, timed legs":"pace, after a timed leg"}</div></div></div>
+    ${legs.length?`<div>${legs.map(row).join("")}</div><div class="pn"><button class="btn" id="teamMap">Show on the map</button>${now?`<button class="btn primary" id="teamNow">Open leg ${now.l.n}</button>`:""}</div>`:`<p class="muted">No legs tagged yet. Tag legs on the Now tab or in Setup.</p>`}</div>`;
+}
+function wireRunnerDetail(t){ $("#teamBack").addEventListener("click",()=>{ S.teamSel=null; save(); renderTeam(); });
+  $("#v-team").querySelectorAll(".legrow").forEach(b=>b.addEventListener("click",()=>{ S.viewLeg=LEGS[+b.dataset.i].n; save(); setView("leg"); $("main").scrollTop=0; }));
+  $("#teamMap")?.addEventListener("click",()=>{ mapHighlight=t.id; mapScope="all"; setView("map"); });
+  $("#teamNow")?.addEventListener("click",()=>{ S.viewLeg=null; save(); setView("leg"); });
+  $("#v-team .posdot")?.addEventListener("click",()=>{ S.viewLeg=null; save(); mapScope="leg"; setView("map"); }); }
+function applyRole(kind){ S.me.kind=kind; S.roleSet=true;
+  if(kind==="suv"){ S.mode="drive"; S.sharePos=true; }
+  if(kind==="rv"){ S.mode="drive"; S.sharePos=true; }
+  if(kind==="bike"){ S.mode="run"; S.sharePos=true; }
+  if(kind==="crew"){ S.mode="run"; }
+  save(); startPosShare(); }
+function homeView(){ const k=S.me.kind; return k==="rv"?"rv": k==="bike"?"track": "leg"; }
+document.querySelectorAll(".rolebtn").forEach(b=>b.addEventListener("click",()=>{ applyRole(b.dataset.role); document.querySelector("nav.tabs").hidden=false;
+  if(b.dataset.role==="bike"){ following=true; } setView(homeView()); }));
+
+function viewIndex(){ return (S.viewLeg ? S.viewLeg-1 : currentIndex()); }
+
+// ---------- skin: paper by day, black by night, flipping at local sunset ----------
+let skinNow="";
+function sunSkin(){ const i=currentIndex(); return isDark(new Date(), startPt(i)) ? "night" : "day"; }
+function nextSunEvent(){ const pt=startPt(currentIndex()), now=new Date(); const s=sunTimes(now,pt[0],pt[1]); if(!s) return new Date(now.getTime()+6*3600e3);
+  if(now<s.rise) return s.rise; if(now<s.set) return s.set; const tm=new Date(now.getTime()+86400e3); const s2=sunTimes(tm,pt[0],pt[1]); return s2?s2.rise:new Date(now.getTime()+12*3600e3); }
+function applySkin(force){ let s=sunSkin();
+  if(S.skinOverride && S.skinOverride.until && Date.now()<new Date(S.skinOverride.until)) s=S.skinOverride.skin; else if(S.skinOverride){ S.skinOverride=null; save(); }
+  const changed = s!==skinNow; skinNow=s; document.documentElement.dataset.skin=s;
+  const b=$("#skinBtn"); if(b) b.textContent = s==="night"?"Night":"Day";
+  const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content = s==="night"?"#000000":"#F4F3EF";
+  if(changed && !force) render(); }
+$("#skinBtn").addEventListener("click",()=>{ const want = skinNow==="night"?"day":"night"; S.skinOverride = want===sunSkin() ? null : {skin:want, until:nextSunEvent().toISOString()}; save(); applySkin(); });
+
+// ---------- the ring: 67 dots, lit as legs are run; the leg on screen is the big dot ----------
+function legRing(S, i){ const r=S/2-7, c=S/2, cur=currentIndex(); let h=""; for(let k=0;k<N;k++){ const a=-Math.PI/2+k/N*Math.PI*2; const cls=k===i?"now":k<cur?"done":""; h+=`<circle class="${cls}" cx="${(c+r*Math.cos(a)).toFixed(1)}" cy="${(c+r*Math.sin(a)).toFixed(1)}" r="${cls==="now"?4.5:2.4}"/>`; } return `<div class="ring"><svg viewBox="0 0 ${S} ${S}">${h}</svg></div>`; }
+// ---------- instrument track: all legs as ticks, lit as they are run ----------
+function instHtml(i, alongKm, cls){ const cur=currentIndex(); let acc=0, ticks="";
+  for(let k=0;k<=N;k++){ const pct=acc/totalKm*100, maj=k%10===0; ticks+=`<span class="tick${maj?" maj":""}${k<=cur?" done":""}" style="left:${pct}%">${maj&&k>0&&k<N?`<span>${k}</span>`:""}</span>`; if(k<N) acc+=LEGS[k].km; }
+  const p=Math.min(100,(kmBefore(cur)+(alongKm||0))/totalKm*100);
+  const mark = (i!=null && i!==cur) ? `<b class="mark" title="Leg ${LEGS[i].n}" style="left:${(kmBefore(i)+LEGS[i].km/2)/totalKm*100}%"></b>` : "";
+  return `<div class="inst ${cls||""}"><div class="scale">${ticks}</div><div class="line"><i style="width:${p}%"></i><button class="pos" id="instPos" aria-label="Open the map on the current leg" style="left:${p}%"></button>${mark}</div><div class="ends"><span>${S.actual[1]?"Started":"Starts"} ${dayhm(projStart(0))}</span><span>Finish about <b>${dayhm(projEnd(N-1))}</b></span></div></div>`; }
+function wireInst(){ $("#instPos")?.addEventListener("click",()=>{ S.viewLeg=null; save(); mapScope="leg"; setView("map"); }); }
+
+// ---------- schematic: the whole route as one line, with a set of legs highlighted ----------
+function schematicSvg(opts){ const o=opts||{}; const all=pts(); const lats=all.map(p=>p[0]), lngs=all.map(p=>p[1]);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLng=Math.min(...lngs),maxLng=Math.max(...lngs); const kx=Math.cos(44.5*Math.PI/180);
+  const W=400,H=o.h||190,pad=20, sc=Math.min((W-2*pad)/((maxLng-minLng)*kx),(H-2*pad)/(maxLat-minLat));
+  const X=p=>(pad+(p[1]-minLng)*kx*sc).toFixed(1), Y=p=>(H-pad-(p[0]-minLat)*sc).toFixed(1);
+  const seg=(k)=>`M${X(all[k])} ${Y(all[k])} L${X(all[k+1])} ${Y(all[k+1])}`;
+  const cur=currentIndex(); const hi=o.highlight||new Set();
+  let paths=`<path d="${all.map((p,k)=>(k?"L":"M")+X(p)+" "+Y(p)).join(" ")}" fill="none" stroke="var(--dim)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+  if(!o.noDone) paths+=`<path d="${all.slice(0,cur+1).map((p,k)=>(k?"L":"M")+X(p)+" "+Y(p)).join(" ")}" fill="none" stroke="var(--fg)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" opacity="${hi.size?.35:1}"/>`;
+  hi.forEach(k=>{ paths+=`<path d="${seg(k)}" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round"/>`; });
+  const f=Math.max(0,Math.min(1,(o.alongKm||0)/LEGS[cur].km)); const a=all[cur], b=all[cur+1];
+  const cx=(+X(a)+(+X(b)-X(a))*f).toFixed(1), cy=(+Y(a)+(+Y(b)-Y(a))*f).toFixed(1);
+  const dot = o.noPos ? "" : `<g class="posdot" style="cursor:pointer"><circle cx="${cx}" cy="${cy}" r="18" fill="var(--accent)" opacity=".22"/><circle cx="${cx}" cy="${cy}" r="7" fill="var(--accent)"/></g>`;
+  return `<div class="schem"><svg viewBox="0 0 ${W} ${H}" aria-label="Route overview">${paths}<circle cx="${X(all[0])}" cy="${Y(all[0])}" r="4" fill="var(--fg)"/><circle cx="${X(all[N])}" cy="${Y(all[N])}" r="4" fill="none" stroke="var(--fg)" stroke-width="2"/>${dot}</svg><span class="c1">Toronto</span><span class="c2">Montréal</span>${o.hint?`<span class="hint">${o.hint}</span>`:""}</div>`; }
+
+// Sunrise/sunset (NOAA approximation, good to a couple of minutes) so night legs are flagged automatically.
+function sunTimes(date, lat, lng){ const rad=Math.PI/180; const d0=Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()); const n=Math.round(d0/86400000)-10957; const Jstar=n-lng/360;
+  const M=(357.5291+0.98560028*Jstar)%360; const C=1.9148*Math.sin(M*rad)+0.02*Math.sin(2*M*rad)+0.0003*Math.sin(3*M*rad); const lam=(M+C+180+102.9372)%360;
+  const Jt=2451545+Jstar+0.0053*Math.sin(M*rad)-0.0069*Math.sin(2*lam*rad); const dec=Math.asin(Math.sin(lam*rad)*Math.sin(23.44*rad));
+  const cosw=(Math.sin(-0.83*rad)-Math.sin(lat*rad)*Math.sin(dec))/(Math.cos(lat*rad)*Math.cos(dec)); if(cosw<-1||cosw>1) return null; const w=Math.acos(cosw)/rad;
+  const toDate=J=>new Date((J-2440587.5)*86400000); return {rise:toDate(Jt-w/360), set:toDate(Jt+w/360)}; }
+function isDark(t, pt){ const s=sunTimes(t,pt[0],pt[1]); if(!s) return false; if(t<s.rise||t>s.set) return true; return false; }
+function legDark(i){ const a=isDark(projStart(i),startPt(i)), b=isDark(projEnd(i),LEGS[i].pt); return a&&b?"dark":(a||b)?"twilight":""; }
+function darkNote(i){ const d=legDark(i); if(!d) return ""; const st=sunTimes(projStart(i),startPt(i)[0],startPt(i)[1]);
+  return `<div class="alert" style="font-size:14px">${d==="dark"?"Night leg":"Starts or ends around dusk/dawn"}: headlamp and reflective vest. ${st?`Sunset ${hm(st.set)}, sunrise ${hm(st.rise)} here.`:""}</div>`; }
+const runnerName = n => { const id=S.assign[n]; const r=S.runners.find(r=>r.id===id); return r?r.name:""; };
+document.addEventListener("click",e=>{ const a=e.target.closest&&e.target.closest(".runnerline .av, .legpanel .av"); if(!a) return; const sel=$("#runnerPick")||$("#legPick"); const id=sel&&sel.value; if(id){ S.teamSel=id; save(); setView("team"); } });
+function runnerRow(i){
+  const L_=LEGS[i]; const id=S.assign[L_.n]; const nextId = i<N-1 ? S.assign[LEGS[i+1].n] : null;
+  return `<div class="card"><div class="runnerline">${id?avatar(id,52,"on"):`<span class="av" style="--sz:52px"><span>?</span></span>`}<div style="flex:1;min-width:0">
+      <select id="runnerPick" style="padding:8px 10px"><option value="">Who runs this leg?</option>${S.runners.map(r=>`<option value="${r.id}" ${id===r.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select>
+      <div class="sub" style="margin-top:4px">${nextId?`Next up: ${esc(runnerName(LEGS[i+1].n))} on leg ${LEGS[i+1].n}`:(i<N-1?"Next leg not tagged yet":"Last leg")}</div></div></div></div>`;
+}
+function startControls(i){
+  const L_=LEGS[i], act=S.actual[L_.n], st=status(i), cur=currentIndex();
+  // what this start did to the rest of the schedule
+  let shiftNote="";
+  if (act){ const d=(new Date(act)-plannedStart(i))/60000; let prevDrift=0; for(let k=i-1;k>=0;k--){ const ak=S.actual[LEGS[k].n]; if(ak){ prevDrift=(new Date(ak)-plannedStart(k))/60000; break; } }
+    shiftNote=`Legs after this moved ${signed(d-prevDrift)} relative to the previous estimate; every later leg now runs ${signed(d)} vs the booklet plan.`; }
+  const next = i<N-1 ? `Exchange ${L_.n} now expected ${dayhm(projEnd(i))}.` : `Finish now expected ${dayhm(projEnd(i))}.`;
+  if (act) return `<div class="card accent"><div class="row" style="justify-content:space-between;align-items:baseline"><div><div class="eyebrow">Leg started</div><div style="font-size:22px;font-family:var(--display);font-weight:700">${dayhm(new Date(act))} <span class="muted" style="font-size:15px">${signed((new Date(act)-plannedStart(i))/60000)} vs plan</span></div></div><div class="row" style="gap:6px"><button class="pill" id="editStart">Edit</button><button class="pill" id="clearStart">Undo</button></div></div>
+    <div class="muted" style="font-size:13px;margin-top:6px">${shiftNote} ${next}</div>
+    <div id="startEdit" hidden style="margin-top:10px"><label class="f" for="startTime">Correct the start time</label><input type="datetime-local" id="startTime" value="${act}"></div></div>`;
+  const prevDone = i===0 || !!S.actual[LEGS[i-1].n];
+  return `<div class="card ${st==="now"?"accent":""}"><button class="btn go ${st==="now"?"primary":""}" id="markStart" style="width:100%"><span>Start leg ${L_.n}</span><small>${runnerName(L_.n)?`${esc(runnerName(L_.n).split(" ")[0])} leaves`:"runner leaves"}</small></button>
+    <div class="muted" style="font-size:13px;margin-top:8px">Tap when the runner leaves exchange ${i===0?"start":L_.n-1}. Every later estimate shifts by the difference from plan.${prevDone?"":` Leg ${i>0?LEGS[i-1].n:""} has no recorded start yet; you can still start this one.`} ${next}</div>
+    <div style="margin-top:8px"><button class="pill" id="editStart">Set a different time</button><div id="startEdit" hidden style="margin-top:8px"><input type="datetime-local" id="startTime" value="${toLocalISO(projStart(i))}"></div></div></div>`;
+}
+function renderLeg(){
+  const i = viewIndex(), L=LEGS[i], cur=currentIndex(), st=status(i);
+  const ps=projStart(i), pe=projEnd(i), drift=(ps-plannedStart(i))/60000;
+  const act=S.actual[L.n];
+  const de=driveEst(i), runnerMin=(pe-ps)/60000, slack=runnerMin-de.min;
+  const isLast=i===N-1;
+  let h = `<div class="stack">`;
+  if (!S.startSet) h+=`<div class="alert">Race start not set. Times below assume a 9:00 PM start today. Set the real gun time in Setup.</div>`;
+  const lv=liveRunnerFor(i); const rn=runnerName(L.n); const person=PERSON(S.assign[L.n]); const word=person?person.word:"";
+  const statusText = st==="now" ? (lv?`<em>Live</em>, position ${ageText(posAge(lv.r))}`:(act?`Current leg, started <b>${hm(new Date(act))}</b>`:"Current leg")) : st==="done" ? `Done${act?`, started <b>${hm(new Date(act))}</b>`:""}` : `Up next, planned <b>${dayhm(ps)}</b>`;
+  h+=`<div class="status"><i class="${st}"></i><span>${statusText}${L.approx?", approx pin":""}${i!==cur?` <button class="lnk" id="jumpNow">Jump to now</button>`:""}</span></div>
+  <div class="rhero"><div class="ringwrap">${legRing(150,i)}<div class="portrait">${person&&person.photo?`<img src="${person.photo}" alt="">`:`<span>${rn?esc(initials(rn)):"?"}</span>`}</div><div class="legtag"><small>LEG</small>${L.n}</div></div>
+    <div><h1>${rn?esc(rn.split(" ")[0]):"Leg "+L.n}<span>${!rn?"no runner yet":st==="done"?"ran this leg":st==="now"?"is running":"runs this leg"}</span></h1>${word?`<div class="word">${esc(word)}</div>`:""}<div class="sub">${esc(L.name)}, ${km1(L.km)} km</div></div></div>
+  ${instHtml(i, (st==="now"&&lv)?lv.a.alongKm:0)}
+  ${runnerRow(i)}
+  ${darkNote(i)}
+  ${liveCard(i)}
+  ${startControls(i)}
+  <div class="stats">
+    <div class="stat"><div class="v">${km1(L.km)}<small>km</small></div><div class="k">this leg</div></div>
+    <div class="stat"><div class="v">${hm(ps)}</div><div class="k">${act?"started":"start"} ${DAYS[ps.getDay()]}</div></div>
+    <div class="stat hot"><div class="v">${hm(pe)}</div><div class="k">${isLast?"finish":"exchange"} ${DAYS[pe.getDay()]}</div></div>
+  </div>
+  <div class="muted" style="font-size:13px;margin-top:6px">Planned ${dayhm(plannedStart(i))}${L.interp?" (booklet gave no time; interpolated by distance)":""}${Math.abs(drift)>=1?` · running ${signed(drift)} vs plan`:""}. Cumulative ${km1(kmBefore(i))} km of ${km1(totalKm)} at the start of this leg.</div>
+  <div class="seg" role="tablist"><button role="tab" data-mode="run" aria-selected="${S.mode==="run"}">Run</button><button role="tab" data-mode="drive" aria-selected="${S.mode==="drive"}">Drive</button></div>
+  ${HAS_L?`<div class="mapwrap" id="legmapSlot"></div><div class="row" style="justify-content:space-between"><div class="legend" id="legLegend"></div><div class="row" style="gap:6px"><button class="pill" id="legFollow" aria-pressed="${following}">${following?"Following":"Follow me"}</button><button class="pill" id="legFull">Full screen</button></div></div>`:""}`;
+
+  if (S.mode==="run"){
+    h+=`<div class="card"><div class="point"><div class="dot"></div><div><div class="lbl">Start</div><p>${esc(startLabel(i))}</p><div class="coords">${startPt(i).join(", ")}${startApprox(i)?" · approx":""}</div></div></div></div>
+    <div><h2>Directions</h2><ol class="steps">${L.dirs.map((d,k)=>`<li${k===L.dirs.length-1?' class="final"':''}>${esc(d)}</li>`).join("")}</ol>${legSteps(i).length?`<details class="turnsbox"><summary>Turn by turn, ${legSteps(i).length} turns on the map</summary><ol class="turns">${legSteps(i).map((s,k)=>`<li><span class="tn">${k+1}</span><span>${esc(stepText(s))}</span><span class="td">${s[4]>=1000?km1(s[4]/1000)+" km":s[4]+" m"}</span></li>`).join("")}</ol></details>`:""}</div>
+    <div class="card accent"><div class="point"><div class="dot end"></div><div><div class="lbl">${isLast?"Finish":"Exchange"}</div><p>${esc(L.ex)}</p><div class="coords">${L.pt.join(", ")}${L.approx?" · approx":""}</div></div></div></div>
+    ${L.notes.length?`<div><h2>Runner notes</h2><ul class="notes">${L.notes.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></div>`:""}
+    <div><h2>Run route, start to exchange</h2>${navButtons(startPt(i),L.pt,"run",legLine(i,"run"))}</div>
+    ${gpxButtons(i)}`;
+  } else {
+    h+=`<div class="card"><div class="point"><div class="dot"></div><div><div class="lbl">From · exchange ${i===0?"start":L.n-1}</div><p>${esc(startLabel(i))}</p></div></div>
+      <div style="height:10px"></div>
+      <div class="point"><div class="dot end"></div><div><div class="lbl">To · exchange ${L.n}</div><p>${esc(L.ex)}</p><div class="coords">${L.pt.join(", ")}${L.approx?" · approx":""}</div></div></div></div>
+    <div class="stats">
+      <div class="stat"><div class="k">Drive est.</div><div class="v">~${Math.round(de.km)}<small> km</small></div></div>
+      <div class="stat"><div class="k">Drive time</div><div class="v">~${Math.round(de.min)}<small> min</small></div></div>
+      <div class="stat"><div class="k">Slack</div><div class="v" style="color:${slack<10?'var(--bad)':slack<20?'var(--warn)':'var(--ok)'}">${Math.round(slack)}<small> min</small></div></div>
+    </div>
+    <div class="muted" style="font-size:13px">Runner planned ${dur(runnerMin)} for this leg. Drive figures are ${de.routed?"routed by road, without traffic":"straight-line estimates"}. Slack is time at the exchange before the runner arrives, if you leave as soon as they do.</div>
+    ${L.drive.length?`<div><h2>Vehicle notes</h2><ul class="notes">${L.drive.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></div>`:""}
+    ${L.n===26?`<div class="alert">Ferry leg. Confirm the Glenora ferry schedule for race day; the booklet allowed ~40 min between the dock and the Leg 27 start.</div>`:""}
+    <div><h2>Navigate to exchange ${L.n}</h2>
+    ${navButtons(startPt(i),L.pt,"drive")}</div>
+    ${i<N-1?`<div class="card" style="font-size:14px"><span class="eyebrow">After this</span><br>Leg ${LEGS[i+1].n} · ${esc(LEGS[i+1].name)} · ${km1(LEGS[i+1].km)} km · exchange at ${esc(LEGS[i+1].ex)}</div>`:""}`;
+  }
+
+  h+=`<div class="stack" style="gap:10px;margin-top:6px">
+    <div class="pn"><button class="btn" id="prevLeg" ${i===0?"disabled":""}>‹ Leg ${i>0?LEGS[i-1].n:""}</button><button class="btn" id="nextLeg" ${isLast?"disabled":""}>Leg ${!isLast?LEGS[i+1].n:""} ›</button></div>
+  </div></div>`;
+  $("#v-leg").innerHTML = h;
+  $("#v-leg").querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{ S.mode=b.dataset.mode; save(); renderLeg(); }));
+  const go = idx => { S.viewLeg = LEGS[idx].n; save(); renderLeg(); $("main").scrollTop=0; };
+  $("#prevLeg")?.addEventListener("click",()=>go(i-1));
+  $("#nextLeg")?.addEventListener("click",()=>go(i+1));
+  $("#jumpNow")?.addEventListener("click",()=>{ S.viewLeg=null; save(); renderLeg(); $("main").scrollTop=0; });
+  $("#markStart")?.addEventListener("click",()=>{ setShared("actual."+L.n,()=>{ S.actual[L.n]=toLocalISO(new Date()); }); setShared("manualNow",()=>{ S.manualNow=null; }); S.viewLeg=null; save(); renderLeg(); });
+  $("#editStart")?.addEventListener("click",()=>{ $("#startEdit").hidden=false; });
+  $("#startTime")?.addEventListener("change",e=>{ if(e.target.value) setShared("actual."+L.n,()=>{ S.actual[L.n]=e.target.value; }); renderLeg(); });
+  $("#clearStart")?.addEventListener("click",()=>{ setShared("actual."+L.n,()=>{ delete S.actual[L.n]; }); renderLeg(); });
+  $("#gpxLeg")?.addEventListener("click",()=>downloadText(`runway-leg-${String(L.n).padStart(2,"0")}.gpx`, gpxFor([i])));
+  $("#gpxAll")?.addEventListener("click",()=>downloadText("runway-all-legs.gpx", gpxFor(LEGS.map((_,k)=>k))));
+  $("#runnerPick")?.addEventListener("change",e=>{ setShared("assign."+L.n,()=>{ if(e.target.value) S.assign[L.n]=e.target.value; else delete S.assign[L.n]; }); renderLeg(); });
+  wireInst(); if(HAS_L) mountLegMap(i);
+}
+
+// Legs where the clock matters for more than pacing.
+function timeSensitive(L_){ if(L_.n===26) return "ferry sailing"; if(L_.n===27) return "off the ferry"; if(L_.notes.some(n=>/mandatory/i.test(n))) return "lights dusk to dawn"; if(L_.n===67) return "team joins at Lac aux Castors"; return ""; }
+let legsOpen=null, legsScrolled=false;
+function legPanel(i){ const L=LEGS[i], st=status(i), ps=projStart(i), pe=projEnd(i), id=S.assign[L.n]||"", ts=timeSensitive(L), dk=legDark(i);
+  return `<div class="legpanel">
+    <div class="point"><div class="dot"></div><div><div class="lbl">Start${i===0?"":`, exchange ${L.n-1}`}</div><p>${esc(startLabel(i))}</p></div></div>
+    <div class="point" style="margin-top:8px"><div class="dot end"></div><div><div class="lbl">${i===N-1?"Finish":`Exchange ${L.n}`}</div><p>${esc(L.ex)}</p></div></div>
+    <div class="stats" style="margin-top:12px"><div class="stat"><div class="v">${km1(L.km)}<small>km</small></div><div class="k">distance</div></div><div class="stat"><div class="v">${hm(ps)}</div><div class="k">${S.actual[L.n]?"started":"start"} ${DAYS[ps.getDay()]}</div></div><div class="stat hot"><div class="v">${hm(pe)}</div><div class="k">${i===N-1?"finish":"exchange"} ${DAYS[pe.getDay()]}</div></div></div>
+    ${dk||ts?`<div class="muted" style="font-size:13px;margin-top:8px">${dk==="dark"?"Night leg: headlamp and vest.":dk?"Dusk or dawn: headlamp and vest.":""} ${ts?`Time-sensitive: ${esc(ts)}.`:""}</div>`:""}
+    <label class="f" for="legPick" style="margin-top:12px">Runner</label>
+    <div class="runnerline">${id?avatar(id,44,st==="now"?"on":""):`<span class="av" style="--sz:44px"><span>?</span></span>`}<select id="legPick" data-n="${L.n}" style="flex:1"><option value="">${id?"Nobody (clear)":"Pick a runner"}</option>${S.runners.map(r=>`<option value="${r.id}" ${id===r.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select></div>
+    <div class="pn" style="margin-top:12px"><button class="btn primary" id="legOpen" data-i="${i}">Open leg ${L.n}</button><button class="btn" id="legClose">Close</button></div></div>`; }
+function renderLegs(){
+  const cur=currentIndex();
+  let h=`<div class="stack"><div><div class="eyebrow">${km1(totalKm)} km, ${N} legs</div><h1>All legs</h1>
+  <p class="muted" style="margin:6px 0 0">Finish projected ${dayhm(projEnd(N-1))}. Tap a leg for its details and runner.</p></div>${HAS_L?`<div class="mapwrap" id="legsmapSlot"></div>`:""}<div>`;
+  let lastDay=null;
+  LEGS.forEach((L,i)=>{ const ps=projStart(i), st=status(i); const day=ps.toDateString();
+    if(day!==lastDay){ h+=`<div class="daysep">${DAYS[ps.getDay()]} ${ps.getDate()} ${ps.toLocaleString(undefined,{month:"short"})}</div>`; lastDay=day; }
+    const rn=runnerName(L.n); const ts=timeSensitive(L); const dk=legDark(i); const open=legsOpen===i;
+    h+=`<button class="legrow ${st}${open?" open":""}" data-i="${i}" aria-expanded="${open}"><div class="n">${L.n}</div><div><div class="name">${esc(L.name)}</div><div class="sub">${rn?`<b class="rn">${esc(rn)}</b>, `:`<span class="norun">no runner</span>, `}${km1(L.km)} km${dk==="dark"?", night":dk?", dusk/dawn":""}${ts?`, <span style="color:var(--warn)">${esc(ts)}</span>`:""}</div></div><div class="t">${hm(ps)}<small>${st==="now"?"now":st==="done"?"done":"start"}</small></div></button>${open?legPanel(i):""}`;
+  });
+  h+=`</div></div>`;
+  $("#v-legs").innerHTML=h; if(HAS_L) mountLegsMap();
+  $("#v-legs").querySelectorAll(".legrow").forEach(b=>b.addEventListener("click",()=>{ const i=+b.dataset.i; legsOpen = legsOpen===i?null:i; renderLegs(); const r=$(`#v-legs .legrow[data-i="${i}"]`); if(r) r.scrollIntoView({block:"nearest"}); }));
+  $("#legPick")?.addEventListener("change",e=>{ const n=e.target.dataset.n; setShared("assign."+n,()=>{ if(e.target.value) S.assign[n]=e.target.value; else delete S.assign[n]; }); renderLegs(); });
+  $("#legOpen")?.addEventListener("click",e=>{ const i=+e.target.dataset.i; S.viewLeg = i===cur?null:LEGS[i].n; save(); setView("leg"); $("main").scrollTop=0; });
+  $("#legClose")?.addEventListener("click",()=>{ legsOpen=null; renderLegs(); });
+  if(!legsScrolled){ legsScrolled=true; const nowRow=$("#v-legs .legrow.now"); if(nowRow) nowRow.scrollIntoView({block:"center"}); }
+}
+
+// ---------- map ----------
+// Two renderers share one UI. With Leaflet loaded (hosted build) the leg draws on OpenStreetMap tiles.
+// Without it (artifact viewer blocks tiles) the same route geometry draws to scale on a canvas as a strip map.
+const HAS_L = typeof L !== "undefined";
+// Esri World Street Map: served without an API key. Note the z/y/x tile order.
+const TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}";
+const tileUrl = t => { const [z,x,y]=t.split("/"); return TILE_URL.replace("{z}",z).replace("{y}",y).replace("{x}",x); };
+const pts = () => [RACE.startPt, ...LEGS.map(l=>l.pt)];
+let mapScope="leg", mapMode=null, lmap=null, lLayer=null, mapHits=[], mapHighlight=null;
+function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function mmode(){ return mapMode || S.mode; }
+function legLine(i,mode){ const r=ROUTE(LEGS[i].n); const g = r && (mode==="run" ? r.run : r.drive); return (g && g.length>1) ? g : [startPt(i), LEGS[i].pt]; }
+// Real turns only: drop "continue"/"new name" steps and straight-ons, which the router emits at every street-name change.
+function legSteps(i){ const r=ROUTE(LEGS[i].n); if(!r||!r.steps) return [];
+  return r.steps.filter(s=>{ const t=s[2]; if(t==="Start"||t==="Exchange") return false; if(/^(continue|new name|notification|depart|arrive)/.test(t)) return false; if(/straight/.test(t) && !/^(end of road|fork)/.test(t)) return false; return true; }); }
+const stepText = s => { let t=s[2].replace("new name","continue").replace("end of road","end of road, turn").replace("fork","fork, keep").replace("continue uturn","U-turn").replace("rotary","roundabout").replace("roundabout","roundabout, take"); t=t.replace(/\b(straight)\b/,"straight on"); return `${t[0].toUpperCase()+t.slice(1)}${s[3]?" onto "+s[3]:""}`; };
+
+function mapHeader(i,mode){
+  const L_=LEGS[i], r=ROUTE(L_.n);
+  const routed = r && ((mode==="run"&&r.run)||(mode==="drive"&&r.drive));
+  const hiName = mapHighlight ? ((PERSON(mapHighlight)||S.runners.find(r=>r.id===mapHighlight)||{}).name||"") : "";
+  $("#mapHead").innerHTML = mapScope==="all" && hiName
+    ? `<div class="eyebrow">Whole relay</div><h1><b>${esc(hiName.split(" ")[0])}'s</b> legs in colour <button class="lnk" id="clearHi" style="font-size:15px">clear</button></h1>`
+    : `<div class="eyebrow">${mode==="run"?"Run map":"Drive map"}, leg ${L_.n}, ${km1(L_.km)} km${routed?"":", straight line only"}</div><h1><b>${L_.n}</b> ${esc(L_.name)}</h1>`;
+  $("#clearHi")?.addEventListener("click",()=>{ mapHighlight=null; drawMap(); });
+  document.querySelectorAll("#v-map .seg button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.mm===mode)));
+  $("#scopeLeg").setAttribute("aria-pressed",String(mapScope==="leg")); $("#scopeAll").setAttribute("aria-pressed",String(mapScope==="all"));
+}
+function mapFooter(i,mode){
+  const L_=LEGS[i], from=startPt(i), to=L_.pt, r=ROUTE(L_.n), steps=legSteps(i), de=driveEst(i);
+  let h = "";
+  if (mapScope==="all"){ $("#mapFoot").innerHTML=`<p class="muted" style="font-size:13px;margin:0">Whole relay, ${km1(totalKm)} km. Tap a leg to open it. Leg ${L_.n} is drawn heavier.</p>`; return; }
+  if (mode==="run"){
+    h += `<div class="card"><div class="point"><div class="dot"></div><div><div class="lbl">Start</div><p>${esc(startLabel(i))}</p></div></div><div style="height:10px"></div><div class="point"><div class="dot end"></div><div><div class="lbl">${i===N-1?"Finish":"Exchange "+L_.n}</div><p>${esc(L_.ex)}</p></div></div></div>`;
+    if (r && r.run) h += `<div class="muted" style="font-size:13px">Routed length ${km1(r.runKm)} km (booklet ${km1(L_.km)} km). ${Math.abs(r.runKm-L_.km)/L_.km>0.12?"The routed line differs from the booklet distance; use the written directions as the authority on this leg.":"Matches the booklet closely."}</div>`;
+    if (steps.length) h += `<div><h2>Turns along the routed line</h2><ol class="turns">${steps.map((s,k)=>`<li><span class="tn">${k+1}</span><span>${esc(stepText(s))}</span><span class="td">${s[4]>=1000?km1(s[4]/1000)+" km":s[4]+" m"}</span></li>`).join("")}</ol><p class="muted" style="font-size:12px;margin:8px 0 0">Turn markers come from the routed line and match the numbers on the map; the distance is how far to the next turn. The booklet directions in the Leg tab stay the authority on street names.</p></div>`;
+    h += `<div><h2>Open the run route</h2>${navButtons(from,to,"run",legLine(i,"run"))}</div>`;
+  } else {
+    h += `<div class="card"><div class="point"><div class="dot"></div><div><div class="lbl">Leave from exchange ${i===0?"start":L_.n-1}</div><p>${esc(startLabel(i))}</p></div></div><div style="height:10px"></div><div class="point"><div class="dot end"></div><div><div class="lbl">Meet runner at exchange ${L_.n}</div><p>${esc(L_.ex)}</p></div></div></div>
+      <div class="stats"><div class="stat"><div class="k">Drive</div><div class="v">${Math.round(de.km)}<small> km</small></div></div><div class="stat"><div class="k">Drive time</div><div class="v">${Math.round(de.min)}<small> min</small></div></div><div class="stat"><div class="k">Slack</div><div class="v" style="color:${((projEnd(i)-projStart(i))/60000-de.min)<10?'var(--bad)':((projEnd(i)-projStart(i))/60000-de.min)<20?'var(--warn)':'var(--ok)'}">${Math.round((projEnd(i)-projStart(i))/60000-de.min)}<small> min</small></div></div></div>
+      <div class="muted" style="font-size:13px">Runner planned ${dur((projEnd(i)-projStart(i))/60000)} on this leg. Slack is your wait at the exchange before the runner arrives, if you leave as soon as they do.</div>
+      ${L_.drive.length?`<ul class="notes">${L_.drive.map(n=>`<li>${esc(n)}</li>`).join("")}</ul>`:""}
+      <div><h2>Open the drive</h2>${navButtons(from,to,"drive")}</div>`;
+  }
+  if (HAS_L) h += `<div class="card"><h2>Offline map tiles</h2><p style="margin:0 0 10px;font-size:14px">Saves the street map along this leg (zoom 12 to 16) so it still draws with no signal. About ${tileCount(i)} tiles.</p><div class="row"><button class="btn" id="saveTiles">Save leg ${L_.n}</button><button class="btn ghost" id="saveAllTiles">Save all legs</button></div><div class="progress" style="margin-top:10px"><i id="tileBar"></i></div><div class="muted" id="tileMsg" style="font-size:13px;margin-top:6px">${tileStatus()}</div></div>`;
+  else h += `<p class="muted" style="font-size:13px;margin:10px 0 0">The routed line is drawn to scale with its turns numbered; there's no street map behind it in this viewer. The hosted build shows the same line on a street map.</p>`;
+  $("#mapFoot").innerHTML = "";
+  $("#saveTiles")?.addEventListener("click",()=>saveTiles([i]));
+  $("#saveAllTiles")?.addEventListener("click",()=>saveTiles(LEGS.map((_,k)=>k)));
+}
+
+function drawMap(){
+  const i=viewIndex(), mode=mmode();
+  mapHeader(i,mode);
+  $("#lmap").hidden = !HAS_L; $("#map").hidden = HAS_L;
+  if (HAS_L) drawLeaflet(i,mode); else drawCanvas(i,mode);
+  mapFooter(i,mode);
+}
+
+// ---- Leaflet renderer ----
+function ensureLeaflet(){
+  if (lmap) return;
+  lmap = L.map("lmap",{zoomControl:true, attributionControl:true});
+  L.tileLayer(TILE_URL,{maxZoom:19, maxNativeZoom:17, attribution:'Tiles © <a href="https://www.esri.com/">Esri</a>'}).addTo(lmap);
+  lLayer = L.layerGroup().addTo(lmap);
+  // Dragging the map by hand turns Follow me off, so the map stays where you put it.
+  lmap.on("dragstart",()=>{ if(following){ following=false; syncFollowPills(); if(!S.sharePos) stopPosShare(); } });
+}
+// One leg on a Leaflet map: the route with casing, the two ends, numbered turns, neighbours faint. Used by the Leg tab and the Map tab.
+function drawLegOn(map, layer, i, mode){ layer.clearLayers(); const accent=cssVar("--accent"), fg=cssVar("--fg"), muted=cssVar("--muted"); const L_=LEGS[i];
+  const line=legLine(i,mode), from=startPt(i), to=L_.pt;
+  if(i>0) layer.addLayer(L.polyline(legLine(i-1,mode),{color:muted,weight:2,opacity:.5,dashArray:"4 6"}));
+  if(i<N-1) layer.addLayer(L.polyline(legLine(i+1,mode),{color:muted,weight:2,opacity:.5,dashArray:"4 6"}));
+  layer.addLayer(L.polyline(line,{color:"#000",weight:9,opacity:.35}));
+  layer.addLayer(L.polyline(line,{color:accent,weight:5,opacity:1,dashArray: mode==="drive"?"12 10":null}));
+  const pin = (p,label,bg) => L.marker(p,{icon:L.divIcon({className:"",html:`<div class="endpin" style="background:${bg}"></div>`,iconSize:[18,18],iconAnchor:[9,9]})}).bindTooltip(label,{permanent:true,direction:"top",offset:[0,-10]});
+  layer.addLayer(pin(from, i===0?"START":`EX ${L_.n-1}`, fg));
+  layer.addLayer(pin(to, i===N-1?"FINISH":`EX ${L_.n}`, accent));
+  if (mode==="run") legSteps(i).forEach((s,k)=>{ layer.addLayer(L.marker([s[0],s[1]],{icon:L.divIcon({className:"",html:`<div class="turnpin">${k+1}</div>`,iconSize:[22,22],iconAnchor:[11,11]})}).bindPopup(`<b>${k+1}. ${esc(stepText(s))}</b><br>${s[4]>=1000?km1(s[4]/1000)+" km":s[4]+" m"} on this street`)); });
+  map.fitBounds(L.latLngBounds(line),{padding:[30,30]}); }
+// The Leg tab's own map lives in one element that is moved into the page on every render, so Leaflet never restarts.
+let lmap2=null, lLayer2=null, liveLayer2=null, LEGMAP_EL=null, legMapKey="";
+function mountLegMap(i){ const slot=$("#legmapSlot"); if(!slot) return;
+  if(!LEGMAP_EL){ LEGMAP_EL=document.createElement("div"); LEGMAP_EL.id="legmap"; }
+  slot.appendChild(LEGMAP_EL);
+  if(!lmap2){ lmap2=L.map(LEGMAP_EL,{zoomControl:false,attributionControl:false}); L.tileLayer(TILE_URL,{maxZoom:19,maxNativeZoom:17}).addTo(lmap2); L.control.zoom({position:"topright"}).addTo(lmap2); lLayer2=L.layerGroup().addTo(lmap2);
+    lmap2.on("dragstart",()=>{ if(following){ following=false; syncFollowPills(); if(!S.sharePos) stopPosShare(); } }); }
+  const key=i+":"+S.mode+":"+skinNow; lmap2.invalidateSize();
+  if(key!==legMapKey){ legMapKey=key; drawLegOn(lmap2,lLayer2,i,S.mode); }
+  liveLayer2=drawLiveDots(lmap2,liveLayer2);
+  const lg=$("#legLegend"); if(lg) lg.innerHTML = S.mode==="run" ? `<span class="l-now">Runner's route, turns numbered</span>` : `<span class="l-now">Drive to exchange ${LEGS[i].n}</span>`;
+  $("#legFollow")?.addEventListener("click",()=>{ following=!following; syncFollowPills(); if(following){ startPosShare(); if(lastPosFix) onOwnFix(lastPosFix); } else if(!S.sharePos) stopPosShare(); });
+  $("#legFull")?.addEventListener("click",()=>{ mapScope="leg"; setView("map"); }); }
+// The whole relay on one map at the top of the Legs tab: done legs solid, the current one in pink, tap any leg to open it.
+let lmap3=null, lLayer3=null, LEGSMAP_EL=null;
+function mountLegsMap(){ const slot=$("#legsmapSlot"); if(!slot) return; if(!LEGSMAP_EL){ LEGSMAP_EL=document.createElement("div"); LEGSMAP_EL.id="legsmap"; } slot.appendChild(LEGSMAP_EL);
+  if(!lmap3){ lmap3=L.map(LEGSMAP_EL,{zoomControl:false,attributionControl:false,scrollWheelZoom:false}); L.tileLayer(TILE_URL,{maxZoom:19,maxNativeZoom:17}).addTo(lmap3); L.control.zoom({position:"topright"}).addTo(lmap3); lLayer3=L.layerGroup().addTo(lmap3); lmap3.fitBounds(L.latLngBounds(pts()),{padding:[14,14]}); }
+  lmap3.invalidateSize(); lLayer3.clearLayers(); const accent=cssVar("--accent"), fg=cssVar("--fg"), dim=cssVar("--muted"), cur=currentIndex();
+  LEGS.forEach((lg,k)=>{ const st=status(k); const pl=L.polyline(legLine(k,"run"),{color: st==="now"?accent: st==="done"?fg: dim, weight: st==="now"?7:4, opacity: st==="upcoming"?.6:1}); pl.on("click",()=>{ legsOpen=k; renderLegs(); const r=$(`#v-legs .legrow[data-i="${k}"]`); if(r) r.scrollIntoView({block:"start",behavior:"smooth"}); }); lLayer3.addLayer(pl); });
+  const L_=LEGS[cur], mid=legLine(cur,"run")[Math.floor(legLine(cur,"run").length/2)];
+  lLayer3.addLayer(L.marker(mid,{icon:L.divIcon({className:"",html:`<div class="legpin">${L_.n}</div>`,iconSize:[30,30],iconAnchor:[15,15]})}).on("click",()=>{ S.viewLeg=null; save(); setView("leg"); }));
+  drawLiveDots(lmap3,null); }
+function syncFollowPills(){ document.querySelectorAll("#followMe,#legFollow").forEach(b=>{ b.setAttribute("aria-pressed",String(following)); b.textContent=following?"Following":"Follow me"; }); }
+function activeMap(){ return view==="map"?lmap: view==="leg"?lmap2: null; }
+function drawLeaflet(i,mode){
+  ensureLeaflet(); lLayer.clearLayers();
+  const accent=cssVar("--accent"), ok=cssVar("--ok"), fg=cssVar("--fg"), muted=cssVar("--muted");
+  const L_=LEGS[i];
+  if (mapScope==="all"){
+    const dim=cssVar("--dim");
+    LEGS.forEach((lg,k)=>{ const st=status(k); const line=legLine(k,"run"); const mine = mapHighlight && S.assign[lg.n]===mapHighlight;
+      const color = mapHighlight ? (mine?accent:(st==="done"?fg:dim)) : (st==="done"?fg: st==="now"?accent: dim);
+      const pl=L.polyline(line,{color, weight: mine?6:(k===i&&!mapHighlight?6:3), opacity: mapHighlight&&!mine?.5:1}); pl.on("click",()=>{ S.viewLeg=lg.n; save(); mapScope="leg"; drawMap(); }); lLayer.addLayer(pl);
+      lLayer.addLayer(L.circleMarker(lg.pt,{radius:k===i?7:4,color:fg,weight:1,fillColor: mine?accent: st==="done"?fg: st==="now"?accent: muted,fillOpacity:1}).bindTooltip(`Exchange ${lg.n}${runnerName(lg.n)?", "+runnerName(lg.n):""}`).on("click",()=>{ S.viewLeg=lg.n; save(); mapScope="leg"; drawMap(); }));
+    });
+    const hiLines = mapHighlight ? LEGS.map((lg,k)=>S.assign[lg.n]===mapHighlight?legLine(k,"run"):null).filter(Boolean).flat() : null;
+    lmap.fitBounds(L.latLngBounds(hiLines&&hiLines.length?hiLines:pts()),{padding:[20,20]});
+    liveLayer=drawLiveDots(lmap,liveLayer);
+    $("#mapLegend").innerHTML= mapHighlight ? `<span class="l-now">Their legs</span><span>Done</span><span class="l-approx">Everything else</span>` : `<span>Done</span><span class="l-now">Current</span><span class="l-approx">Upcoming</span>`;
+    return;
+  }
+  drawLegOn(lmap, lLayer, i, mode); liveLayer=drawLiveDots(lmap,liveLayer);
+  $("#mapLegend").innerHTML = mode==="run" ? `<span class="l-now">Runner's route, numbered turns</span><span>Neighbouring legs dashed</span>` : `<span class="l-now">Vehicle route (dashed) to the next exchange</span>`;
+}
+
+// ---- offline tiles (hosted build only) ----
+function lonLat2tile(lat,lng,z){ const n=2**z; const x=Math.floor((lng+180)/360*n); const la=lat*Math.PI/180; const y=Math.floor((1-Math.log(Math.tan(la)+1/Math.cos(la))/Math.PI)/2*n); return [x,y]; }
+function tilesForLeg(i){
+  const set=new Set(); const lines=[legLine(i,"run"),legLine(i,"drive")];
+  lines.forEach(line=>{ for(let k=0;k<line.length-1;k++){ const a=line[k],b=line[k+1]; const d=hav(a,b); const steps=Math.max(1,Math.ceil(d/0.12));
+    for(let s=0;s<=steps;s++){ const lat=a[0]+(b[0]-a[0])*s/steps, lng=a[1]+(b[1]-a[1])*s/steps;
+      for(let z=12;z<=16;z++){ const [x,y]=lonLat2tile(lat,lng,z); const buf = z>=15?1:0; for(let dx=-buf;dx<=buf;dx++)for(let dy=-buf;dy<=buf;dy++) set.add(`${z}/${x+dx}/${y+dy}`); } } } });
+  return [...set];
+}
+function tileCount(i){ return tilesForLeg(i).length; }
+let tileSaved = {}; try{ tileSaved = JSON.parse(localStorage.getItem("runway.tiles")||"{}"); }catch(e){}
+function tileStatus(){ const n=Object.keys(tileSaved).length; return n? `Saved for ${n} leg${n>1?"s":""}: ${Object.keys(tileSaved).map(Number).sort((a,b)=>a-b).join(", ")}.` : "Nothing saved yet. Needs signal while saving."; }
+async function saveTiles(idxs){
+  const bar=$("#tileBar"), msg=$("#tileMsg"); if(!("caches" in window)){ msg.textContent="This browser can't store tiles offline."; return; }
+  const cache=await caches.open("runway-tiles");
+  const all=[]; idxs.forEach(i=>tilesForLeg(i).forEach(t=>all.push([t,i])));
+  let done=0, failed=0;
+  const worker=async()=>{ while(all.length){ const [t,i]=all.shift(); const url=tileUrl(t);
+    try{ if(!(await cache.match(url))){ const res=await fetch(url,{mode:"cors"}); if(res.ok) await cache.put(url,res); else failed++; } }catch(e){ failed++; }
+    done++; if(done%10===0||!all.length){ bar.style.width=(100*done/(done+all.length))+"%"; msg.textContent=`${done} tiles saved${failed?`, ${failed} failed`:""}…`; } } };
+  const total=all.length; await Promise.all([worker(),worker(),worker()]);
+  idxs.forEach(i=>{ tileSaved[LEGS[i].n]=true; }); try{ localStorage.setItem("runway.tiles",JSON.stringify(tileSaved)); }catch(e){}
+  bar.style.width="100%"; msg.textContent=`Done: ${total} tiles${failed?`, ${failed} failed (try again with better signal)`:""}. ${tileStatus()}`;
+}
+
+// ---- Canvas renderer (artifact) ----
+function setupCanvas(W,H){ const c=$("#map"), dpr=window.devicePixelRatio||1; c.width=W*dpr; c.height=H*dpr; c.style.width=W+"px"; c.style.height=H+"px"; const ctx=c.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,W,H); return ctx; }
+function projector(points,W,H,pad){
+  const lats=points.map(p=>p[0]), lngs=points.map(p=>p[1]);
+  const minLat=Math.min(...lats), maxLat=Math.max(...lats), minLng=Math.min(...lngs), maxLng=Math.max(...lngs);
+  const kx=Math.cos(((minLat+maxLat)/2)*Math.PI/180);
+  const spanX=Math.max((maxLng-minLng)*kx,0.002), spanY=Math.max(maxLat-minLat,0.002);
+  const scale=Math.min((W-2*pad)/spanX,(H-2*pad)/spanY);
+  const ox=(W-spanX*scale)/2, oy=(H-spanY*scale)/2;
+  return { X:p=>ox+(p[1]-minLng)*kx*scale, Y:p=>oy+(maxLat-p[0])*scale, scale };
+}
+function drawCanvas(i,mode){
+  const wrap=$("#mapwrap"), L_=LEGS[i];
+  const fg=cssVar("--fg"), muted=cssVar("--muted"), accent=cssVar("--accent"), ok=cssVar("--ok"), warn=cssVar("--warn"), line=cssVar("--line"), panel=cssVar("--panel");
+  const baseW=Math.max(wrap.clientWidth-2,320); mapHits=[];
+  if (mapScope==="leg"){
+    const W=baseW, H=Math.round(Math.min(560, Math.max(380, baseW*1.1)));
+    const ctx=setupCanvas(W,H); const path=legLine(i,mode), from=startPt(i), to=L_.pt;
+    const P=projector(path,W,H,44);
+    // scale bar
+    const mPerPx = 1/(P.scale/111320); let barKm=1; while(barKm*1000/mPerPx>W/3) barKm/=2; while(barKm*1000/mPerPx<W/8) barKm*=2;
+    const barPx=barKm*1000/mPerPx; ctx.strokeStyle=muted; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(14,H-14); ctx.lineTo(14+barPx,H-14); ctx.stroke(); ctx.font=`700 11px ${cssVar("--display")}`; ctx.fillStyle=muted; ctx.textAlign="left"; ctx.fillText(`${barKm>=1?barKm+" km":Math.round(barKm*1000)+" m"}`,14,H-20); ctx.fillText("N ↑",10,16);
+    // neighbours faint
+    ctx.setLineDash([4,6]); ctx.lineWidth=2; ctx.strokeStyle=muted;
+    [i-1,i+1].forEach(k=>{ if(k<0||k>=N) return; const ln=legLine(k,mode); ctx.beginPath(); ln.forEach((p,j)=>j?ctx.lineTo(P.X(p),P.Y(p)):ctx.moveTo(P.X(p),P.Y(p))); ctx.stroke(); });
+    ctx.setLineDash([]);
+    // route casing + line
+    ctx.lineJoin="round"; ctx.lineCap="round";
+    ctx.lineWidth=9; ctx.strokeStyle=line; ctx.beginPath(); path.forEach((p,j)=>j?ctx.lineTo(P.X(p),P.Y(p)):ctx.moveTo(P.X(p),P.Y(p))); ctx.stroke();
+    ctx.lineWidth=4.5; ctx.strokeStyle=accent; if(mode==="drive") ctx.setLineDash([10,8]); ctx.stroke(); ctx.setLineDash([]);
+    // turns
+    if(mode==="run"){ const st=legSteps(i); const dense=st.length>28; st.forEach((s,k)=>{ const x=P.X([s[0],s[1]]), y=P.Y([s[0],s[1]]); const label=!dense || (k+1)%5===0 || k===0 || k===st.length-1; const r=label?10:4.5;
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=label?accent:cssVar("--bg"); ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle=label?cssVar("--bg"):accent; ctx.stroke();
+      if(label){ ctx.fillStyle=cssVar("--accent-ink"); ctx.font=`800 italic 11px ${cssVar("--display")}`; ctx.textAlign="center"; ctx.fillText(String(k+1),x,y+4); } }); }
+    const dot=(p,r,fill,stroke)=>{ ctx.beginPath(); ctx.arc(P.X(p),P.Y(p),r,0,Math.PI*2); ctx.fillStyle=fill; ctx.fill(); ctx.lineWidth=3; ctx.strokeStyle=stroke; ctx.stroke(); };
+    const tag=(p,t,dy,col)=>{ ctx.font=`700 13px ${cssVar("--display")}`; ctx.textAlign="center"; const tw=ctx.measureText(t).width; ctx.fillStyle=panel; ctx.fillRect(P.X(p)-tw/2-5,P.Y(p)+dy-12,tw+10,16); ctx.fillStyle=col; ctx.fillText(t,P.X(p),P.Y(p)+dy); };
+    dot(from,8,fg,cssVar("--bg")); tag(from,i===0?"START":`EX ${L_.n-1}`,-16,fg);
+    dot(to,9,accent,cssVar("--bg")); tag(to,i===N-1?"FINISH":`EX ${L_.n}`,-18,accent);
+    if(L_.approx) tag(to,"approx pin",28,warn);
+    $("#mapLegend").innerHTML = mode==="run" ? `<span class="l-now">Runner's routed line, turns numbered</span>` : `<span class="l-now">Vehicle route (dashed) to the next exchange</span>`;
+  } else {
+    const W=Math.round(baseW*2); const pad=28; const all=pts();
+    const lats=all.map(p=>p[0]), lngs=all.map(p=>p[1]);
+    const minLat=Math.min(...lats), maxLat=Math.max(...lats), minLng=Math.min(...lngs), maxLng=Math.max(...lngs);
+    const kx=Math.cos(((minLat+maxLat)/2)*Math.PI/180); const spanX=(maxLng-minLng)*kx, spanY=(maxLat-minLat);
+    const scale=(W-2*pad)/spanX; const H=Math.max(260, Math.round(spanY*scale+2*pad+40));
+    const ctx=setupCanvas(W,H);
+    const X=p=>pad+(p[1]-minLng)*kx*scale, Y=p=>pad+20+(maxLat-p[0])*scale;
+    const cur=currentIndex(); ctx.lineJoin="round"; ctx.lineCap="round";
+    LEGS.forEach((lg,k)=>{ const st=status(k); const ln=legLine(k,"run"); ctx.strokeStyle= st==="done"?ok: st==="now"?accent: muted; ctx.lineWidth=k===i?6:2.5; ctx.beginPath(); ln.forEach((p,j)=>j?ctx.lineTo(X(p),Y(p)):ctx.moveTo(X(p),Y(p))); ctx.stroke(); });
+    ctx.font=`700 11px ${cssVar("--display")}`; ctx.textAlign="center";
+    all.forEach((p,k)=>{ const x=X(p), y=Y(p); const legIdx=k-1; const st= k===0?"start":status(legIdx);
+      ctx.beginPath(); ctx.arc(x,y,(k>0&&legIdx===cur)?7:4,0,Math.PI*2); ctx.fillStyle= st==="now"?accent: st==="done"?ok: fg; ctx.fill();
+      if(k===0||k===all.length-1||(k%5===0)||legIdx===cur||legIdx===i){ ctx.fillStyle= legIdx===cur?accent:muted; const lbl = k===0?"START": k===all.length-1?"FINISH": String(k); ctx.fillText(lbl, x, (k%2===0||k===all.length-1)? y-12 : y+22); }
+      mapHits.push({x,y,leg:k===0?1:k});
+    });
+    ctx.textAlign="left"; ctx.fillStyle=muted; ctx.fillText("TORONTO", pad, H-10); ctx.textAlign="right"; ctx.fillText("MONTRÉAL", W-pad, pad-8);
+    $("#mapLegend").innerHTML=`<span class="l-done">Done</span><span class="l-now">Current</span><span>Upcoming</span>`;
+    const h=mapHits.find(h=>h.leg===L_.n); if(h) wrap.scrollLeft = h.x - wrap.clientWidth/2;
+  }
+}
+$("#map").addEventListener("click",e=>{ if(mapScope!=="all") return; const r=e.target.getBoundingClientRect(); const x=e.clientX-r.left, y=e.clientY-r.top; let best=null,bd=22;
+  mapHits.forEach(h=>{ const d=Math.hypot(h.x-x,h.y-y); if(d<bd){bd=d;best=h;} }); if(!best) return;
+  S.viewLeg = best.leg; save(); mapScope="leg"; drawMap(); });
+document.querySelectorAll("#v-map .seg button").forEach(b=>b.addEventListener("click",()=>{ mapMode=b.dataset.mm; S.mode=mapMode; save(); drawMap(); }));
+$("#scopeLeg").addEventListener("click",()=>{ mapScope="leg"; mapHighlight=null; drawMap(); });
+$("#scopeAll").addEventListener("click",()=>{ mapScope="all"; drawMap(); });
+$("#mapPrev").addEventListener("click",()=>{ const i=viewIndex(); if(i>0){ S.viewLeg=LEGS[i-1].n; save(); drawMap(); } });
+if (HAS_L){ $("#followMe").hidden=false; if(S.me.kind==="bike"){ following=true; $("#followMe").setAttribute("aria-pressed","true"); $("#followMe").textContent="Following"; }
+  $("#followMe").addEventListener("click",()=>{ following=!following; syncFollowPills(); if(following){ startPosShare(); if(lastPosFix) onOwnFix(lastPosFix); } else if(!S.sharePos) stopPosShare(); }); }
+$("#mapNext").addEventListener("click",()=>{ const i=viewIndex(); if(i<N-1){ S.viewLeg=LEGS[i+1].n; save(); drawMap(); } });
+window.addEventListener("resize",()=>{ if(view==="map") drawMap(); });
+
+
+// ---------- RV (jump-ahead vehicle) ----------
+// Exchange k = end of leg k (0 = race start). The RV route from exchange a to exchange b joins the vehicle legs a+1..b.
+const exLabel = k => k===0 ? "Start · "+RACE.startLabel : `Exchange ${k} · ${LEGS[k-1].ex}`;
+const exPt = k => k===0 ? RACE.startPt : LEGS[k-1].pt;
+const exTime = k => k===0 ? projStart(0) : projEnd(k-1);  // when the runners reach exchange k
+function rvChain(a,b){ const line=[]; let km=0, min=0; for(let k=a+1;k<=b;k++){ const seg=legLine(k-1,"drive"); const r=ROUTE(k); if(r&&r.driveKm!=null){ km+=r.driveKm; min+=r.driveMin; } else { const d=driveEst(k-1); km+=d.km; min+=d.min; } seg.forEach((p,j)=>{ if(line.length&&j===0) return; line.push(p); }); } return {line, km, min}; }
+function renderRv(){
+  const at=$("#rvAt"), to=$("#rvTo"); const cur=currentIndex();
+  if (S.rvAt==null) S.rvAt = cur; if (S.rvTo==null) S.rvTo = Math.min(N, cur+5);
+  if (!at.options.length){ for(let k=0;k<=N;k++){ at.add(new Option(k===0?"Start (Toronto)":`Exchange ${k}`,k)); to.add(new Option(k===0?"Start (Toronto)":`Exchange ${k}`,k)); }
+    at.addEventListener("change",()=>{ S.rvAt=+at.value; if(S.rvTo<=S.rvAt) S.rvTo=Math.min(N,S.rvAt+5); save(); renderRv(); });
+    to.addEventListener("change",()=>{ S.rvTo=+to.value; if(S.rvTo<=S.rvAt) S.rvAt=Math.max(0,S.rvTo-5); save(); renderRv(); }); }
+  at.value=S.rvAt; to.value=S.rvTo;
+  const a=S.rvAt, b=S.rvTo, ch=rvChain(a,b), now=Date.now();
+  const runnersAt=exTime(b), wait=(runnersAt-now)/60000-ch.min;
+  const legsBetween = LEGS.slice(a,b);
+  $("#rvStats").innerHTML = `<div class="stats">
+    <div class="stat"><div class="k">Via exchanges</div><div class="v">${Math.round(ch.km)}<small> km</small></div></div>
+    <div class="stat"><div class="k">Drive time</div><div class="v">${dur(ch.min)}</div></div>
+    <div class="stat"><div class="k">Runners due</div><div class="v">${dayhm(runnersAt)}</div></div>
+  </div>
+  <div class="card accent" style="margin-top:10px"><div class="eyebrow">Timing</div><div style="font-size:17px;margin-top:4px">Leave exchange ${a===0?"start":a} by <b>${dayhm(new Date(runnersAt-(ch.min+30)*60000))}</b> to be set up 30 min before the runners. ${now>projStart(0)&&now<runnersAt?`Leaving now puts you there about <b>${dayhm(new Date(now+ch.min*60000))}</b>, ${wait>0?`<b>${dur(wait)}</b> ahead of them`:`<b style="color:var(--bad)">${dur(-wait)} behind</b> them`}.`:""} Runners cover ${legsBetween.length} leg${legsBetween.length===1?"":"s"}, ${km1(legsBetween.reduce((s,l)=>s+l.km,0))} km, planned ${dur((exTime(b)-exTime(a))/60000)}.</div>
+  <div id="rvLiveLine" class="muted" style="font-size:13px;margin-top:6px">${HAS_L?"Checking the fastest road route…":""}</div></div>`;
+  $("#rvlmap").hidden=!HAS_L; $("#rvmap").hidden=HAS_L;
+  if (HAS_L) drawRvLeaflet(a,b,ch); else drawRvCanvas(a,b,ch);
+  $("#rvFoot").innerHTML = `<div class="card"><div class="point"><div class="dot"></div><div><div class="lbl">From</div><p>${esc(exLabel(a))}</p></div></div><div style="height:10px"></div><div class="point"><div class="dot end"></div><div><div class="lbl">To</div><p>${esc(exLabel(b))}</p></div></div></div>
+    <div><h2>Navigate</h2>${navButtons(exPt(a),exPt(b),"drive")}</div>
+    <div><h2>Exchanges you'll pass</h2><ol class="turns">${legsBetween.slice(0,-1).map(l=>`<li><span class="tn">${l.n}</span><span>${esc(l.name)}${runnerName(l.n)?` · ${esc(runnerName(l.n))}`:""}<br><span class="muted" style="font-size:13px">${esc(l.ex)}</span></span><span class="td">${hm(projEnd(l.n-1))}</span></li>`).join("")||'<li><span class="tn">·</span><span class="muted">None, the next exchange is the destination.</span><span></span></li>'}</ol></div>`;
+  if (HAS_L) fetchRvLive(a,b);
+}
+function drawRvLeaflet(a,b,ch){
+  if(!rvmap){ rvmap=L.map("rvlmap",{zoomControl:true}); L.tileLayer(TILE_URL,{maxZoom:19,maxNativeZoom:17,attribution:'Tiles © <a href="https://www.esri.com/">Esri</a>'}).addTo(rvmap); rvLayer=L.layerGroup().addTo(rvmap); }
+  rvLayer.clearLayers(); if(rvLive){ rvmap.removeLayer(rvLive); rvLive=null; }
+  const accent=cssVar("--accent"), fg=cssVar("--fg"), muted=cssVar("--muted");
+  rvLayer.addLayer(L.polyline(ch.line,{color:"#000",weight:8,opacity:.3}));
+  rvLayer.addLayer(L.polyline(ch.line,{color:accent,weight:4,dashArray:"12 10"}));
+  for(let k=a+1;k<b;k++) rvLayer.addLayer(L.circleMarker(exPt(k),{radius:4,color:fg,weight:1,fillColor:muted,fillOpacity:1}).bindTooltip(`Exchange ${k}`));
+  const pin=(p,label,bg)=>L.marker(p,{icon:L.divIcon({className:"",html:`<div class="endpin" style="background:${bg}"></div>`,iconSize:[18,18],iconAnchor:[9,9]})}).bindTooltip(label,{permanent:true,direction:"top",offset:[0,-10]});
+  rvLayer.addLayer(pin(exPt(a),a===0?"START":`EX ${a}`,fg)); rvLayer.addLayer(pin(exPt(b),b===N?"FINISH":`EX ${b}`,accent));
+  rvmap.fitBounds(L.latLngBounds(ch.line),{padding:[30,30]});
+  rvLiveLayer=drawLiveDots(rvmap,rvLiveLayer);
+}
+async function fetchRvLive(a,b){
+  const key=a+"-"+b; rvLiveKey=key; const el=$("#rvLiveLine");
+  try{ const f=exPt(a), t=exPt(b); const res=await fetch(`https://router.project-osrm.org/route/v1/car/${f[1]},${f[0]};${t[1]},${t[0]}?overview=simplified&geometries=geojson`); const d=await res.json(); if(rvLiveKey!==key) return;
+    if(d.code!=="Ok") throw 0; const r=d.routes[0]; const line=r.geometry.coordinates.map(c=>[c[1],c[0]]);
+    if(rvmap){ if(rvLive) rvmap.removeLayer(rvLive); rvLive=L.polyline(line,{color:"#3b82f6",weight:4,opacity:.9}).addTo(rvmap); rvmap.fitBounds(rvLive.getBounds().extend(L.latLngBounds(exPt(a),exPt(b))),{padding:[30,30]}); }
+    if(el) el.innerHTML=`<span style="color:#3b82f6">■</span> Fastest road route: <b>${km1(r.distance/1000)} km, ${dur(r.duration/60)}</b> (live, no traffic). Dashed pink is the exchange-to-exchange route that works offline.`;
+  }catch(e){ if(el&&rvLiveKey===key) el.textContent="No signal for the live route; the exchange-to-exchange route above is what you've got."; }
+}
+function drawRvCanvas(a,b,ch){
+  const wrap=$("#rvwrap"); const W=Math.max(wrap.clientWidth-2,320), H=Math.round(Math.min(480,Math.max(300,W*0.9)));
+  const c=$("#rvmap"), dpr=window.devicePixelRatio||1; c.width=W*dpr; c.height=H*dpr; c.style.width=W+"px"; c.style.height=H+"px"; const cx=c.getContext("2d"); cx.setTransform(dpr,0,0,dpr,0,0); cx.clearRect(0,0,W,H);
+  const fg=cssVar("--fg"), muted=cssVar("--muted"), accent=cssVar("--accent"), line=cssVar("--line"), panel=cssVar("--panel");
+  const P=projector(ch.line,W,H,40);
+  cx.lineJoin="round"; cx.lineCap="round"; cx.lineWidth=8; cx.strokeStyle=line; cx.beginPath(); ch.line.forEach((p,j)=>j?cx.lineTo(P.X(p),P.Y(p)):cx.moveTo(P.X(p),P.Y(p))); cx.stroke();
+  cx.lineWidth=4; cx.strokeStyle=accent; cx.setLineDash([10,8]); cx.stroke(); cx.setLineDash([]);
+  cx.font=`700 12px ${cssVar("--display")}`; cx.textAlign="center";
+  for(let k=a+1;k<b;k++){ const p=exPt(k); cx.beginPath(); cx.arc(P.X(p),P.Y(p),4,0,Math.PI*2); cx.fillStyle=muted; cx.fill(); if((k-a)%2===0||b-a<8){ cx.fillStyle=muted; cx.fillText(String(k),P.X(p),P.Y(p)+16); } }
+  const dot=(p,r,fill)=>{ cx.beginPath(); cx.arc(P.X(p),P.Y(p),r,0,Math.PI*2); cx.fillStyle=fill; cx.fill(); cx.lineWidth=3; cx.strokeStyle=cssVar("--bg"); cx.stroke(); };
+  const tag=(p,t,dy,col)=>{ cx.font=`700 13px ${cssVar("--display")}`; const tw=cx.measureText(t).width; cx.fillStyle=panel; cx.fillRect(P.X(p)-tw/2-5,P.Y(p)+dy-12,tw+10,16); cx.fillStyle=col; cx.fillText(t,P.X(p),P.Y(p)+dy); };
+  dot(exPt(a),8,fg); tag(exPt(a),a===0?"START":`EX ${a}`,-16,fg); dot(exPt(b),9,accent); tag(exPt(b),b===N?"FINISH":`EX ${b}`,-18,accent);
+  cx.textAlign="left"; cx.font=`700 11px ${cssVar("--display")}`; cx.fillStyle=muted; cx.fillText("N ↑",10,16);
+}
+
+// ---------- live positions ----------
+// Each phone that opts in upserts its GPS fix into runway_pos every ~30 s; everyone else draws it.
+let myDot2=null;
+// Auto-start from the bike: seen at the exchange, then moving off along the next leg's route, means the next runner is out.
+// The start is recorded at the last moment the bike was at the exchange. Crew can still tap Start or correct it.
+let autoAtEx=null;
+function autoStart(fix, fromTracker){ if(!(fromTracker || S.me.kind==="bike" || amTracker()) || (S.sim&&S.sim.on)) return; const cur=currentIndex(); if(cur>=N-1) return;
+  const p=[fix.coords.latitude,fix.coords.longitude], t=fix.timestamp||Date.now(); const ex=LEGS[cur].pt; const nxt=LEGS[cur+1];
+  if(S.actual[nxt.n]) { autoAtEx=null; return; }
+  const act=S.actual[LEGS[cur].n]; if(act){ const planned=(plannedStart(cur+1)-plannedStart(cur)); if(t-new Date(act) < planned*0.4) return; }
+  if(hav(p,ex)<0.15){ autoAtEx=t; return; }
+  if(autoAtEx && t-autoAtEx<20*60000){ const a=alongLine(legLine(cur+1,"run"),p); if(a.offKm<0.12 && a.alongKm>0.3 && a.alongKm<3){
+      const when=toLocalISO(new Date(autoAtEx)); setShared("actual."+nxt.n,()=>{ S.actual[nxt.n]=when; }); setShared("manualNow",()=>{ S.manualNow=null; }); S.viewLeg=null; save(); autoAtEx=null;
+      const tt=document.createElement("div"); tt.className="alert info"; tt.style.cssText="position:fixed;left:16px;right:16px;top:calc(70px + env(safe-area-inset-top,0px));z-index:950"; tt.textContent=`Leg ${nxt.n} started automatically at ${hm(new Date(when))} from the bike. Edit it on the Now tab if that's off.`; document.body.appendChild(tt); setTimeout(()=>tt.remove(),8000);
+      render(); } } }
+function onOwnFix(fix){ if(!HAS_L) return; autoStart(fix); const ll=[fix.coords.latitude,fix.coords.longitude]; const mk=()=>L.circleMarker(ll,{radius:8,color:"#fff",weight:3,fillColor:"#ff9a3c",fillOpacity:1});
+  if(lmap){ if(!myDot) myDot=mk().addTo(lmap); else myDot.setLatLng(ll); } if(lmap2){ if(!myDot2) myDot2=mk().addTo(lmap2); else myDot2.setLatLng(ll); }
+  const m=activeMap(); if(following && m && !(S.sim&&S.sim.on)) m.setView(ll, Math.max(m.getZoom(),16), {animate:true}); }
+function meLabel(){ if(S.me.label) return S.me.label; if(S.me.kind==="runner"){ const r=S.runners.find(r=>r.id===S.me.runnerId); return r?r.name:"Runner"; } return S.me.kind==="rv"?"RV":S.me.kind==="bike"?"Bike":S.me.kind==="crew"?"Crew":"SUV"; }
+function startPosShare(){ stopPosShare(); if(!(S.sharePos||following)||!HAS_L||!("geolocation" in navigator)) return;
+  posWatch=navigator.geolocation.watchPosition(fix=>{ lastPosFix=fix; onOwnFix(fix); if(!S.sharePos) return; const t=Date.now(); const moved=!POS[S.device]||hav([fix.coords.latitude,fix.coords.longitude],[POS[S.device].lat,POS[S.device].lng])>0.08;
+      if(t-lastPosPush>30000 || (moved && t-lastPosPush>10000)){ lastPosPush=t; pushPos(fix); } },
+    err=>{ const el=$("#posState"); if(el) el.textContent="Location unavailable: "+err.message; }, {enableHighAccuracy:true,maximumAge:10000,timeout:20000}); }
+function stopPosShare(){ if(posWatch!=null){ navigator.geolocation.clearWatch(posWatch); posWatch=null; } }
+async function pushPublic(){ if(!sb) return; if(Date.now()-lastPublic<20000) return; lastPublic=Date.now();
+  try{ const i=currentIndex(); const L_=LEGS[i]; const lv=liveRunnerFor(i);
+    // position: live runner/bike fix if we have one, else the freshest team device, else the leg start
+    let pos=null, src="";
+    if(lv){ pos=[lv.r.lat,lv.r.lng]; src="runner"; }
+    else { const rows=liveRows(); if(rows.length){ pos=[rows[0].lat,rows[0].lng]; src=rows[0].kind; } }
+    let kmDone = kmBefore(i) + (lv? lv.a.alongKm : 0);
+    // the leg record the friends page needs: who is tagged to each leg, when each started, and the projected starts
+    // What the friends page needs to keep the runner moving through dead zones: the freshest position on this leg
+    // (however old), when this leg started, and the pace to carry forward.
+    let fix=null; Object.values(POS).filter(r=>r.kind==="runner"||r.kind==="bike").sort((a,b)=>new Date(b.at)-new Date(a.at)).some(r=>{ const a=alongLine(legLine(i,"run"),[r.lat,r.lng]); if(a.offKm<0.25){ fix={at:r.at,along:a.alongKm,lat:r.lat,lng:r.lng}; return true; } return false; });
+    const legStart=S.actual[L_.n]?new Date(S.actual[L_.n]):null;
+    let pace=null; if(fix&&legStart&&fix.along>0.3){ pace=(new Date(fix.at)-legStart)/60000/fix.along; }
+    if(!pace){ const rid=S.assign[L_.n]; let m=0,k=0; LEGS.forEach((l,j)=>{ if(j<N-1&&S.assign[l.n]===rid&&S.actual[l.n]&&S.actual[LEGS[j+1].n]){ m+=(new Date(S.actual[LEGS[j+1].n])-new Date(S.actual[l.n]))/60000; k+=l.km; } }); if(k>0) pace=m/k; }
+    if(!pace||!isFinite(pace)) pace=paceMinPerKm; pace=Math.max(3.5,Math.min(9,pace));
+    if(fix){ pos=[fix.lat,fix.lng]; }
+    const legs={assign:{}, actual:{}, proj:{}, live:{leg:L_.n, leg_start:legStart?legStart.toISOString():null, fix_at:fix?fix.at:null, fix_along:fix?+fix.along.toFixed(3):null, pace:+pace.toFixed(2), booklet_pace:+paceMinPerKm.toFixed(2)}}; LEGS.forEach((l,k)=>{ const nm=runnerName(l.n); if(nm) legs.assign[l.n]=nm; if(S.actual[l.n]) legs.actual[l.n]=new Date(S.actual[l.n]).toISOString(); legs.proj[l.n]=projStart(k).toISOString(); });
+    const row={team:S.sync.team, leg:L_.n, leg_name:L_.name, runner:runnerName(L_.n)||"", lat:pos?pos[0]:null, lng:pos?pos[1]:null, src,
+      km_done:+kmDone.toFixed(1), km_total:+totalKm.toFixed(1), eta_finish:projEnd(N-1).toISOString(), race_start:new Date(S.raceStart).toISOString(), started:!!S.actual[1]||Date.now()>new Date(S.raceStart), finished:!!S.actual[LEGS[N-1].n]&&Date.now()>projEnd(N-1), at:new Date().toISOString(),
+      along_km:+(lv?lv.a.alongKm:(fix?fix.along:0)).toFixed(2), next_runner: i<N-1 ? (runnerName(LEGS[i+1].n)||"") : "", exchange_eta: projEnd(i).toISOString(), legs};
+    await sb.from("runway_public").upsert(row); }catch(e){} }
+setInterval(()=>{ if(sb&&!document.hidden) pushPublic(); },30000);
+async function pushPos(fix){ const row={device:S.device,team:S.sync.team,label:amTracker()?"Tracker, "+meLabel():meLabel(),kind:amTracker()?"bike":S.me.kind,runner_id:S.me.runnerId||null,lat:+fix.coords.latitude.toFixed(6),lng:+fix.coords.longitude.toFixed(6),acc:Math.round(fix.coords.accuracy||0),speed:fix.coords.speed==null?null:+fix.coords.speed.toFixed(2),at:new Date().toISOString()};
+  POS[S.device]=row; refreshLive(); if(!sb) return; try{ await sb.from("runway_pos").upsert(row); pushPublic(); const el=$("#posState"); if(el) el.textContent=`Sharing as ${meLabel()}, last sent ${hm(new Date())}.`; }catch(e){} }
+async function pullPos(){ if(!sb) return; try{ const {data}=await sb.from("runway_pos").select("*").eq("team",S.sync.team); if(data){ data.forEach(r=>{ if(r.device!==S.device) POS[r.device]=r; }); refreshLive(); } }catch(e){} }
+const posAge = r => Math.round((Date.now()-new Date(r.at))/1000);
+const ageText = sec => sec<60?`${sec}s ago`:sec<3600?`${Math.round(sec/60)} min ago`:`${(sec/3600).toFixed(1)} h ago`;
+function liveRows(){ return Object.values(POS).filter(r=>posAge(r)<3*3600).sort((a,b)=>new Date(b.at)-new Date(a.at)); }
+// Snap a fix onto a leg's run line: distance along the route and remaining distance.
+function alongLine(line, pt){ let best={d:1e9,along:0}, acc=0; for(let k=0;k<line.length-1;k++){ const a=line[k],b=line[k+1]; const segLen=hav(a,b);
+    const kx=Math.cos(pt[0]*Math.PI/180)*111.32, ky=110.54; const px=(pt[1]-a[1])*kx, py=(pt[0]-a[0])*ky, bx=(b[1]-a[1])*kx, by=(b[0]-a[0])*ky; const L2=bx*bx+by*by; const t=L2?Math.max(0,Math.min(1,(px*bx+py*by)/L2)):0;
+    const d=Math.hypot(px-bx*t,py-by*t); if(d<best.d) best={d,along:acc+segLen*t}; acc+=segLen; } return {offKm:best.d, alongKm:best.along, totalKm:acc}; }
+function liveRunnerFor(i){ const L_=LEGS[i]; const rows=liveRows().filter(r=>(r.kind==="runner"||r.kind==="bike") && posAge(r)<900); if(!rows.length) return null;
+  const tk=rows.filter(r=>isTrackerDevice(r.device)); const tagged=rows.find(r=>r.runner_id && r.runner_id===S.assign[L_.n]); const cands=tk.length?tk:tagged?[tagged]:rows; const line=legLine(i,"run");
+  let best=null; cands.forEach(r=>{ const a=alongLine(line,[r.lat,r.lng]); if(a.offKm<0.25 && (!best||a.offKm<best.a.offKm)) best={r,a}; }); return best; }
+function liveCard(i){ const lv=liveRunnerFor(i); if(!lv) return ""; const {r,a}=lv; const L_=LEGS[i]; const act=S.actual[L_.n];
+  const elapsedMin = act ? (Date.now()-new Date(act))/60000 : null; const pace = (elapsedMin && a.alongKm>0.3) ? elapsedMin/a.alongKm : paceMinPerKm;
+  const remain=Math.max(0,a.totalKm-a.alongKm); const eta=new Date(Date.now()+remain*pace*60000); const de=driveEst(i); const slack=(eta-Date.now())/60000-de.min;
+  return `<div class="card accent"><div class="eyebrow">Live · ${esc(r.label)}${r.kind==="bike"?" (riding with the runner)":""} · ${ageText(posAge(r))}</div>
+    <div class="stats" style="margin-top:8px"><div class="stat"><div class="k">Done</div><div class="v">${km1(a.alongKm)}<small> km</small></div></div><div class="stat"><div class="k">To go</div><div class="v">${km1(remain)}<small> km</small></div></div><div class="stat"><div class="k">Exchange</div><div class="v">${hm(eta)}</div></div></div>
+    <div class="muted" style="font-size:13px;margin-top:6px">Pace ${elapsedMin&&a.alongKm>0.3?`${Math.floor(pace)}:${p2(Math.round((pace%1)*60))}/km on this leg`:"booklet average (leg start not recorded yet)"}. SUV slack to exchange ${L_.n}: <b style="color:${slack<10?'var(--bad)':slack<20?'var(--warn)':'var(--ok)'}">${Math.round(slack)} min</b> after a ${Math.round(de.min)} min drive.</div></div>`; }
+function drawLiveDots(map, layerRef){ if(!map) return null; if(layerRef) layerRef.clearLayers(); else layerRef=L.layerGroup().addTo(map);
+  const accent=cssVar("--accent"), fg=cssVar("--fg"), bg=cssVar("--bg");
+  liveRows().forEach(r=>{ const isRunner = r.kind==="runner"||r.kind==="bike"; const stale=posAge(r)>300;
+    const m=L.circleMarker([r.lat,r.lng],{radius:isRunner?10:7,color:bg,weight:2,fillColor:isRunner?accent:fg,fillOpacity:stale?.45:1}).bindTooltip(`${esc(r.label)}, ${ageText(posAge(r))}${isRunner&&view==="map"?". Tap to zoom":""}`,{permanent:true,direction:"right",offset:[10,0],className:"livetip"});
+    m.on("click",()=>{ // zoom the map to whichever leg this fix sits on
+      let best={i:currentIndex(),d:0.6}; LEGS.forEach((lg,k)=>{ const a=alongLine(legLine(k,"run"),[r.lat,r.lng]); if(a.offKm<best.d) best={i:k,d:a.offKm}; });
+      S.viewLeg=LEGS[best.i].n; save(); mapScope="leg"; mapHighlight=null; if(view==="map") drawMap(); else setView("map"); });
+    layerRef.addLayer(m); });
+  return layerRef; }
+function refreshLive(){ if(view==="track") renderTrack(); if(view==="leg"){ renderLeg(); } if(view==="social") renderSocial(); if(HAS_L){ if(view==="map"&&lmap) liveLayer=drawLiveDots(lmap,liveLayer); if(view==="rv"&&rvmap) rvLiveLayer=drawLiveDots(rvmap,rvLiveLayer); } }
+setInterval(()=>{ if(sb&&!document.hidden) pullPos(); },30000);
+window.__runwayPos = r => { POS[r.device]=r; refreshLive(); }; // test hook
+window.__fix = (lat,lng,ts) => onOwnFix({coords:{latitude:lat,longitude:lng,accuracy:5},timestamp:ts||Date.now()}); // test hook
+
+// ---------- photos from the road: team posts, friends page shows ----------
+const BUCKET="runway", FOLLOW_URL="https://mrwayne-vfx.github.io/runway/follow.html";
+let PHOTOS=[], PENDING=[], photoBusy=false;
+function whoAmI(){ if(S.me.kind==="runner"){ const r=S.runners.find(r=>r.id===S.me.runnerId); if(r) return r.name; } return S.me.label || (S.me.kind==="rv"?"RV crew": S.me.kind==="bike"?"Bike support": S.me.kind==="suv"?"SUV crew":"Crew"); }
+function shrink(file, max, q){ return new Promise((res,rej)=>{ const url=URL.createObjectURL(file); const im=new Image(); im.onload=()=>{ const s=Math.min(1,max/Math.max(im.width,im.height)); const w=Math.round(im.width*s), h=Math.round(im.height*s); const c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(im,0,0,w,h); URL.revokeObjectURL(url); c.toBlob(b=>b?res({blob:b,w,h}):rej(new Error("encode")),"image/jpeg",q||.82); }; im.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error("read")); }; im.src=url; }); }
+async function postPhoto(file, caption, legN){ const msg=$("#photoMsg"); try{ if(msg) msg.textContent="Shrinking…"; const {blob,w,h}=await shrink(file,1600,.82);
+    const item={blob,w,h,caption:(caption||"").slice(0,120),leg:legN,by:whoAmI(),at:new Date().toISOString(),path:`${S.sync.team}/${Date.now()}-${Math.random().toString(36).slice(2,6)}.jpg`};
+    PENDING.push(item); if(view==="social") renderSocial(); flushPhotos(); }catch(e){ if(msg) msg.textContent="Couldn't read that photo."; } }
+async function flushPhotos(){ if(photoBusy||!sb||!PENDING.length) return; photoBusy=true; const msg=$("#photoMsg");
+  while(PENDING.length){ const it=PENDING[0]; try{ if(msg) msg.textContent=`Sending ${PENDING.length} photo${PENDING.length>1?"s":""}…`;
+      const {error}=await sb.storage.from(BUCKET).upload(it.path, it.blob, {contentType:"image/jpeg", upsert:true, cacheControl:"31536000"}); if(error) throw error;
+      const {data:pub}=sb.storage.from(BUCKET).getPublicUrl(it.path);
+      const {error:e2}=await sb.from("runway_photos").insert({team:S.sync.team,path:it.path,url:pub.publicUrl,leg:it.leg,by:it.by,caption:it.caption||null,w:it.w,h:it.h,at:it.at}); if(e2) throw e2;
+      PENDING.shift(); } catch(e){ if(msg) msg.textContent="No signal; the photo is queued and goes when it comes back (keep the app open)."; break; } }
+  photoBusy=false; if(!PENDING.length){ await pullPhotos(); if(msg) msg.textContent="Posted. It's on the friends page now."; } }
+window.addEventListener("online",()=>flushPhotos()); setInterval(()=>{ if(!document.hidden) flushPhotos(); },30000);
+async function pullPhotos(){ if(!sb) return; try{ const {data}=await sb.from("runway_photos").select("*").eq("team",S.sync.team).order("at",{ascending:false}).limit(200); if(data){ PHOTOS=data; if(view==="social") renderSocial(); } }catch(e){} }
+async function deletePhoto(id){ const ph=PHOTOS.find(p=>p.id===id); if(!ph||!sb) return; try{ await sb.from("runway_photos").delete().eq("id",id); await sb.storage.from(BUCKET).remove([ph.path]); PHOTOS=PHOTOS.filter(p=>p.id!==id); if(view==="social") renderSocial(); }catch(e){} }
+const photoWhen = p => `${ageText(posAge({at:p.at}))}`;
+function thumb(p, extra){ return `<button class="ph" data-id="${p.id}" ${extra||""}><img src="${esc(p.url)}" alt="${esc(p.caption||("Leg "+p.leg))}" loading="lazy"><span>${p.leg?`Leg ${p.leg}`:""}${p.by?`, ${esc(p.by)}`:""}</span></button>`; }
+function wirePhotos(i){ $("#photoIn")?.addEventListener("change",e=>{ const f=e.target.files&&e.target.files[0]; if(f) postPhoto(f, $("#photoCap").value, LEGS[i].n); e.target.value=""; });
+  $("#shareCard")?.addEventListener("click",()=>shareStatus(i));
+}
+function renderSocial(){ const i=currentIndex(); const L_=LEGS[i];
+  let h=`<div class="stack"><div><div class="eyebrow">What the friends see, and what you send them</div><h1>Social</h1></div>
+    ${HAS_L?`<div class="card"><h2>Post to the friends page</h2><div class="pn"><label class="btn" style="cursor:pointer"><input type="file" id="photoIn" accept="image/*" hidden>Post a photo</label><button class="btn" id="shareCard">Share status</button></div>
+      <input type="text" id="photoCap" placeholder="Caption (optional)" maxlength="120" style="margin-top:8px">
+      <div class="muted" id="photoMsg" style="font-size:13px;margin-top:6px">${PENDING.length?`${PENDING.length} waiting to send.`:`Photos land on the friends page tagged leg ${L_.n}, ${esc(whoAmI())}. Share status makes a story card for Instagram.`}</div></div>`:""}
+    ${cheerCard(true)}
+    ${galleryHtml()}</div>`;
+  $("#v-social").innerHTML=h; wirePhotos(i); wireGallery("#v-social"); }
+function galleryHtml(){ if(!HAS_L) return ""; return `<div><h2>From the road</h2>${PHOTOS.length?`<div class="phgrid">${PHOTOS.map(p=>thumb(p)).join("")}</div>`:`<p class="muted" style="margin:0">Nothing posted yet.</p>`}</div>`; }
+function wireGallery(root){ document.querySelectorAll((root||"#v-team")+" .ph").forEach(b=>b.addEventListener("click",()=>openPhoto(+b.dataset.id))); }
+function openPhoto(id){ const p=PHOTOS.find(x=>x.id===id); if(!p) return; const ov=document.createElement("div"); ov.className="lightbox"; ov.innerHTML=`<img src="${esc(p.url)}" alt=""><div class="lb"><div><b>${p.leg?`Leg ${p.leg}`:""}${p.by?`, ${esc(p.by)}`:""}</b>, ${photoWhen(p)}${p.caption?`<br>${esc(p.caption)}`:""}</div><div class="row" style="gap:8px"><button class="pill" id="lbDel">Delete</button><button class="pill" id="lbClose">Close</button></div></div>`;
+  document.body.appendChild(ov); ov.querySelector("#lbClose").addEventListener("click",()=>ov.remove()); ov.querySelector("img").addEventListener("click",()=>ov.remove());
+  ov.querySelector("#lbDel").addEventListener("click",()=>{ if(confirm("Delete this photo for everyone?")){ deletePhoto(id); ov.remove(); } }); }
+
+// Status card for Instagram: a 1080×1920 story in the night skin, shared through the phone's share sheet.
+async function shareStatus(i){ const btn=$("#shareCard"); if(btn) btn.textContent="Making the card…";
+  try{ await Promise.all([document.fonts.load('900 200px "Big Shoulders Display"'), document.fonts.load('300 60px "Bricolage Grotesque"'), document.fonts.load('600 60px "Bricolage Grotesque"')]); }catch(e){}
+  const cur=currentIndex(), L_=LEGS[cur], lv=liveRunnerFor(cur); const kmDone=kmBefore(cur)+(lv?lv.a.alongKm:0); const rn=runnerName(L_.n), person=PERSON(S.assign[L_.n]);
+  const W=1080,H=1920; const c=document.createElement("canvas"); c.width=W; c.height=H; const g=c.getContext("2d");
+  const amber="#FFB000", ink="#ECE9E2", mute="#8C8982", dim="#2A2A2E";
+  g.fillStyle="#000"; g.fillRect(0,0,W,H);
+  g.fillStyle=ink; g.font='900 72px "Big Shoulders Display"'; g.textBaseline="alphabetic"; g.fillText("THE RUN",60,130); const tw=g.measureText("THE RUN").width; g.fillStyle=amber; g.fillText("WAY",60+tw,130);
+  g.fillStyle=mute; g.font='400 34px "Bricolage Grotesque"'; g.textAlign="right"; g.fillText("#RUNTOMTL",W-60,124); g.textAlign="left";
+  // the route, with the team's position and the runner's face on it
+  const all=pts(); const lats=all.map(p=>p[0]), lngs=all.map(p=>p[1]); const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLng=Math.min(...lngs),maxLng=Math.max(...lngs); const kx=Math.cos(44.5*Math.PI/180);
+  const bx=110,by=260,bw=W-220,bh=420; const sc=Math.min(bw/((maxLng-minLng)*kx),bh/(maxLat-minLat)); const X=p=>bx+(p[1]-minLng)*kx*sc, Y=p=>by+bh-(p[0]-minLat)*sc;
+  g.lineJoin="round"; g.lineCap="round"; g.lineWidth=10; g.strokeStyle=dim; g.beginPath(); all.forEach((p,k)=>k?g.lineTo(X(p),Y(p)):g.moveTo(X(p),Y(p))); g.stroke();
+  g.strokeStyle=ink; g.beginPath(); all.slice(0,cur+1).forEach((p,k)=>k?g.lineTo(X(p),Y(p)):g.moveTo(X(p),Y(p))); g.stroke();
+  const f=Math.max(0,Math.min(1,(lv?lv.a.alongKm:0)/L_.km)); const a=all[cur],b2=all[cur+1]; const cx=X(a)+(X(b2)-X(a))*f, cy=Y(a)+(Y(b2)-Y(a))*f;
+  g.fillStyle=mute; g.font='400 30px "Bricolage Grotesque"'; g.fillText("Toronto",X(all[0])-20,Y(all[0])+56); g.textAlign="right"; g.fillText("Montréal",X(all[N])+20,Y(all[N])-36); g.textAlign="left";
+  g.fillStyle="rgba(255,176,0,.3)"; g.beginPath(); g.arc(cx,cy,120,0,Math.PI*2); g.fill();
+  g.fillStyle=amber; g.beginPath(); g.arc(cx,cy,92,0,Math.PI*2); g.fill();
+  if(person&&person.photo){ try{ const im=await new Promise((res,rej)=>{ const x=new Image(); x.onload=()=>res(x); x.onerror=rej; x.src=person.photo; });
+      g.save(); g.beginPath(); g.arc(cx,cy,84,0,Math.PI*2); g.clip(); g.drawImage(im,cx-84,cy-84,168,168); g.restore(); }catch(e){} }
+  else { g.fillStyle="#000"; g.font='600 64px "Bricolage Grotesque"'; g.textAlign="center"; g.fillText(initials(rn||"?"),cx,cy+22); g.textAlign="left"; }
+  // leg number and runner
+  let y=790; g.fillStyle=ink; g.fillRect(60,y-30,W-120,6);
+  g.font='900 420px "Big Shoulders Display"'; g.fillText(String(L_.n),50,y+340);
+  const nx=60+g.measureText(String(L_.n)).width+40;
+  g.fillStyle=mute; g.font='400 34px "Bricolage Grotesque"'; g.fillText(`of ${N} legs, ${esc(L_.name).slice(0,28)}`,nx,y+70);
+  g.fillStyle=ink; g.font='600 64px "Bricolage Grotesque"'; const nameLines=(rn||"The team").split(" "); let ly=y+150; nameLines.forEach(w=>{ g.fillText(w,nx,ly); ly+=70; });
+  g.font='300 64px "Bricolage Grotesque"'; g.fillText(rn?"is running":"on the road", nx, ly); ly+=70;
+  if(person&&person.word){ g.fillStyle=amber; g.font='500 40px "Bricolage Grotesque"'; g.fillText(person.word,nx,ly+10); }
+  y+=400; g.fillStyle=ink; g.fillRect(60,y,W-120,6); y+=50;
+  let acc=0; for(let k=0;k<=N;k++){ const x=60+acc/totalKm*(W-120); const maj=k%10===0; g.fillStyle= k<=cur ? amber : dim; g.fillRect(x,y+(maj?0:16),2,maj?40:24); if(maj&&k>0&&k<N){ g.fillStyle=mute; g.font='400 26px "Bricolage Grotesque"'; g.textAlign="center"; g.fillText(String(k),x,y-14); g.textAlign="left"; } if(k<N) acc+=LEGS[k].km; }
+  const px=60+Math.min(1,kmDone/totalKm)*(W-120); g.fillStyle="rgba(255,176,0,.35)"; g.beginPath(); g.arc(px,y+60,34,0,Math.PI*2); g.fill(); g.fillStyle=amber; g.beginPath(); g.arc(px,y+60,16,0,Math.PI*2); g.fill();
+  g.fillStyle=mute; g.font='400 30px "Bricolage Grotesque"'; g.fillText("Toronto",60,y+130); g.textAlign="right"; g.fillText("Montréal",W-60,y+130); g.textAlign="left";
+  y+=200; g.fillStyle=ink; g.fillRect(60,y,W-120,3); const fin=projEnd(N-1); const cols=[[Math.round(kmDone)+"","km run",ink],[Math.round(totalKm-kmDone)+"","km to go",amber],[hm(fin),"finish "+DAYS[fin.getDay()],ink]];
+  cols.forEach((cl,k)=>{ const x=60+k*(W-120)/3; if(k) g.fillRect(x,y,3,190); g.fillStyle=cl[2]; g.font='900 120px "Big Shoulders Display"'; g.fillText(cl[0],x+(k?24:0),y+125); g.fillStyle=mute; g.font='400 30px "Bricolage Grotesque"'; g.fillText(cl[1],x+(k?24:0),y+170); g.fillStyle=ink; });
+  g.fillRect(60,y+190,W-120,3);
+  g.fillStyle=mute; g.font='400 30px "Bricolage Grotesque"'; g.fillText("Follow live and send a cheer",60,H-110); g.fillStyle=ink; g.font='500 34px "Bricolage Grotesque"'; g.fillText(FOLLOW_URL.replace("https://",""),60,H-60);
+  const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",.9)); const file=new File([blob],`runway-leg-${L_.n}.jpg`,{type:"image/jpeg"});
+  const caption=`Leg ${L_.n} of ${N}${rn?`, ${rn} out on the road`:""}. ${Math.round(kmDone)} km run, ${Math.round(totalKm-kmDone)} to go. Toronto to Montréal on foot. #RUNTOMTL ${FOLLOW_URL}`;
+  try{ await navigator.clipboard.writeText(caption); }catch(e){}
+  if(navigator.canShare && navigator.canShare({files:[file]})){ try{ await navigator.share({files:[file],title:"The Runway"}); }catch(e){} }
+  else { const u=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=u; a.download=file.name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(u); a.remove(); },1000); }
+  if(btn) btn.textContent="Share status"; const m=$("#photoMsg"); if(m) m.textContent="Card made. Caption with the link is on your clipboard; paste it in Instagram."; }
+
+// ---------- tracker: one phone is the runner's position for everyone ----------
+// It reports while the app is open (screen kept awake). For screen-off tracking it hands over to OwnTracks, which posts
+// to the database in the background under the device id "ot-" + its two-letter tracker id.
+const TID = () => (S.device||"xx").replace(/[^a-z0-9]/gi,"").slice(0,2).toUpperCase();
+function amTracker(){ return !!(S.tracker && S.tracker.device===S.device); }
+function isTrackerDevice(d){ return !!(S.tracker && (d===S.tracker.device || d===S.tracker.alt)); }
+function trackerRow(){ if(!S.tracker) return null; const rows=Object.values(POS).filter(r=>isTrackerDevice(r.device)).sort((a,b)=>new Date(b.at)-new Date(a.at)); return rows[0]||null; }
+function startTracking(){ setShared("tracker",()=>{ S.tracker={device:S.device, alt:"ot-"+TID(), label:meLabel(), at:new Date().toISOString()}; }); S.trackingOn=true; S.sharePos=true; S.wake=true; save(); applyWake(); startPosShare(); renderTrack(); }
+function stopTracking(){ if(amTracker()) setShared("tracker",()=>{ S.tracker=null; }); S.trackingOn=false; save(); if(S.me.kind!=="bike") { S.sharePos=false; stopPosShare(); } renderTrack(); }
+function otConfigLink(){ const live=!TEST; const url=`${TEAM.url}/rest/v1/rpc/${live?"owntracks":"owntracks_test"}?apikey=${TEAM.key}`;
+  const cfg={_type:"configuration", mode:3, url, httpHeaders:`apikey:${TEAM.key}\nAuthorization:Bearer ${TEAM.key}`, monitoring:2, locatorInterval:30, locatorDisplacement:25, tid:TID(), deviceId:"runway-"+TID(), auth:false};
+  return "owntracks:///config?inline="+btoa(JSON.stringify(cfg)); }
+let tmap=null, tLayer=null, TMAP_EL=null;
+function renderTrack(){ const me=amTracker(), row=trackerRow(); const who=S.tracker?(S.tracker.label||"a crew phone"):"";
+  const bg=Object.values(POS).find(r=>S.tracker&&r.device===S.tracker.alt);
+  const fresh=row&&posAge(row)<180;
+  let h=`<div class="stack"><div><div class="eyebrow">The phone the friends page follows</div><h1>Tracker</h1></div>
+    <div class="trackstate ${me?"on":S.tracker?"other":"off"}"><i></i><div><b>${me?"This phone is the tracker":S.tracker?`Tracking: ${esc(who)}`:"No phone is tracking"}</b><span>${row?`Last position ${ageText(posAge(row))}${fresh?"":", waiting for the next one"}`:me?"Waiting for the first position…":S.tracker?"No position yet":"Tap the button on the phone that rides with the runner."}</span></div></div>
+    <button class="btn go ${me?"stop":""}" id="trackBtn"><span>${me?"Stop tracking":"Track this phone"}</span><small>${me?"hand it to another phone":S.tracker?"takes over from "+esc(who):"use the bike phone"}</small></button>
+    ${HAS_L?`<div class="mapwrap" id="tmapSlot"></div>`:""}
+    ${me?`<div class="card"><h2>Keep tracking with the screen off</h2>
+      <p style="margin:0 0 10px;font-size:15px">A web page can only report while it's open on screen. To keep going with the phone locked or in a pocket, this phone also runs <b>OwnTracks</b>, a free tracking app, set up for you in one tap.</p>
+      <ol class="setup"><li>Install OwnTracks: <a class="lnk" href="https://apps.apple.com/app/owntracks/id692424691" target="_blank" rel="noopener">iPhone</a> or <a class="lnk" href="https://play.google.com/store/apps/details?id=org.owntracks.android" target="_blank" rel="noopener">Android</a>.</li>
+      <li>Come back here and tap <b>Set up background tracking</b>. OwnTracks opens and loads the settings.</li>
+      <li>Allow location <b>Always</b> when it asks, and leave OwnTracks in <b>Move</b> mode.</li></ol>
+      <a class="btn primary" href="${otConfigLink()}" style="margin-top:10px">Set up background tracking</a>
+      <div class="muted" style="font-size:13px;margin-top:8px">${bg?`Background tracking is working: last report ${ageText(posAge(bg))}.`:"Not seen yet. Once it's set up, a report appears here within a minute of the phone moving."} Move mode uses more battery: keep the phone on a power bank.</div></div>`:""}
+    <div class="muted" style="font-size:13px">Only one phone tracks at a time. Pressing Track on another phone hands it over. The tracker's position also starts each next leg automatically when it leaves an exchange.</div></div>`;
+  $("#v-track").innerHTML=h;
+  $("#trackBtn").addEventListener("click",()=>{ if(me) stopTracking(); else if(!S.tracker || confirm(`${who} is tracking right now. Make this phone the tracker instead?`)) startTracking(); });
+  if(HAS_L){ const slot=$("#tmapSlot"); if(!TMAP_EL){ TMAP_EL=document.createElement("div"); TMAP_EL.id="tmap"; } slot.appendChild(TMAP_EL);
+    if(!tmap){ tmap=L.map(TMAP_EL,{zoomControl:false,attributionControl:false}); L.tileLayer(TILE_URL,{maxZoom:19,maxNativeZoom:17}).addTo(tmap); L.control.zoom({position:"topright"}).addTo(tmap); tLayer=L.layerGroup().addTo(tmap); }
+    tmap.invalidateSize(); tLayer.clearLayers(); const i=currentIndex(); tLayer.addLayer(L.polyline(legLine(i,"run"),{color:cssVar("--accent"),weight:5}));
+    const p = me&&lastPosFix ? [lastPosFix.coords.latitude,lastPosFix.coords.longitude] : row ? [row.lat,row.lng] : null;
+    if(p){ tLayer.addLayer(L.circleMarker(p,{radius:10,color:cssVar("--bg"),weight:3,fillColor:cssVar("--accent"),fillOpacity:1})); tmap.setView(p, Math.max(tmap.getZoom()||15,15)); } else tmap.fitBounds(L.latLngBounds(legLine(i,"run")),{padding:[20,20]}); } }
+// ---------- rehearsal: a pretend bike rides the route so the whole system can be tried before race day ----------
+const RACE_START_REAL = "2026-11-04T21:00";
+const SIM_PACE = 5.5; // min per km, close to the booklet average
+let simTimer=null;
+function pointAlong(line, km){ let acc=0; for(let k=0;k<line.length-1;k++){ const d=hav(line[k],line[k+1]); if(acc+d>=km){ const t=d?(km-acc)/d:0; return [line[k][0]+(line[k+1][0]-line[k][0])*t, line[k][1]+(line[k+1][1]-line[k][1])*t]; } acc+=d; } return line[line.length-1]; }
+function simStart(speed){ const now=toLocalISO(new Date());
+  setShared("raceStart",()=>{ S.raceStart=now; S.startSet=true; }); Object.keys(S.actual).forEach(n=>setShared("actual."+n,()=>{ delete S.actual[n]; }));
+  setShared("actual.1",()=>{ S.actual[1]=now; }); setShared("manualNow",()=>{ S.manualNow=null; });
+  S.sim={on:true,speed:speed||10,device:"sim-"+S.device}; save(); simRun(); renderSetup(); }
+function simRun(){ clearInterval(simTimer); if(!S.sim||!S.sim.on) return; simTick(); simTimer=setInterval(simTick,15000); }
+function simTick(){ if(!S.sim||!S.sim.on) return; const i=currentIndex(), L_=LEGS[i], act=S.actual[L_.n]; if(!act) return;
+  const line=legLine(i,"run"); const elapsed=(Date.now()-new Date(act))/60000*S.sim.speed; const km=Math.min(L_.km, elapsed/SIM_PACE); const p=pointAlong(line, km);
+  const row={device:S.sim.device,team:S.sync.team,label:"Rehearsal bike",kind:"bike",runner_id:S.assign[L_.n]||null,lat:+p[0].toFixed(6),lng:+p[1].toFixed(6),acc:8,speed:3,at:new Date().toISOString()};
+  POS[row.device]=row; refreshLive(); { const m=activeMap(); if(following && m) m.setView([row.lat,row.lng], Math.max(m.getZoom(),15), {animate:true}); } // in rehearsal, Follow me follows the pretend bike
+  if(sb){ sb.from("runway_pos").upsert(row).then(()=>{ lastPublic=0; pushPublic(); }).catch(()=>{}); }
+  if(km>=L_.km && i<N-1 && !S.actual[LEGS[i+1].n]){ setShared("actual."+LEGS[i+1].n,()=>{ S.actual[LEGS[i+1].n]=toLocalISO(new Date()); }); render(); } }
+async function resetTeam(){ if(!sb) return false; clearInterval(simTimer); try{
+    const team=S.sync.team; for(const tb of ["runway_cheers","runway_pos","runway_photos","runway_public"]){ const {error}=await sb.from(tb).delete().eq("team",team); if(error) throw error; }
+    try{ const {data:objs}=await sb.storage.from(BUCKET).list(team,{limit:1000}); if(objs&&objs.length) await sb.storage.from(BUCKET).remove(objs.map(o=>team+"/"+o.name)); }catch(e){}
+    const {error:e2}=await sb.from("runway_state").delete().eq("team",team); if(e2) throw e2;
+    const keep={sync:S.sync, device:S.device, me:S.me, roleSet:S.roleSet, skin:S.skin}; S=Object.assign(defaults(),keep); S.epoch=Date.now(); S.raceStart=RACE_START_REAL; S.startSet=true; normalizeRoster(); save(); POS={}; PHOTOS=[]; CHEERS={counts:{},recent:[]};
+    await sb.from("runway_state").upsert({team, data:sharedSnapshot(), updated_at:new Date().toISOString()}); lastPublic=0; await pushPublic(); return true; }catch(e){ return false; } }
+async function clearCheers(){ if(!sb) return false; try{ const {error}=await sb.from("runway_cheers").delete().eq("team",S.sync.team); if(error) throw error; CHEERS={counts:{},recent:[]}; render(); return true; }catch(e){ return false; } }
+function simStop(){ clearInterval(simTimer); const dev=S.sim&&S.sim.device; S.sim={on:false};
+  Object.keys(S.actual).forEach(n=>setShared("actual."+n,()=>{ delete S.actual[n]; })); setShared("raceStart",()=>{ S.raceStart=RACE_START_REAL; S.startSet=true; }); setShared("manualNow",()=>{ S.manualNow=null; });
+  if(dev){ delete POS[dev]; if(sb) sb.from("runway_pos").delete().eq("device",dev).then(()=>{ lastPublic=0; pushPublic(); }).catch(()=>{}); }
+  clearCheers(); save(); refreshLive(); renderSetup(); }
+if(S.sim&&S.sim.on) setTimeout(simRun,3000);
+if(S.trackingOn){ S.sharePos=true; setTimeout(()=>{ if(amTracker()) startPosShare(); },1500); }
+
+// ---------- cheers from the friends page ----------
+async function pullCheers(){ if(!sb) return; try{
+  const counts={}; await Promise.all(["🔥","💪","❤️","🏃"].map(async e=>{ const {count,error}=await sb.from("runway_cheers").select("id",{count:"exact",head:true}).eq("team",S.sync.team).eq("emoji",e); if(!error&&count) counts[e]=count; }));
+  const {data}=await sb.from("runway_cheers").select("emoji,name,msg,at").eq("team",S.sync.team).order("at",{ascending:false}).limit(30);
+  if(data){ CHEERS={counts,recent:data}; if(view==="social") renderSocial(); } }catch(e){} }
+// Cheers land on the crew's phones as a feed: emoji, who, and the short message if they wrote one.
+const spr = e => (typeof SPRITES!=="undefined" && SPRITES[e]) ? SPRITES[e] : esc(e);
+if(typeof SPRITE_CSS!=="undefined") document.head.insertAdjacentHTML("beforeend","<style>"+SPRITE_CSS+"</style>");
+window.__cheers = (counts, recent) => { CHEERS={counts, recent}; render(); }; // test hook
+function cheerCard(full){ const n=Object.values(CHEERS.counts).reduce((a,b)=>a+b,0); if(!n && !full) return "";
+  const order=["🔥","💪","❤️","🏃"]; const ems=order.filter(e=>CHEERS.counts[e]).concat(Object.keys(CHEERS.counts).filter(e=>!order.includes(e)));
+  const shown = CHEERS.recent.filter(r=>r.msg||r.name).slice(0,full?30:8);
+  return `<div class="card"><div class="row" style="justify-content:space-between;align-items:baseline"><h2 style="margin:0">Cheers from home</h2><span class="muted" style="font-size:13px">${n?`${n} so far`:"none yet"}</span></div>
+    <div class="cheer" style="margin-top:8px">${ems.map(e=>`<span class="em"><i class="se">${spr(e)}</i><b>${CHEERS.counts[e]}</b></span>`).join("")}</div>
+    ${shown.length?`<ul class="feed">${shown.map(r=>`<li><span class="e">${spr(r.emoji)}</span><span>${r.name?`<span class="nm">${esc(r.name)}</span>`:""}${r.msg?`<q>${esc(r.msg)}</q>`:""}</span><span class="w">${ageText(posAge({at:r.at}))}</span></li>`).join("")}</ul>`:""}</div>`; }
+setInterval(()=>{ if(sb&&!document.hidden) pullCheers(); },45000);
+
+// ---------- screen wake lock ----------
+let wakeLock=null;
+async function applyWake(){ try{ if(S.wake && "wakeLock" in navigator && !document.hidden){ if(!wakeLock){ wakeLock=await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release",()=>{ wakeLock=null; }); } } else if(!S.wake && wakeLock){ await wakeLock.release(); wakeLock=null; } }catch(e){} }
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) applyWake(); });
+document.addEventListener("click",()=>{ if(S.wake&&!wakeLock) applyWake(); },{once:false});
+
+// ---------- GPX for watches (hosted build) ----------
+function gpxFor(idxs){ const esc2=x=>String(x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  let g=`<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="The Runway Tracker" xmlns="http://www.topografix.com/GPX/1/1">\n<metadata><name>The Runway #RUNTOMTL</name></metadata>\n`;
+  idxs.forEach(i=>{ const L_=LEGS[i]; const line=legLine(i,"run"); g+=`<wpt lat="${startPt(i)[0]}" lon="${startPt(i)[1]}"><name>Leg ${L_.n} start</name><desc>${esc2(startLabel(i))}</desc></wpt>\n<wpt lat="${L_.pt[0]}" lon="${L_.pt[1]}"><name>Exchange ${L_.n}</name><desc>${esc2(L_.ex)}</desc></wpt>\n`;
+    g+=`<trk><name>Leg ${L_.n} ${esc2(L_.name)} (${km1(L_.km)} km)</name><desc>${esc2(L_.dirs.join(" | "))}</desc><trkseg>\n${line.map(p=>`<trkpt lat="${p[0]}" lon="${p[1]}"></trkpt>`).join("\n")}\n</trkseg></trk>\n`; });
+  return g+"</gpx>\n"; }
+function downloadText(name, text){ const blob=new Blob([text],{type:"application/gpx+xml"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },1000); }
+function gpxButtons(i){ if(!HAS_L) return ""; const L_=LEGS[i]; return `<div class="card"><h2>GPX for a watch</h2><p style="margin:0 0 10px;font-size:14px">Load the leg on a Garmin (Connect → Training → Courses → Import), on Apple Watch (WorkOutDoors or Komoot) or any GPS watch, and follow the line on the wrist. Waypoints mark the start and the exchange.</p><div class="row"><button class="btn" id="gpxLeg">Leg ${L_.n} GPX</button><button class="btn ghost" id="gpxAll">All legs, one file</button></div></div>`; }
+
+// ---------- sync (hosted build): one row per team in Supabase, merged per key by timestamp ----------
+const SHARED_KEYS = () => ["raceStart","manualNow","runners","tracker",...Object.keys(S.actual).map(n=>"actual."+n),...Object.keys(S.assign).map(n=>"assign."+n),...Object.keys(S.stamps)];
+function syncStatus(){ if(!S.sync.url) return "Not connected."; return syncInfo.state==="ok"?`Connected as team "${esc(S.sync.team)}"${syncInfo.last?`, last sync ${hm(syncInfo.last)}`:""}.`: syncInfo.state==="offline"?`Offline; changes are kept on this phone and sent when signal returns.`: syncInfo.state==="error"?`Problem: ${esc(syncInfo.err)}`:"Connecting…"; }
+function setSyncState(st,err){ syncInfo.state=st; syncInfo.err=err||""; if(st==="ok") syncInfo.last=new Date(); const el=$("#syncState"); if(el) el.innerHTML=syncStatus(); }
+function sharedSnapshot(){ return {epoch:S.epoch||0,tracker:S.tracker||null,raceStart:S.raceStart,startSet:S.startSet,actual:S.actual,manualNow:S.manualNow,runners:S.runners,assign:S.assign,stamps:S.stamps,device:S.device,at:new Date().toISOString()}; }
+let inPush=false;
+function mergeRemote(r){ if(!r||!r.stamps) return false; let changed=false, mineNewer=false;
+  // a team reset bumps the epoch: anything this phone remembers from before it is thrown away, not pushed back
+  if((r.epoch||0) > (S.epoch||0)){ S.epoch=r.epoch; S.actual={}; S.assign={}; S.stamps={}; S.manualNow=null; S.sim={on:false}; clearInterval(simTimer); POS={}; changed=true; }
+  const keys=new Set([...Object.keys(r.stamps),...Object.keys(S.stamps)]);
+  keys.forEach(k=>{ const rs=r.stamps[k]||"", ls=S.stamps[k]||""; if(rs>ls){ changed=true; S.stamps[k]=rs;
+      if(k==="raceStart"){ S.raceStart=r.raceStart; S.startSet=r.startSet; } else if(k==="manualNow"){ S.manualNow=r.manualNow; } else if(k==="runners"){ /* roster is fixed in the app */ } else if(k==="tracker"){ S.tracker=r.tracker||null; if(!amTracker()&&S.trackingOn){ S.trackingOn=false; save(); } }
+      else if(k.startsWith("actual.")){ const n=k.slice(7); if(r.actual&&r.actual[n]) S.actual[n]=r.actual[n]; else delete S.actual[n]; }
+      else if(k.startsWith("assign.")){ const n=k.slice(7); if(r.assign&&r.assign[n]) S.assign[n]=r.assign[n]; else delete S.assign[n]; } }
+    else if(ls>rs) mineNewer=true; });
+  if(changed){ normalizeRoster(); save(); render(); } if(mineNewer && !inPush) schedulePush(); return changed; }
+async function loadSb(){ if(window.supabase) return true; return new Promise(res=>{ const sc=document.createElement("script"); sc.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"; sc.onload=()=>res(true); sc.onerror=()=>res(false); document.head.appendChild(sc); }); }
+async function startSync(){ stopSync(); if(!HAS_L||!S.sync.url||!S.sync.key||!S.sync.team) return; setSyncState("connecting");
+  if(!(await loadSb())){ setSyncState("offline"); setTimeout(startSync,30000); return; }
+  try{ sb=window.supabase.createClient(S.sync.url,S.sync.key); await pullOnce(); await pullPos(); pullCheers(); startPosShare();
+    sb.channel("runway-cheers-"+S.sync.team).on("postgres_changes",{event:"INSERT",schema:"public",table:"runway_cheers",filter:"team=eq."+S.sync.team},payload=>{ const r=payload.new; if(!r) return; CHEERS.counts[r.emoji]=(CHEERS.counts[r.emoji]||0)+1; CHEERS.recent.unshift(r); CHEERS.recent=CHEERS.recent.slice(0,30); if(view==="social") renderSocial(); }).subscribe();
+    pullPhotos(); sb.channel("runway-photos-"+S.sync.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_photos",filter:"team=eq."+S.sync.team},()=>pullPhotos()).subscribe();
+    sb.channel("runway-pos-"+S.sync.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_pos",filter:"team=eq."+S.sync.team},payload=>{ const r=payload.new; if(r&&r.device!==S.device){ POS[r.device]=r; if(isTrackerDevice(r.device)) autoStart({coords:{latitude:r.lat,longitude:r.lng},timestamp:new Date(r.at).getTime()},true); refreshLive(); } }).subscribe();
+    syncChan=sb.channel("runway-"+S.sync.team).on("postgres_changes",{event:"*",schema:"public",table:"runway_state",filter:"team=eq."+S.sync.team},payload=>{ if(payload.new&&payload.new.data&&payload.new.data.device!==S.device){ mergeRemote(payload.new.data); setSyncState("ok"); } }).subscribe();
+    schedulePush(); }catch(e){ setSyncState("error",String(e.message||e)); }
+}
+function stopSync(){ stopPosShare(); if(sb){ try{ sb.removeAllChannels(); }catch(e){} } syncChan=null; sb=null; syncInfo={state:"off",last:null,err:""}; }
+async function pullOnce(){ if(!sb) return; try{ const {data,error}=await sb.from("runway_state").select("data").eq("team",S.sync.team).maybeSingle(); if(error) throw error; if(data&&data.data) mergeRemote(data.data); setSyncState("ok"); }catch(e){ setSyncState(navigator.onLine?"error":"offline",String(e.message||e)); } }
+function schedulePush(){ if(!sb) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,600); }
+// Push merges first: the shared row is only ever replaced by a snapshot that already contains everything newer on the server,
+// so a freshly reset phone can never wipe the team's tags and starts.
+async function pushNow(){ if(!sb) return; inPush=true; try{ const {data:cur}=await sb.from("runway_state").select("data").eq("team",S.sync.team).maybeSingle(); if(cur&&cur.data) mergeRemote(cur.data);
+  const {error}=await sb.from("runway_state").upsert({team:S.sync.team,data:sharedSnapshot(),updated_at:new Date().toISOString()}); if(error) throw error; setSyncState("ok"); }catch(e){ setSyncState(navigator.onLine?"error":"offline",String(e.message||e)); setTimeout(()=>{ if(sb) schedulePush(); },20000); } finally{ inPush=false; } }
+window.addEventListener("online",()=>{ if(S.sync.url){ if(!sb) startSync(); else { pullOnce(); schedulePush(); } } });
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&sb) pullOnce(); });
+setInterval(()=>{ if(sb&&!document.hidden) pullOnce(); },60000);
+// A role link (…/?role=bike) sets the phone's role on first open, so each crew member gets a link that opens on their screen.
+try{ const q=new URLSearchParams(location.search).get("role"); if(q && ["suv","rv","bike","crew"].includes(q)){ if(!S.roleSet){ S.me.kind=q; S.roleSet=true; if(q!=="crew"){ S.sharePos=true; } S.mode=(q==="suv"||q==="rv")?"drive":"run"; save(); } history.replaceState(null,"",location.pathname+location.hash); } }catch(e){}
+// A share link carries the team settings in ?sync=…
+try{ const q=new URLSearchParams(location.search).get("sync"); if(q){ const cfg=JSON.parse(atob(q)); if(cfg&&cfg.url){ S.sync=cfg; save(); history.replaceState(null,"",location.pathname+location.hash); } } }catch(e){}
+
+// ---------- setup ----------
+function renderSetup(){
+  const approxCount=LEGS.filter(l=>l.approx).length, interpCount=LEGS.filter(l=>l.interp).length;
+  const sw = ("serviceWorker" in navigator);
+  let h=`<div class="stack">
+  <div><div class="eyebrow">Setup</div><h1>Race clock</h1></div>
+  <div><label class="f" for="raceStart">Race start (gun time)</label><input type="datetime-local" id="raceStart" value="${S.raceStart}">
+    <div class="muted" style="font-size:13px;margin-top:6px">Every planned time is an offset from this. The booklet's schedule ran from a 9:00 PM Tuesday start and finished about ${dur(finishOff)} later.</div></div>
+  <div><label class="f" for="manualNow">Current leg</label><select id="manualNow"><option value="">Auto (from clock and recorded starts)</option>${LEGS.map(l=>`<option value="${l.n}" ${S.manualNow===l.n?"selected":""}>Leg ${l.n} · ${esc(l.name)}</option>`).join("")}</select>
+    <div class="muted" style="font-size:13px;margin-top:6px">Override if the clock is wrong about where you are. Marking a leg start clears this.</div></div>
+  <div class="card"><h2>Runners</h2><p style="margin:0;font-size:15px">The ten runners from the team page, with their faces and words. Tag them to legs here or on the Now tab.</p>
+    ${S.runners.length?`<div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:6px">By runner</div><div class="kv">${S.runners.map(r=>{ const legs=LEGS.filter(l=>S.assign[l.n]===r.id); return `<div>${esc(r.name)}</div><div class="v">${legs.length?legs.map(l=>l.n).join(", ")+" · "+km1(legs.reduce((a,l)=>a+l.km,0))+" km":"<span class=muted>no legs yet</span>"}</div>`; }).join("")}</div>
+    <details style="margin-top:10px"><summary class="eyebrow" style="cursor:pointer">Assign all legs</summary><div class="kv" style="margin-top:8px;grid-template-columns:auto 1fr">${LEGS.map(l=>`<div style="font-family:var(--display);font-weight:700;font-size:18px;color:var(--muted);align-self:center">${l.n}</div><select data-assign="${l.n}"><option value="">Unassigned</option>${S.runners.map(r=>`<option value="${r.id}" ${S.assign[l.n]===r.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select>`).join("")}</div></details></div>`:""}</div>
+  <div class="card"><h2>Share with the team</h2>${HAS_L?`<p style="margin:0 0 10px;font-size:15px">The team connection is built in; every phone that opens this app is on the same team. Only change these if you set up a different project.</p>
+    <label class="f" for="syncUrl">Supabase project URL</label><input type="url" id="syncUrl" placeholder="https://xxxx.supabase.co" value="${esc(S.sync.url)}" style="width:100%;padding:10px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;font-size:15px">
+    <label class="f" for="syncKey" style="margin-top:8px">Anon key</label><input type="text" id="syncKey" placeholder="eyJ…" value="${esc(S.sync.key)}" style="width:100%;padding:10px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;font-size:13px">
+    <label class="f" for="syncTeam" style="margin-top:8px">Team code</label><input type="text" id="syncTeam" placeholder="runway-2026" value="${esc(S.sync.team)}" style="width:100%;padding:10px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);font:inherit;font-size:15px">
+    <div class="row" style="margin-top:10px;gap:8px"><button class="btn" id="syncSave" style="padding:9px 14px;font-size:15px">Save and connect</button>${S.sync.url?`<button class="btn ghost" id="shareLink" style="padding:9px 14px;font-size:15px">Copy share link</button><button class="pill" id="syncOff">Disconnect</button>`:""}</div>
+    <div class="muted" id="shareMsg" style="font-size:13px;margin-top:8px"></div>
+    <div class="muted" id="syncState" style="font-size:13px;margin-top:6px">${syncStatus()}</div>`
+    :`<p style="margin:0;font-size:15px">Sharing between phones runs in the hosted build, not in this viewer.</p>`}</div>
+  ${HAS_L?`<div class="card ${TEST?"accent":""}"><h2>Test mode</h2><p style="margin:0 0 10px;font-size:15px">${TEST?"<b>This phone is in test mode.</b> Everything here goes to the test team: the live friends page sees none of it.":"For rehearsals. Test mode uses a separate team, so nothing you do shows on the live friends page. Rehearsal and the team reset live in test mode."}</p><button class="btn ${TEST?"":"primary"}" id="testToggle">${TEST?"Leave test mode":"Switch to test mode"}</button>${TEST?`<div class="muted" style="font-size:13px;margin-top:8px">Friends test page: <span class="coords">mrwayne-vfx.github.io/runway/follow.html?test=1</span></div>`:""}</div>`:""}
+  ${HAS_L&&TEST?`<div class="card ${S.sim&&S.sim.on?"accent":""}"><h2>Rehearsal</h2><p style="margin:0 0 10px;font-size:15px">${S.sim&&S.sim.on?`Running: a pretend bike is moving along leg ${LEGS[currentIndex()].n} at ${S.sim.speed}× speed and starting each next leg on arrival. Every phone and the friends page see it as the real thing.`:"Starts the race now with a pretend bike moving along the route, so you can try every screen, the friends page and the cheers from your couch. Run it on one phone only."}</p>
+    ${S.sim&&S.sim.on?`<div class="row"><button class="btn" id="simStop">End rehearsal</button></div><div class="muted" style="font-size:13px;margin-top:8px">Ending it clears the pretend starts and sets the race start back to ${dayhm(new Date(RACE_START_REAL))}.</div>`
+    :`<div class="row"><button class="btn" id="simFast">Start at 10× speed</button><button class="btn ghost" id="simReal">Real time</button></div><div class="muted" style="font-size:13px;margin-top:8px">At 10× a leg takes about eight minutes; real time is a full dress rehearsal.</div>`}<div class="row" style="margin-top:10px;gap:8px"><button class="pill" id="clearCheers">Clear all cheers</button><span class="muted" id="clearCheersMsg" style="font-size:13px">Wipes the test cheers and messages from the friends page and here.</span></div></div>`:""}
+  <div class="card"><h2>Recorded starts</h2>${Object.keys(S.actual).length?`<div class="kv">${LEGS.filter(l=>S.actual[l.n]).map((l)=>`<div>Leg ${l.n} ${esc(l.name)}</div><div class="v">${dayhm(new Date(S.actual[l.n]))}</div>`).join("")}</div><div style="margin-top:10px"><button class="pill" id="clearAll">Clear all recorded starts</button></div>`:`<span class="muted">None yet. Tap "Runner out" on a leg when the runner leaves the exchange.</span>`}</div>
+  <div class="card"><h2>Data</h2><div class="kv">
+    <div>Total distance</div><div class="v">${km1(totalKm)} km</div>
+    <div>Legs</div><div class="v">${N}</div>
+    <div>App build</div><div class="v">${BUILD} <button class="pill" id="reloadApp" style="margin-left:6px">Reload</button></div>
+    <div>Booklet average pace</div><div class="v">${Math.floor(paceMinPerKm)}:${p2(Math.round((paceMinPerKm%1)*60))} /km</div>
+    <div>Exchange pins from GPS</div><div class="v">${N-approxCount+1}</div>
+    <div>Exchange pins placed from description (approx)</div><div class="v">${approxCount}</div>
+    <div>Start times interpolated</div><div class="v">${interpCount} (legs 2 to 10)</div>
+  </div><p class="muted" style="font-size:13px;margin:10px 0 0">Source: RunToMtl participant booklet. Per-leg sheet distances used where the summary table disagreed (legs 6 and 7). Four legs are due for new routes; this build uses the booklet versions.</p></div>
+  <div class="card"><h2>This phone</h2><label class="f" for="meLabel">Your name (shows on photos and your map dot)</label><input type="text" id="meLabel" maxlength="24" placeholder="e.g. Wayne" value="${esc(S.me.label||"")}" style="margin-bottom:10px">
+    <label class="f" for="meKind">Who's carrying it</label><select id="meKind"><option value="suv" ${S.me.kind==="suv"?"selected":""}>SUV driver (runner shuttle)</option><option value="rv" ${S.me.kind==="rv"?"selected":""}>RV driver</option><option value="bike" ${S.me.kind==="bike"?"selected":""}>Bike support (riding behind the runner)</option><option value="crew" ${S.me.kind==="crew"?"selected":""}>Crew / everything</option><option value="runner" ${S.me.kind==="runner"?"selected":""}>A runner</option></select>
+    ${S.me.kind==="runner"?`<label class="f" for="meRunner" style="margin-top:8px">Which runner</label><select id="meRunner"><option value="">Pick a name</option>${S.runners.map(r=>`<option value="${r.id}" ${S.me.runnerId===r.id?"selected":""}>${esc(r.name)}</option>`).join("")}</select>`:""}
+    ${HAS_L?`<div class="row" style="margin-top:12px;justify-content:space-between"><label for="sharePos" style="font-size:15px">Share this phone's position with the team</label><input type="checkbox" id="sharePos" ${S.sharePos?"checked":""} style="width:22px;height:22px"></div>
+    <div class="muted" id="posState" style="font-size:13px;margin-top:6px">${S.sharePos?(S.sync.url?"Sharing when the app is open and on screen.":"Needs the team connection below first."):"Off. When on, the other phones see this one as a dot on the Map and RV tabs, and a runner's phone gives a live ETA to the exchange."}</div>
+    <div class="muted" style="font-size:12px;margin-top:4px">Phones only report while the app is open and on screen. Best setup: the bike support rider's phone on a handlebar mount with a power bank, Map tab open on the leg with "Follow me" on, position sharing on. That one phone gives everyone the runner's live ETA.</div>
+    <div class="row" style="margin-top:12px;justify-content:space-between"><label for="wake" style="font-size:15px">Keep the screen awake while the app is open</label><input type="checkbox" id="wake" ${S.wake?"checked":""} style="width:22px;height:22px"></div>`:""}
+    ${liveRows().length?`<div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:6px">Team positions</div><div class="kv">${liveRows().map(r=>`<div>${esc(r.label)}</div><div class="v">${ageText(posAge(r))}</div>`).join("")}</div></div>`:""}</div>
+  ${HAS_L?`<div class="card"><h2>Save maps for offline</h2><p style="margin:0 0 10px;font-size:15px">Do this once on wifi before the race. It stores the street map along every leg (zoom 12 to 16) so maps still draw with no signal.</p><div class="row"><button class="btn" id="saveAllTiles">Save all legs</button><button class="btn ghost" id="saveTiles">Just leg ${LEGS[currentIndex()].n}</button></div><div class="progress" style="margin-top:10px"><i id="tileBar"></i></div><div class="muted" id="tileMsg" style="font-size:13px;margin-top:6px">${tileStatus()}</div></div>`:""}
+  <div class="card"><h2>Offline</h2><p style="margin:0;font-size:15px">Directions, notes and the schematic map are all inside this page and need no signal once loaded. ${sw?`Offline caching: <span id="swstate">checking</span>.`:`This copy is running inside a viewer that doesn't allow offline caching; the hosted build does. Pre-download the Toronto to Montréal corridor in Google Maps for offline nav.`}</p></div>
+  <div class="card"><h2>Reset</h2><p style="margin:0 0 10px;font-size:15px">This phone only: forgets the role and settings here; the team's tags and starts come straight back from the server.</p><button class="pill" id="resetAll">Reset this phone</button>
+    ${HAS_L&&TEST?`<p style="margin:14px 0 10px;font-size:15px">The whole test team: wipes starts, tags, positions, cheers and photos for everyone, and puts the race start back to ${dayhm(new Date(RACE_START_REAL))}. For testing, before race day.</p><button class="pill" id="resetTeam" style="border-color:var(--bad);color:var(--bad)">Reset the whole team</button><div class="muted" id="resetTeamMsg" style="font-size:13px;margin-top:6px"></div>`:""}</div>
+  </div>`;
+  $("#v-setup").innerHTML=h;
+  $("#reloadApp")?.addEventListener("click",()=>location.reload());
+  $("#testToggle")?.addEventListener("click",()=>{ try{ if(TEST) localStorage.removeItem("runway.mode"); else localStorage.setItem("runway.mode","test"); }catch(e){} location.replace(location.pathname+"#setup"); location.reload(); });
+  $("#saveAllTiles")?.addEventListener("click",()=>saveTiles(LEGS.map((_,k)=>k))); $("#saveTiles")?.addEventListener("click",()=>saveTiles([currentIndex()]));
+  $("#clearCheers")?.addEventListener("click",async()=>{ const ok=await clearCheers(); const m=$("#clearCheersMsg"); if(m) m.textContent= ok?"Cleared.":"Couldn't clear; run supabase-update.sql first."; });
+  $("#simFast")?.addEventListener("click",()=>simStart(10)); $("#simReal")?.addEventListener("click",()=>simStart(1)); $("#simStop")?.addEventListener("click",simStop);
+  $("#raceStart").addEventListener("change",e=>{ if(e.target.value){ setShared("raceStart",()=>{ S.raceStart=e.target.value; S.startSet=true; }); } });
+  $("#manualNow").addEventListener("change",e=>{ setShared("manualNow",()=>{ S.manualNow=e.target.value?+e.target.value:null; }); });
+  $("#clearAll")?.addEventListener("click",()=>{ Object.keys(S.actual).forEach(n=>setShared("actual."+n,()=>{ delete S.actual[n]; })); renderSetup(); });
+  $("#meLabel").addEventListener("change",e=>{ S.me.label=e.target.value.trim().slice(0,24); save(); });
+  $("#meKind").addEventListener("change",e=>{ applyRole(e.target.value); renderSetup(); });
+  $("#meRunner")?.addEventListener("change",e=>{ S.me.runnerId=e.target.value; save(); if(S.sharePos) startPosShare(); });
+  $("#sharePos")?.addEventListener("change",e=>{ S.sharePos=e.target.checked; save(); if(S.sharePos) startPosShare(); else stopPosShare(); renderSetup(); });
+  $("#wake")?.addEventListener("change",e=>{ S.wake=e.target.checked; save(); applyWake(); });
+
+  $("#v-setup").querySelectorAll("select[data-assign]").forEach(sel=>sel.addEventListener("change",e=>{ const n=sel.dataset.assign; setShared("assign."+n,()=>{ if(e.target.value) S.assign[n]=e.target.value; else delete S.assign[n]; }); }));
+  $("#syncSave")?.addEventListener("click",()=>{ S.sync={url:$("#syncUrl").value.trim().replace(/\/$/,""),key:$("#syncKey").value.trim(),team:$("#syncTeam").value.trim()}; save(); startSync(); renderSetup(); });
+  $("#syncOff")?.addEventListener("click",()=>{ S.sync={url:"",key:"",team:""}; save(); stopSync(); renderSetup(); });
+  $("#shareLink")?.addEventListener("click",async()=>{ const u=new URL(location.href); u.hash=""; u.searchParams.set("sync",btoa(JSON.stringify(S.sync))); const txt=u.toString(); try{ await navigator.clipboard.writeText(txt); $("#shareMsg").textContent="Link copied. Send it to the other phone; opening it once connects them to the same team."; }catch(e){ $("#shareMsg").innerHTML=`Copy this link to the other phone:<br><span class="coords">${esc(txt)}</span>`; } });
+  $("#resetAll").addEventListener("click",()=>{ S=defaults(); normalizeRoster(); save(); renderSetup(); startSync(); /* shared tags and starts come straight back from the team row */ });
+  $("#resetTeam")?.addEventListener("click",async()=>{ if(!confirm("Wipe everything for the whole team? Every phone goes back to a clean slate.")) return; const m=$("#resetTeamMsg"); m.textContent="Wiping…"; const ok=await resetTeam(); m.textContent= ok?"Done. Every phone is clean; the friends page shows the pre-race screen.":"Couldn't finish; run supabase-reset.sql in Supabase instead."; });
+  if (sw && window.__swState) { const el=$("#swstate"); if(el) el.textContent=window.__swState; }
+}
+
+// ---------- updates: the home-screen app has no refresh, so check for a newer build whenever it comes to the front ----------
+async function checkUpdate(){ if(!HAS_L) return; try{ const res=await fetch(location.pathname||"./",{cache:"no-store"}); const txt=await res.text(); const m=txt.match(/const BUILD = "([^"]+)"/); if(m && m[1]!==BUILD){ $("#updBar").hidden=false; } }catch(e){} }
+$("#updBar").addEventListener("click",()=>{ location.reload(); });
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) checkUpdate(); }); setTimeout(checkUpdate,4000); setInterval(checkUpdate,10*60000);
+// ---------- clock ----------
+function tick(){ $("#clock").textContent = hm(new Date()); }
+tick(); setInterval(()=>{ tick(); applySkin(); if(view==="leg" && !S.viewLeg) { /* keep current leg fresh */ renderLegIfChanged(); } }, 30000);
+let lastCur=currentIndex();
+function renderLegIfChanged(){ const c=currentIndex(); if(c!==lastCur){ lastCur=c; renderLeg(); } }
+
+// ---------- boot ----------
+applySkin(true); startSync(); applyWake();
+const h0=location.hash.slice(1);
+if(!S.roleSet && HAS_L){ document.querySelector("nav.tabs").hidden=true; setView("role"); }
+else setView(["leg","legs","map","team","track","rv","social","setup"].includes(h0)?h0:homeView());
+})();
+</script>

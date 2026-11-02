@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Build and deploy to GitHub Pages
 on:
   push:
     branches: [main]
@@ -18,9 +18,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The site is built from src/: build.py inlines the data, fonts, map library and logos into
+      # dist/index.html (crew tracker), dist/follow.html (friends page) and dist/sw.js (offline cache).
+      # If the build fails, nothing is deployed and the live site stays as it was.
+      - name: Build
+        run: python3 src/build.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: src/dist
       - id: deployment
         uses: actions/deploy-pages@v4

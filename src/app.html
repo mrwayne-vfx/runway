@@ -1427,8 +1427,9 @@ function renderLegIfChanged(){ const c=currentIndex(); if(c!==lastCur){ lastCur=
 // ---------- boot ----------
 applySkin(true); startSync(); applyWake();
 const h0=location.hash.slice(1);
-if(!S.roleSet && HAS_L){ document.querySelector("nav.tabs").hidden=true; setView("role"); }
-else setView(["leg","legs","map","team","track","rv","social","setup"].includes(h0)?h0:homeView());
+// First open: no question, the phone starts as Crew on Now. Driver links (?role=rv, ?role=suv) set their role above; the role button switches.
+if(!S.roleSet){ S.me.kind="crew"; S.roleSet=true; S.mode="run"; save(); }
+setView(["leg","legs","map","team","track","rv","social","setup"].includes(h0)?h0:homeView());
 showRoleBtn();
 })();
 </script>

@@ -284,6 +284,7 @@ function splashHtml(){ const rs=raceStart(); const assign=(RAW&&RAW.legs&&RAW.le
     <div class="stats"><div class="stat"><div class="v">650<small>km</small></div><div class="k">on foot</div></div><div class="stat hot"><div class="v">67</div><div class="k">legs, day and night</div></div><div class="stat"><div class="v">10</div><div class="k">runners, one team</div></div></div>
     ${schematicSvg({noPos:true})}
     <div><h2><span>Meet <em>the team</em></span><small>${first?`${esc(first.name.split(" ")[0])} runs first`:"tap a runner"}</small></h2>${stripHtml()}</div>
+    ${galleryHtml(true)}
     ${cheersHtml(true)}
     ${socialHtml()}`; }
 let cdTimer=null;
@@ -413,9 +414,9 @@ function derive(raw){ if(!raw||!raw.started||raw.finished) return raw;
     km_done:kmBeforeF(i)+along, lat:pos[0], lng:pos[1], next_runner: assign[n+1]||"", exchange_eta:new Date(Date.now()+(LEGS[i].km-along)*pace*60000).toISOString(), at:new Date().toISOString() }); }
 function kmBeforeF(i){ let s=0; for(let k=0;k<i;k++) s+=LEGS[k].km; return s; }
 const photoAge=p=>ageText((Date.now()-new Date(p.at))/1000);
-function galleryHtml(){ if(!PHOTOS.length) return "";
-  return `<div><h2><span>From <em>the road</em></span><small>${PHOTOS.length} photo${PHOTOS.length>1?"s":""}</small></h2><div class="film">${PHOTOS.slice(0,30).map(p=>`<button class="ph" data-id="${p.id}"><img src="${esc(p.url)}" alt="${esc(p.caption||"")}" loading="lazy"><span class="cap">${p.leg?`Leg ${p.leg}`:""}${p.by?`, ${esc(p.by)}`:""}, ${photoAge(p)}${p.caption?`<b>${esc(p.caption)}</b>`:""}</span></button>`).join("")}</div></div>`; }
-function openPhoto(id){ const p=PHOTOS.find(x=>x.id===id); if(!p) return; if(EMBED){ window.open(FULL_URL+"#photo-"+id,"_blank","noopener"); return; } const ov=document.createElement("div"); ov.className="lightbox"; ov.innerHTML=`<img src="${esc(p.url)}" alt=""><div class="lb"><div><b>${p.leg?`Leg ${p.leg}`:""}${p.by?`, ${esc(p.by)}`:""}</b>, ${photoAge(p)}${p.caption?`<br>${esc(p.caption)}`:""}</div><button id="lbClose">Close</button></div>`;
+function galleryHtml(pre){ if(!PHOTOS.length) return "";
+  return `<div><h2><span>${pre?"From <em>the team</em>":"From <em>the road</em>"}</span><small>${PHOTOS.length} photo${PHOTOS.length>1?"s":""}</small></h2><div class="film">${PHOTOS.slice(0,30).map(p=>`<button class="ph" data-id="${p.id}"><img src="${esc(p.url)}" alt="${esc(p.caption||"")}" loading="lazy"><span class="cap">${[p.leg?`Leg ${p.leg}`:"", p.by?esc(p.by):"", photoAge(p)].filter(Boolean).join(", ")}${p.caption?`<b>${esc(p.caption)}</b>`:""}</span></button>`).join("")}</div></div>`; }
+function openPhoto(id){ const p=PHOTOS.find(x=>x.id===id); if(!p) return; if(EMBED){ window.open(FULL_URL+"#photo-"+id,"_blank","noopener"); return; } const ov=document.createElement("div"); ov.className="lightbox"; ov.innerHTML=`<img src="${esc(p.url)}" alt=""><div class="lb"><div><b>${[p.leg?`Leg ${p.leg}`:"", p.by?esc(p.by):""].filter(Boolean).join(", ")}</b>${p.leg||p.by?", ":""}${photoAge(p)}${p.caption?`<br>${esc(p.caption)}`:""}</div><button id="lbClose">Close</button></div>`;
   document.body.appendChild(ov); ov.querySelector("#lbClose").addEventListener("click",()=>ov.remove()); ov.querySelector("img").addEventListener("click",()=>ov.remove()); }
 let deepDone=false;
 function render(){ PUB=derive(RAW); applySkin(); if($("#runner").hidden) renderHome();

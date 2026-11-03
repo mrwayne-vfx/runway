@@ -4,8 +4,8 @@ Live tracking for the Shift & Play team at #RUNTOMTL, the 650 km Toronto to Mont
 
 Two pages:
 
-- **Crew tracker** – https://mrwayne-vfx.github.io/runway/ – for the team: current leg, runner tags, drive times, the RV planner, live position, cheers and photos. Installs to a phone's home screen and works offline.
-- **Friends page** – https://mrwayne-vfx.github.io/runway/follow.html – for family and friends: who's running, where the team is, each runner's legs, photos, and cheers back to the crew. Embedded on shiftandplay.com/ultra-relay#track.
+- **Crew tracker** – https://shift.narro.cloud/ (also https://mrwayne-vfx.github.io/runway/) – for the team: current leg, runner tags, drive times, the RV planner, live position, cheers and photos. Installs to a phone's home screen and works offline.
+- **Friends page** – https://shift.narro.cloud/friends (also https://mrwayne-vfx.github.io/runway/follow.html) – for family and friends: who's running, where the team is, each runner's legs, photos, and cheers back to the crew. Embedded on shiftandplay.com/ultra-relay#track.
 
 ## How it's built
 
@@ -66,9 +66,8 @@ Scripts in `supabase/`, in the order they were run: `supabase-setup.sql`, `supab
 
 ## Crew roles and links
 
-- Crew: `…/runway/?role=crew`
-- SUV driver: `…/runway/?role=suv`
-- RV driver: `…/runway/?role=rv`
-- Bike support: `…/runway/?role=bike`
+- Crew: `https://shift.narro.cloud/` (opens as Crew on Now)
+- SUV driver: `https://shift.narro.cloud/?role=suv`
+- RV driver: `https://shift.narro.cloud/?role=rv`
 
 The phone that rides with the runner taps **Track this phone** on the Tracker tab. For tracking with the screen off, that phone also runs OwnTracks, set up from the same tab.

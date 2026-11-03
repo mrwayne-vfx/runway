@@ -486,7 +486,14 @@ function driveEst(i){ const r=ROUTE(LEGS[i].n); if(r&&r.driveKm!=null) return {k
 
 // Directions carry both ends of the leg. Change the origin to "current location" inside the app if you're not at the exchange.
 const IS_MOBILE = /iPhone|iPad|Android/i.test(navigator.userAgent);
-const gmaps = (from,to,mode,via) => `https://www.google.com/maps/dir/?api=1&origin=${from[0]},${from[1]}&destination=${to[0]},${to[1]}&travelmode=${mode}${via&&via.length?"&waypoints="+via.map(p=>p[0]+","+p[1]).join("|"):""}`;
+const gmaps = (from,to,mode,via) => `https://www.google.com/maps/dir/?api=1&origin=${from[0]},${from[1]}&destination=${to[0]},${to[1]}&travelmode=${mode}${via&&via.length?"&waypoints="+via.map(p=>p[0]+","+p[1]).join("%7C"):""}`;
+// iPhone: open the Google Maps app directly with its own link (stops in order with "+to:"), so the route survives.
+// Going through google.com from the home-screen app loads the website first and the directions get lost on the hand-off.
+const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+const gmapsApp = (from,to,mode,via) => `comgooglemaps://?saddr=${from[0]},${from[1]}&daddr=${[...(via||[]),to].map(p=>p[0]+","+p[1]).join("+to:")}&directionsmode=${mode}`;
+document.addEventListener("click",e=>{ const a=e.target.closest&&e.target.closest("a[data-gapp]"); if(!a||!IS_IOS) return; e.preventDefault();
+  const web=a.href; let left=false; const off=()=>{ left=true; }; document.addEventListener("visibilitychange",off,{once:true});
+  location.href=a.dataset.gapp; setTimeout(()=>{ document.removeEventListener("visibilitychange",off); if(!left && !document.hidden) window.open(web,"_blank","noopener"); },1500); });
 // Pick the k points that most define the shape of a line (iterative farthest-point selection), returned in route order,
 // so Google's walking directions are pinned to the booklet route. Google allows 3 waypoints on phones, 9 on desktop.
 function shapePoints(line,k){ if(!line||line.length<3) return []; const chosen=[0,line.length-1]; const P=line.map(p=>[p[0]*110540,p[1]*111320*Math.cos(p[0]*Math.PI/180)]);
@@ -503,7 +510,7 @@ function navButtons(from,to,mode,line){
   const note = mode==="run"
     ? `Google opens walking directions pinned to the booklet route with ${via.length} waypoint${via.length===1?"":"s"} (phones allow 3, so Google may still shortcut a twisty leg; the map above is the authority). Apple and Waze take only the two ends.`
     : `Google and Apple open with both ends filled in; swap the origin for your location if you're not at the exchange. Waze takes only a destination.`;
-  return `<div class="navgrid"><a class="btn primary" href="${gmaps(from,to,g,via)}" target="_blank" rel="noopener">Google</a><a class="btn" href="${amaps(from,to,a)}" target="_blank" rel="noopener">Apple</a><a class="btn" href="${waze(to)}" target="_blank" rel="noopener">Waze</a></div>
+  return `<div class="navgrid"><a class="btn primary" href="${gmaps(from,to,g,via)}" data-gapp="${gmapsApp(from,to,g,via)}" target="_blank" rel="noopener">Google</a><a class="btn" href="${amaps(from,to,a)}" target="_blank" rel="noopener">Apple</a><a class="btn" href="${waze(to)}" target="_blank" rel="noopener">Waze</a></div>
   <div class="muted" style="font-size:12px;margin-top:6px">${note}</div>`;
 }
 

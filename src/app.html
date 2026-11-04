@@ -653,6 +653,7 @@ function renderLeg(){
   const isLast=i===N-1;
   let h = `<div class="stack">`;
   if (!S.startSet) h+=`<div class="alert">Race start not set. Times below assume a 9:00 PM start today. Set the real gun time in Setup.</div>`;
+  if (needsPreRaceReset()) h+=`<div class="alert warn" style="display:flex;gap:12px;align-items:center;justify-content:space-between"><span><b>Started before the gun?</b> Someone recorded a start${S.manualNow?" or picked a leg":""} before ${hm(new Date(RACE_START_REAL))}. This clears it for every phone and the friends page.</span><button class="btn primary" id="preRaceReset" style="flex:none">Reset to start</button></div>`;
   const lv=liveRunnerFor(i); const rn=runnerName(L.n); const person=PERSON(S.assign[L.n]); const word=person?person.word:"";
   const statusText = st==="now" ? (lv?`<em>Live</em>, position ${ageText(posAge(lv.r))}`:(act?`Current leg, started <b>${hm(new Date(act))}</b>`:"Current leg")) : st==="done" ? `Done${act?`, started <b>${hm(new Date(act))}</b>`:""}` : `Up next, planned <b>${dayhm(ps)}</b>`;
   h+=`<div class="status"><i class="${st}"></i><span>${statusText}${L.approx?", approx pin":""}${i!==cur?` <button class="lnk" id="jumpNow">Jump to now</button>`:""}</span></div>
@@ -700,6 +701,7 @@ function renderLeg(){
     <div class="pn"><button class="btn" id="prevLeg" ${i===0?"disabled":""}>‹ Leg ${i>0?LEGS[i-1].n:""}</button><button class="btn" id="nextLeg" ${isLast?"disabled":""}>Leg ${!isLast?LEGS[i+1].n:""} ›</button></div>
   </div></div>`;
   $("#v-leg").innerHTML = h;
+  $("#preRaceReset")?.addEventListener("click",()=>{ if(confirm("Clear every recorded start and go back to the 9:00 PM start, on all phones?")) preRaceReset(); });
   $("#v-leg").querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{ S.mode=b.dataset.mode; save(); renderLeg(); }));
   const go = idx => { S.viewLeg = LEGS[idx].n; save(); renderLeg(); $("main").scrollTop=0; };
   $("#prevLeg")?.addEventListener("click",()=>go(i-1));
@@ -1229,6 +1231,14 @@ function renderTrack(){ const me=amTracker(), row=trackerRow(); const who=S.trac
     if(p){ tLayer.addLayer(L.circleMarker(p,{radius:10,color:cssVar("--bg"),weight:3,fillColor:cssVar("--accent"),fillOpacity:1})); tmap.setView(p, Math.max(tmap.getZoom()||15,15)); } else tmap.fitBounds(L.latLngBounds(legLine(i,"run")),{padding:[20,20]}); } }
 // ---------- rehearsal: a pretend bike rides the route so the whole system can be tried before race day ----------
 const RACE_START_REAL = "2026-11-04T21:00";
+// Before the real gun, testers can record starts on the live team by accident. This undoes that for everyone:
+// clears the recorded starts and any leg override, and puts the gun back. It only shows (and only works) before the gun.
+function needsPreRaceReset(){ if(TEST || Date.now() >= new Date(RACE_START_REAL).getTime()) return false;
+  return Object.keys(S.actual).some(n=>S.actual[n]) || !!S.manualNow || S.raceStart!==RACE_START_REAL; }
+function preRaceReset(){ if(Date.now() >= new Date(RACE_START_REAL).getTime()) return;
+  Object.keys(S.actual).forEach(n=>setShared("actual."+n,()=>{ delete S.actual[n]; }));
+  setShared("manualNow",()=>{ S.manualNow=null; }); setShared("raceStart",()=>{ S.raceStart=RACE_START_REAL; S.startSet=true; });
+  S.viewLeg=null; autoAtEx=null; save(); render(); }
 const SIM_PACE = 5.5; // min per km, close to the booklet average
 let simTimer=null;
 function pointAlong(line, km){ let acc=0; for(let k=0;k<line.length-1;k++){ const d=hav(line[k],line[k+1]); if(acc+d>=km){ const t=d?(km-acc)/d:0; return [line[k][0]+(line[k+1][0]-line[k][0])*t, line[k][1]+(line[k+1][1]-line[k][1])*t]; } acc+=d; } return line[line.length-1]; }

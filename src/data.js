@@ -114,7 +114,7 @@ const LEGS = [
  ex:"Corner of Picton Main St and Washburn St (by KFC, Ultramar and McDonald's)",
  dirs:["4.8k: head east on Bloomfield Main St / ON-33 E toward Wights St","2.8k: at the roundabout go straight onto Loyalist Pkwy / ON-33; keep following ON-33","Exchange at Picton Main St and Washburn St (KFC, Ultramar, McDonald's)"],
  notes:[],drive:["Fuel up here (Ultramar). Next is the ferry; nothing between Picton and Bath."]},
-{n:26,name:"Mad Dash for the Ferry!",km:9.3,off:1381,approx:true,pt:[44.044,-77.054],
+{n:26,name:"Mad Dash for the Ferry!",km:9.3,off:1381,pt:[44.041612,-77.059188],
  ex:"Glenora ferry docks",
  dirs:["Head northeast on Main St W / Picton Main St, 750 m (past Tim Hortons and Acoustic Grill)","Turn right on Bridge St (signs for ON-33), 1.1K, until Bridge St becomes Loyalist Pkwy, 7.5K","Run right onto the ferry docks"],
  notes:["Lots of stores and restaurants on this leg for quick stops"],drive:["GLENORA FERRY. Free. Winter schedule: leaves Glenora at :00 and :30 from 6 AM to 1 AM, then nothing until 6 AM. Vehicle and runner cross together; the next leg starts on the Adolphustown side. Be at the dock before the runner so you don't miss a sailing."]},

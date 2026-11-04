@@ -47,7 +47,7 @@ if ("serviceWorker" in navigator) {
 standalone = head + hosted_body + sw_reg + "\n</body>\n</html>\n"
 dist = root/"dist"; dist.mkdir(exist_ok=True)
 (dist/"index.html").write_text(standalone)
-(dist/"sw.js").write_text("""const CACHE = "runway-v43";
+(dist/"sw.js").write_text("""const CACHE = "runway-v44";
 const ASSETS = ["./", "./index.html", "./sw.js", "./follow.html"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== "runway-tiles").map(k => caches.delete(k)))).then(() => self.clients.claim())); });

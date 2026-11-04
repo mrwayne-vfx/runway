@@ -273,13 +273,13 @@ const LEGS = [
  ex:"Parking lot at Parc St-Louis, Lachine",
  dirs:["Head northwest toward Chemin du Bord-du-Lac, 4 m","Turn right onto Chemin du Bord-du-Lac, 1.6 km","Continue onto Chemin Bord-du-Lac, 5 km","Turn right 30 m, keep right 0.5 km","Turn left 5 m","Turn right 0.5 km","Slight right 0.6 km","Keep following the main waterfront trail to the exchange at the Parc St-Louis parking lot"],
  notes:["Booklet gave these in miles; converted to km. Vague turns near the end: follow the shoreline path."],drive:["Bord-du-Lac through Dorval to Lachine. Parc Saint-Louis is on the lake at the foot of the Lachine Canal."]},
-{n:66,name:"Lachine Canal",km:11.7,off:3445,approx:true,pt:[45.479,-73.576],
+{n:66,name:"Lachine Canal",km:11.7,off:3445,pt:[45.47898,-73.57502],
  ex:"Corner of Avenue Atwater and Rue Charles-Biddle (Atwater Market)",
  dirs:["Head east on Boulevard Saint-Joseph (becomes Chemin du Musée), 2.3K","Turn left onto the Lachine Canal path","In 1.9K turn left to cross the canal, then a quick right to stay on the north side","In 4.9K turn right to cross the pedestrian bridge (just before a big highway bridge) back to the south side","Quick left to stay on the canal path","In 2.4K turn left to cross the pedestrian bridge to the north side","Run 100 m straight across the bridge","Transition zone at Avenue Atwater and Rue Charles-Biddle"],
  notes:[],drive:["Runner is on the canal path. Drive Saint-Joseph / Saint-Patrick or Notre-Dame east to Atwater Market."]},
-{n:67,name:"Mont Royal",km:10,off:3509,approx:true,pt:[45.5036,-73.5875],
- ex:"FINISH: Chalet du Mont-Royal lookout. Team joins at Lac aux Castors for the last stretch.",
- dirs:["Head north on Avenue Atwater","In 2.3K turn right on Avenue du Docteur-Penfield","In 180 m quick left on Chemin de la Côte-des-Neiges","In 80 m quick right on Avenue des Pins","In 1.7K veer left onto Avenue du Parc","Veer onto the Chemin Olmsted path and follow the main path up toward the lookout","At Lac aux Castors the rest of the team joins for the last part to the finish at the Chalet du Mont-Royal lookout"],
+{n:67,name:"Mont Royal",km:10,off:3509,pt:[45.50329,-73.58716],
+ ex:"FINISH: the Mont-Royal lookout by the Chalet. The official finish is 10 m before the edge of the lookout. Team joins at Lac aux Castors for the last stretch.",
+ dirs:["Start at the corner of Rue Charles-Biddle and Avenue Atwater; head up Atwater","Turn right on Avenue du Docteur-Penfield","Continue straight on Docteur-Penfield, crossing Côte-des-Neiges, to Rue McTavish","Turn left and go up McTavish to Avenue des Pins","Turn right on Avenue des Pins; safely cross to the north side (your left) and follow it until it veers left onto Avenue du Parc","Go left on Avenue du Parc up to the monument on your left","Take the wide dirt road, Chemin Olmsted, and follow the main road for 4+ km up to the lookout","Official finish: 10 m before the edge of the lookout"],
  notes:["POP THE CHAMPAGNE"],drive:["Park at the Lac aux Castors lot (Chemin Remembrance) and walk the team in to meet the runner."]}
 ];
 

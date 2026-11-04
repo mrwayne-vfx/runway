@@ -705,7 +705,7 @@ function renderLeg(){
   $("#prevLeg")?.addEventListener("click",()=>go(i-1));
   $("#nextLeg")?.addEventListener("click",()=>go(i+1));
   $("#jumpNow")?.addEventListener("click",()=>{ S.viewLeg=null; save(); renderLeg(); $("main").scrollTop=0; });
-  $("#markStart")?.addEventListener("click",()=>{ setShared("actual."+L.n,()=>{ S.actual[L.n]=toLocalISO(new Date()); }); setShared("manualNow",()=>{ S.manualNow=null; }); S.viewLeg=null; save(); renderLeg(); });
+  $("#markStart")?.addEventListener("click",()=>{ const gun=new Date(S.raceStart).getTime(); if(Date.now()<gun-30*60000 && !confirm(`The race starts at ${hm(new Date(gun))}. Record leg ${L.n} as started now anyway?`)) return; setShared("actual."+L.n,()=>{ S.actual[L.n]=toLocalISO(new Date()); }); setShared("manualNow",()=>{ S.manualNow=null; }); S.viewLeg=null; save(); renderLeg(); });
   $("#editStart")?.addEventListener("click",()=>{ $("#startEdit").hidden=false; });
   $("#startTime")?.addEventListener("change",e=>{ if(e.target.value) setShared("actual."+L.n,()=>{ S.actual[L.n]=e.target.value; }); renderLeg(); });
   $("#clearStart")?.addEventListener("click",()=>{ setShared("actual."+L.n,()=>{ delete S.actual[L.n]; }); renderLeg(); });
@@ -1041,7 +1041,10 @@ let myDot2=null;
 // Auto-start from the bike: seen at the exchange, then moving off along the next leg's route, means the next runner is out.
 // The start is recorded at the last moment the bike was at the exchange. Crew can still tap Start or correct it.
 let autoAtEx=null;
-function autoStart(fix, fromTracker){ if(!(fromTracker || S.me.kind==="bike" || amTracker()) || (S.sim&&S.sim.on)) return; const cur=currentIndex(); if(cur>=N-1) return;
+function autoStart(fix, fromTracker){ if(!(fromTracker || S.me.kind==="bike" || amTracker()) || (S.sim&&S.sim.on)) return;
+  // Never before the gun: a tracking phone near exchange 1 before the race used to record a leg 2 start.
+  if(Date.now() < new Date(S.raceStart).getTime()) return;
+  const cur=currentIndex(); if(cur>=N-1) return;
   const p=[fix.coords.latitude,fix.coords.longitude], t=fix.timestamp||Date.now(); const ex=LEGS[cur].pt; const nxt=LEGS[cur+1];
   if(S.actual[nxt.n]) { autoAtEx=null; return; }
   const act=S.actual[LEGS[cur].n]; if(act){ const planned=(plannedStart(cur+1)-plannedStart(cur)); if(t-new Date(act) < planned*0.4) return; }

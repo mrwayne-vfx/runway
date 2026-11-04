@@ -280,7 +280,7 @@ function raceStart(){ return new Date((RAW&&RAW.race_start)||RACE_START_DEFAULT)
 function splashHtml(){ const rs=raceStart(); const assign=(RAW&&RAW.legs&&RAW.legs.assign)||{}; const first=byName(assign[1]);
   const when=`${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][rs.getDay()]} ${rs.toLocaleString(undefined,{month:"long"})} ${rs.getDate()}, ${rs.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}`;
   return `<div class="hero"><div class="glowbg"></div><div class="ringwrap">${ringSvg(290)}<div class="portrait countdown"><div class="cdD"><b id="cdD">–</b><small id="cdDl">days</small></div><div class="cdT" id="cdT">--:--:--</div></div><div class="legtag"><small>LEG</small>1</div></div>
-    <h1>Ready<span>to run</span></h1><div class="word">Toronto to Montréal</div><div class="sub">${esc(when)}, from the TORONTO sign</div></div>
+    <h1>Ready<span>to run</span></h1><div class="word">Toronto to Montréal</div><div class="sub">${esc(when)}, from ${esc(RACE.startShort||"Toronto")}</div></div>
     <div class="stats"><div class="stat"><div class="v">650<small>km</small></div><div class="k">on foot</div></div><div class="stat hot"><div class="v">67</div><div class="k">legs, day and night</div></div><div class="stat"><div class="v">10</div><div class="k">runners, one team</div></div></div>
     ${schematicSvg({noPos:true})}
     <div><h2><span>Meet <em>the team</em></span><small>${first?`${esc(first.name.split(" ")[0])} runs first`:"tap a runner"}</small></h2>${stripHtml()}</div>
@@ -314,7 +314,7 @@ function renderHome(){
   const t=byName(who);
   let hero;
   if(PUB.finished){ liveTag(true,"Finished"); hero=`<div class="ringwrap">${ringSvg(290)}<div class="portrait"><img class="logo n" src="SP_WHITE" alt=""><img class="logo d" src="SP_BLACK" alt=""></div></div><h1>We made it<span>Montréal</span></h1><div class="word">${km1(totalKm)} km, 67 legs, one team</div><div class="sub">Finished ${dayhm(new Date(PUB.eta_finish))} at the Chalet du Mont-Royal.</div>`; }
-  else if(!PUB.started){ liveTag(false,"Soon"); hero=`<div class="ringwrap">${ringSvg(290)}<div class="portrait">${t?face(t):"67"}</div><div class="legtag"><small>LEG</small>1</div></div><h1>${t?esc(t.name):"The team"}<span>goes first</span></h1>${t&&t.word?`<div class="word">${esc(t.word)}</div>`:""}<div class="sub">Gun goes <b>${dayhm(new Date(PUB.race_start))}</b> at the TORONTO sign.</div>`; }
+  else if(!PUB.started){ liveTag(false,"Soon"); hero=`<div class="ringwrap">${ringSvg(290)}<div class="portrait">${t?face(t):"67"}</div><div class="legtag"><small>LEG</small>1</div></div><h1>${t?esc(t.name):"The team"}<span>goes first</span></h1>${t&&t.word?`<div class="word">${esc(t.word)}</div>`:""}<div class="sub">Gun goes <b>${dayhm(new Date(PUB.race_start))}</b> on ${esc(RACE.startShort||"the start line")}.</div>`; }
   else { liveTag(true,"Live"); hero=`<div class="ringwrap">${ringSvg(290)}<div class="portrait">${t?face(t):"🏃"}</div><div class="legtag"><small>LEG</small>${PUB.leg}</div></div><h1>${esc(who||"The team")}<span>is running</span></h1>${t&&t.word?`<div class="word">${esc(t.word)}</div>`:""}<div class="sub">${esc(L_.name)}, ${km1(L_.km)} km.${PUB.next_runner?` Next up <b>${esc(PUB.next_runner)}</b>.`:""}</div>`; }
   const tDate = new Date(PUB.finished ? PUB.eta_finish : !PUB.started ? PUB.race_start : PUB.eta_finish), tLabel = PUB.finished ? "finished" : !PUB.started ? "starts" : "finish about";
   const html=`${tickerHtml()}<div class="hero"><div class="glowbg"></div>${hero}</div>

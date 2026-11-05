@@ -85,6 +85,13 @@ h2 em{font-style:normal;color:var(--accent)}h2 small{font-family:var(--f);text-t
 .film{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 4px}.film::-webkit-scrollbar{display:none}
 .ph{flex:none;width:72%;position:relative;aspect-ratio:4/5;overflow:hidden;border-radius:10px;background:var(--soft);padding:0;display:block;text-align:left}
 .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph.more{width:40%;display:flex;align-items:center;justify-content:center;text-align:center;font-family:var(--d);font-weight:900;font-size:22px;line-height:1;color:var(--fg);border:2px solid var(--fg);background:transparent}
+.allph{position:fixed;inset:0;z-index:890;background:var(--bg);color:var(--fg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.allph .bar{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;background:var(--bg);border-bottom:2px solid var(--fg);font-family:var(--d);font-weight:900;font-size:22px}
+.allph .bar button{border:2px solid var(--fg);border-radius:10px;padding:8px 12px;font-weight:500;color:var(--fg);background:transparent}
+.allph .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:3px 3px calc(20px + env(safe-area-inset-bottom,0px))}
+.allph .grid button{aspect-ratio:1;padding:0;overflow:hidden;background:var(--soft);display:block}
+.allph .grid img{width:100%;height:100%;object-fit:cover;display:block}
 .ph .cap{position:absolute;left:0;right:0;bottom:0;padding:30px 12px 10px;font-size:12px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.8))}.ph .cap b{display:block;font-size:15px;font-weight:600}
 .lightbox{position:fixed;inset:0;z-index:900;background:#000;display:flex;flex-direction:column}
 .lightbox img{flex:1;min-height:0;object-fit:contain;width:100%}
@@ -330,7 +337,7 @@ function renderHome(){
 const once=(el,ev,fn)=>{ if(!el) return; const k="__w_"+ev; if(el[k]) return; el[k]=1; el.addEventListener(ev,fn); };
 function wireHome(){
   once($("#homeBody .posdot"),"click",openMap);
-  document.querySelectorAll("#homeBody .ph").forEach(b=>once(b,"click",()=>openPhoto(+b.dataset.id)));
+  document.querySelectorAll("#homeBody .ph:not(.more)").forEach(b=>once(b,"click",()=>openPhoto(+b.dataset.id))); once($("#seeAll"),"click",openAll);
   document.querySelectorAll("#homeBody .pm").forEach(b=>once(b,"click",()=>{ openRunner(b.dataset.name); }));
   document.querySelectorAll("#cheers button").forEach(b=>once(b,"click",()=>send(b.dataset.e,"",b)));
   const mi=$("#msgIn"), sm=$("#sendMsg"); if(mi&&sm){ once(mi,"input",()=>{ sm.disabled=!mi.value.trim(); }); once(sm,"click",()=>{ const m=$("#msgIn"); const txt=m.value.trim(); if(!txt) return; send(lastEmoji||"❤️",txt,null); m.value=""; $("#sendMsg").disabled=true; }); }
@@ -415,12 +422,14 @@ function derive(raw){ if(!raw||!raw.started||raw.finished) return raw;
 function kmBeforeF(i){ let s=0; for(let k=0;k<i;k++) s+=LEGS[k].km; return s; }
 const photoAge=p=>ageText((Date.now()-new Date(p.at))/1000);
 function galleryHtml(pre){ if(!PHOTOS.length) return "";
-  return `<div><h2><span>${pre?"From <em>the team</em>":"From <em>the road</em>"}</span><small>${PHOTOS.length} photo${PHOTOS.length>1?"s":""}</small></h2><div class="film">${PHOTOS.slice(0,30).map(p=>`<button class="ph" data-id="${p.id}"><img src="${esc(p.url)}" alt="${esc(p.caption||"")}" loading="lazy"><span class="cap">${[p.leg?`Leg ${p.leg}`:"", p.by?esc(p.by):"", photoAge(p)].filter(Boolean).join(", ")}${p.caption?`<b>${esc(p.caption)}</b>`:""}</span></button>`).join("")}</div></div>`; }
+  return `<div><h2><span>${pre?"From <em>the team</em>":"From <em>the road</em>"}</span><small>${PHOTOS.length} photo${PHOTOS.length>1?"s":""}</small></h2><div class="film">${PHOTOS.slice(0,30).map(p=>`<button class="ph" data-id="${p.id}"><img src="${esc(p.url)}" alt="${esc(p.caption||"")}" loading="lazy"><span class="cap">${[p.leg?`Leg ${p.leg}`:"", p.by?esc(p.by):"", photoAge(p)].filter(Boolean).join(", ")}${p.caption?`<b>${esc(p.caption)}</b>`:""}</span></button>`).join("")}${PHOTOS.length>30?`<button class="ph more" id="seeAll">See all<br>${PHOTOS.length}</button>`:""}</div></div>`; }
+function openAll(){ if(EMBED){ window.open(FULL_URL+"#photos","_blank","noopener"); return; } if($(".allph")) return; const ov=document.createElement("div"); ov.className="allph"; ov.innerHTML=`<div class="bar"><span>${PHOTOS.length} photos from the road</span><button id="allClose">Close</button></div><div class="grid">${PHOTOS.map(p=>`<button data-id="${p.id}"><img src="${esc(p.url)}" alt="${esc(p.caption||"")}" loading="lazy"></button>`).join("")}</div>`;
+  document.body.appendChild(ov); ov.querySelector("#allClose").addEventListener("click",()=>ov.remove()); ov.querySelectorAll(".grid button").forEach(b=>b.addEventListener("click",()=>openPhoto(+b.dataset.id))); }
 function openPhoto(id){ const p=PHOTOS.find(x=>x.id===id); if(!p) return; if(EMBED){ window.open(FULL_URL+"#photo-"+id,"_blank","noopener"); return; } const ov=document.createElement("div"); ov.className="lightbox"; ov.innerHTML=`<img src="${esc(p.url)}" alt=""><div class="lb"><div><b>${[p.leg?`Leg ${p.leg}`:"", p.by?esc(p.by):""].filter(Boolean).join(", ")}</b>${p.leg||p.by?", ":""}${photoAge(p)}${p.caption?`<br>${esc(p.caption)}`:""}</div><button id="lbClose">Close</button></div>`;
   document.body.appendChild(ov); ov.querySelector("#lbClose").addEventListener("click",()=>ov.remove()); ov.querySelector("img").addEventListener("click",()=>ov.remove()); }
 let deepDone=false;
 function render(){ PUB=derive(RAW); applySkin(); if($("#runner").hidden) renderHome();
-  if(!deepDone && PUB){ const h=location.hash; if(h==="#map"&&PUB.started){ deepDone=true; openMap(); } else if(h.startsWith("#photo-")&&PHOTOS.length){ deepDone=true; openPhoto(+h.slice(7)); } } }
+  if(!deepDone && PUB){ const h=location.hash; if(h==="#map"&&PUB.started){ deepDone=true; openMap(); } else if(h.startsWith("#photo-")&&PHOTOS.length){ deepDone=true; openPhoto(+h.slice(7)); } else if(h==="#photos"&&PHOTOS.length){ deepDone=true; openAll(); } } }
 async function pull(){ if(!sb){ render(); return; } try{
   const {data,error}=await sb.from("runway_public").select("*").eq("team",TEAM.team).maybeSingle(); if(!error) RAW=data||null;
   // light polling: the summary every 30 s; cheers and photos every 2 min (live updates arrive in between by realtime)
@@ -431,7 +440,7 @@ async function pullCheersAndPhotos(){ try{
   const n={}; await Promise.all(EMOJI.map(async e=>{ const {count,error}=await sb.from("runway_cheers").select("id",{count:"exact",head:true}).eq("team",TEAM.team).eq("emoji",e); if(!error) n[e]=count||0; }));
   if(Object.keys(n).length) counts=n;
   const {data:ch}=await sb.from("runway_cheers").select("emoji,name,msg,at").eq("team",TEAM.team).or("name.not.is.null,msg.not.is.null").order("at",{ascending:false}).limit(60); if(ch) recent=ch;
-  const {data:ph}=await sb.from("runway_photos").select("id,url,leg,by,caption,at").eq("team",TEAM.team).order("at",{ascending:false}).limit(60); if(ph) PHOTOS=ph; }catch(e){} }
+  const {data:ph}=await sb.from("runway_photos").select("id,url,leg,by,caption,at").eq("team",TEAM.team).order("at",{ascending:false}).limit(200); if(ph) PHOTOS=ph; }catch(e){} }
 pull(); setInterval(pull,30000); setInterval(applySkin,60000);
 // New version published? Reload on its own if the reader isn't typing or looking at a photo or map; otherwise offer it.
 async function checkUpdate(){ try{ const r=await fetch(location.pathname+"?v="+Date.now(),{cache:"no-store"}); const txt=await r.text(); const m=txt.match(/const BUILD = "([^"]+)"/);

@@ -1316,7 +1316,16 @@ function mergeRemote(r){ if(!r||!r.stamps) return false; let changed=false, mine
       else if(k.startsWith("actual.")){ const n=k.slice(7); if(r.actual&&r.actual[n]) S.actual[n]=r.actual[n]; else delete S.actual[n]; }
       else if(k.startsWith("assign.")){ const n=k.slice(7); if(r.assign&&r.assign[n]) S.assign[n]=r.assign[n]; else delete S.assign[n]; } }
     else if(ls>rs) mineNewer=true; });
-  if(changed){ normalizeRoster(); save(); render(); } if(mineNewer && !inPush) schedulePush(); return changed; }
+  if(changed){ normalizeRoster(); save(); render(); } if(mineNewer && !inPush) schedulePush(); setTimeout(raceNightFix,0); return changed; }
+// Race night, Nov 4: a start was recorded on the wrong leg at the gun. No leg after leg 1 can really start before 9:35 PM,
+// so any such start is removed, and leg 1 keeps that tap's time if leg 1 itself has none. Runs on any open crew phone and syncs to all.
+const BOGUS_BEFORE = new Date("2026-11-04T21:35:00-05:00").getTime();
+function raceNightFix(){ if(TEST) return;
+  const bad=Object.keys(S.actual).filter(n=>+n>=2 && S.actual[n] && new Date(S.actual[n]).getTime()<BOGUS_BEFORE); if(!bad.length) return;
+  const t=Math.min(...bad.map(n=>new Date(S.actual[n]).getTime()));
+  if(!S.actual[1]) setShared("actual.1",()=>{ S.actual[1]=toLocalISO(new Date(t)); });
+  bad.forEach(n=>setShared("actual."+n,()=>{ delete S.actual[n]; }));
+  setShared("manualNow",()=>{ S.manualNow=null; }); S.viewLeg=null; save(); render(); lastPublic=0; try{ pushPublic(); }catch(e){} }
 async function loadSb(){ if(window.supabase) return true; return new Promise(res=>{ const sc=document.createElement("script"); sc.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"; sc.onload=()=>res(true); sc.onerror=()=>res(false); document.head.appendChild(sc); }); }
 async function startSync(){ stopSync(); if(!HAS_L||!S.sync.url||!S.sync.key||!S.sync.team) return; setSyncState("connecting");
   if(!(await loadSb())){ setSyncState("offline"); setTimeout(startSync,30000); return; }

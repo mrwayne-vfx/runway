@@ -104,7 +104,7 @@ h2 em{font-style:normal;color:var(--accent)}h2 small{font-family:var(--f);text-t
 .msg .send{background:var(--accent);color:var(--onacc);border-radius:10px;padding:0 18px;font-weight:700}.msg .send:disabled{opacity:.4}
 input::placeholder{color:var(--mute)}
 .muted{color:var(--mute);font-size:13px}
-.feed{margin:12px 0 0;padding:0;list-style:none}.feed li{display:grid;grid-template-columns:30px 1fr auto;gap:8px;align-items:baseline;padding:8px 0;border-top:1px solid var(--dim);font-size:15px}
+.feed{margin:12px 0 0;padding:0 2px 0 0;list-style:none;max-height:410px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:thin}.feed li{display:grid;grid-template-columns:30px 1fr auto;gap:8px;align-items:baseline;padding:8px 0;border-top:1px solid var(--dim);font-size:15px}
 .feed .e{width:24px;height:24px;display:block;align-self:center;--sprite-ink:var(--fg)}.feed .w{color:var(--mute);font-size:12px;white-space:nowrap}.feed q{quotes:none;display:block;color:var(--mute)}.feed .nm{font-weight:600}
 
 /* social */
@@ -266,7 +266,7 @@ function cheersHtml(pre){ let nm=""; try{ nm=localStorage.getItem("runway.cheerN
     <div class="msg"><input id="msgIn" placeholder="${pre?"A few words for the team":"A few words for the runner"}" maxlength="80"><button class="send" id="sendMsg" disabled>Send</button></div>
     <div class="name"><input id="nm" placeholder="Your name, if you want them to know" maxlength="24" value="${esc(nm)}"></div>
     <div class="muted" id="status" style="margin-top:8px">Tap one to send it; add words if you like.</div>
-    ${recent.length?`<ul class="feed">${recent.slice(0,6).map(r=>`<li><span class="e">${spr(r.emoji)}</span><span>${r.name?`<span class="nm">${esc(r.name)}</span>`:`<span class="muted">someone</span>`}${r.msg?`<q>${esc(r.msg)}</q>`:""}</span><span class="w">${ageText((Date.now()-new Date(r.at))/1000)}</span></li>`).join("")}</ul>`:""}</div>`; }
+    ${recent.length?`<ul class="feed" id="feed">${recent.slice(0,60).map(r=>`<li><span class="e">${spr(r.emoji)}</span><span>${r.name?`<span class="nm">${esc(r.name)}</span>`:`<span class="muted">someone</span>`}${r.msg?`<q>${esc(r.msg)}</q>`:""}</span><span class="w">${ageText((Date.now()-new Date(r.at))/1000)}</span></li>`).join("")}</ul>`:""}</div>`; }
 function socialHtml(){ return `<div class="social"><img class="rt" src="RUNTOMTL_PNG" alt="#RUNTOMTL The Runway"><div class="links">
     <a href="https://www.instagram.com/shiftandplayrelay/" target="_blank" rel="noopener">${IG}<span>@shiftandplayrelay<small>the relay team</small></span></a>
     <a href="https://www.instagram.com/runtomtl/" target="_blank" rel="noopener">${IG}<span>@runtomtl<small>the race</small></span></a></div>
@@ -295,14 +295,14 @@ function tickCountdown(){ const upd=()=>{ const d=raceStart()-Date.now(); const 
   upd(); if(!cdTimer) cdTimer=setInterval(upd,1000); }
 // ---- home ----
 let homeFirst=true;
-function patchHome(el, html){ const keep={msg:$("#msgIn")?.value||"", nm:$("#nm")?.value, focus:document.activeElement&&document.activeElement.id, film:$(".film")?.scrollLeft||0, strip:$("#strip")?.scrollLeft||0};
+function patchHome(el, html){ const keep={msg:$("#msgIn")?.value||"", nm:$("#nm")?.value, focus:document.activeElement&&document.activeElement.id, film:$(".film")?.scrollLeft||0, strip:$("#strip")?.scrollLeft||0, feed:$("#feed")?.scrollTop||0};
   const tmp=document.createElement("div"); tmp.innerHTML=html; const nw=[...tmp.children], old=[...el.children];
   if(homeFirst || nw.length!==old.length){ el.innerHTML=""; nw.forEach(c=>el.appendChild(c)); }
   else nw.forEach((c,k)=>{ if(old[k].outerHTML!==c.outerHTML) el.replaceChild(c,old[k]); });
   wireHome();
   if($("#msgIn")){ $("#msgIn").value=keep.msg; $("#sendMsg").disabled=!keep.msg.trim(); } if(keep.nm!=null&&$("#nm")) $("#nm").value=keep.nm;
   if(keep.focus&&$("#"+keep.focus)) $("#"+keep.focus).focus({preventScroll:true});
-  if($(".film")) $(".film").scrollLeft=keep.film;
+  if($(".film")) $(".film").scrollLeft=keep.film; if($("#feed")) $("#feed").scrollTop=keep.feed;
   if(homeFirst){ const on=el.querySelector(".pm.on"); if(on&&$("#strip")) $("#strip").scrollLeft=on.offsetLeft-$("#strip").clientWidth/2+on.clientWidth/2; homeFirst=false; } else if($("#strip")) $("#strip").scrollLeft=keep.strip; }
 function renderHome(){
   const el=$("#homeBody");
@@ -430,7 +430,7 @@ let pullN=0;
 async function pullCheersAndPhotos(){ try{
   const n={}; await Promise.all(EMOJI.map(async e=>{ const {count,error}=await sb.from("runway_cheers").select("id",{count:"exact",head:true}).eq("team",TEAM.team).eq("emoji",e); if(!error) n[e]=count||0; }));
   if(Object.keys(n).length) counts=n;
-  const {data:ch}=await sb.from("runway_cheers").select("emoji,name,msg,at").eq("team",TEAM.team).or("name.not.is.null,msg.not.is.null").order("at",{ascending:false}).limit(20); if(ch) recent=ch;
+  const {data:ch}=await sb.from("runway_cheers").select("emoji,name,msg,at").eq("team",TEAM.team).or("name.not.is.null,msg.not.is.null").order("at",{ascending:false}).limit(60); if(ch) recent=ch;
   const {data:ph}=await sb.from("runway_photos").select("id,url,leg,by,caption,at").eq("team",TEAM.team).order("at",{ascending:false}).limit(60); if(ph) PHOTOS=ph; }catch(e){} }
 pull(); setInterval(pull,30000); setInterval(applySkin,60000);
 // New version published? Reload on its own if the reader isn't typing or looking at a photo or map; otherwise offer it.

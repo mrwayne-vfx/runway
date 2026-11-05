@@ -497,11 +497,14 @@ const amaps = (from,to,flag) => `https://maps.apple.com/?saddr=${from[0]},${from
 const waze = pt => `https://waze.com/ul?ll=${pt[0]},${pt[1]}&navigate=yes`; // Waze links take a destination only
 const pin = pt => `https://www.google.com/maps/search/?api=1&query=${pt[0]},${pt[1]}`;
 // Three nav apps, origin + destination preset. mode "run" = walking, "drive" = driving.
-function navButtons(from,to,mode,line){
+// Trial: on these legs phones get 8 points along the route instead of 3, so Google stays on our line (each point is a stop in Google Maps).
+const MANY_STOPS = new Set([4]);
+function navButtons(from,to,mode,line,legN){
   const g=mode==="run"?"walking":"driving", a=mode==="run"?"w":"d";
-  const via = mode==="run" ? shapePoints(line, IS_MOBILE?3:9) : [];
+  const many = MANY_STOPS.has(legN);
+  const via = mode==="run" ? shapePoints(line, IS_MOBILE?(many?8:3):9) : [];
   const note = mode==="run"
-    ? `Google opens walking directions pinned to the booklet route with ${via.length} waypoint${via.length===1?"":"s"} (phones allow 3, so Google may still shortcut a twisty leg; the map above is the authority). Apple and Waze take only the two ends.`
+    ? (many ? `Google opens walking directions with ${via.length} stops along our route, so it stays on our line. Google will say "arrived at stop" at each one: tap to continue. Apple and Waze take only the two ends.` : `Google opens walking directions pinned to the booklet route with ${via.length} waypoint${via.length===1?"":"s"} (phones allow 3, so Google may still shortcut a twisty leg; the map above is the authority). Apple and Waze take only the two ends.`)
     : `Google and Apple open with both ends filled in; swap the origin for your location if you're not at the exchange. Waze takes only a destination.`;
   return `<div class="navgrid"><a class="btn primary" href="${gmaps(from,to,g,via)}" data-gapp="${gmapsApp(from,to,g,via)}" target="_blank" rel="noopener">Google</a><a class="btn" href="${amaps(from,to,a)}" target="_blank" rel="noopener">Apple</a><a class="btn" href="${waze(to)}" target="_blank" rel="noopener">Waze</a></div>
   <div class="muted" style="font-size:12px;margin-top:6px">${note}</div>`;
@@ -678,7 +681,7 @@ function renderLeg(){
     <div><h2>Directions</h2><ol class="steps">${L.dirs.map((d,k)=>`<li${k===L.dirs.length-1?' class="final"':''}>${esc(d)}</li>`).join("")}</ol>${legSteps(i).length?`<details class="turnsbox"><summary>Turn by turn, ${legSteps(i).length} turns on the map</summary><ol class="turns">${legSteps(i).map((s,k)=>`<li><span class="tn">${k+1}</span><span>${esc(stepText(s))}</span><span class="td">${s[4]>=1000?km1(s[4]/1000)+" km":s[4]+" m"}</span></li>`).join("")}</ol></details>`:""}</div>
     <div class="card accent"><div class="point"><div class="dot end"></div><div><div class="lbl">${isLast?"Finish":"Exchange"}</div><p>${esc(L.ex)}</p><div class="coords">${L.pt.join(", ")}${L.approx?" · approx":""}</div></div></div></div>
     ${L.notes.length?`<div><h2>Runner notes</h2><ul class="notes">${L.notes.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></div>`:""}
-    <div><h2>Run route, start to exchange</h2>${navButtons(startPt(i),L.pt,"run",legLine(i,"run"))}</div>
+    <div><h2>Run route, start to exchange</h2>${navButtons(startPt(i),L.pt,"run",legLine(i,"run"),L.n)}</div>
     ${gpxButtons(i)}`;
   } else {
     h+=`<div class="card"><div class="point"><div class="dot"></div><div><div class="lbl">From · exchange ${i===0?"start":L.n-1}</div><p>${esc(startLabel(i))}</p></div></div>
@@ -786,7 +789,7 @@ function mapFooter(i,mode){
     h += `<div class="card"><div class="point"><div class="dot"></div><div><div class="lbl">Start</div><p>${esc(startLabel(i))}</p></div></div><div style="height:10px"></div><div class="point"><div class="dot end"></div><div><div class="lbl">${i===N-1?"Finish":"Exchange "+L_.n}</div><p>${esc(L_.ex)}</p></div></div></div>`;
     if (r && r.run) h += `<div class="muted" style="font-size:13px">Routed length ${km1(r.runKm)} km (booklet ${km1(L_.km)} km). ${Math.abs(r.runKm-L_.km)/L_.km>0.12?"The routed line differs from the booklet distance; use the written directions as the authority on this leg.":"Matches the booklet closely."}</div>`;
     if (steps.length) h += `<div><h2>Turns along the routed line</h2><ol class="turns">${steps.map((s,k)=>`<li><span class="tn">${k+1}</span><span>${esc(stepText(s))}</span><span class="td">${s[4]>=1000?km1(s[4]/1000)+" km":s[4]+" m"}</span></li>`).join("")}</ol><p class="muted" style="font-size:12px;margin:8px 0 0">Turn markers come from the routed line and match the numbers on the map; the distance is how far to the next turn. The booklet directions in the Leg tab stay the authority on street names.</p></div>`;
-    h += `<div><h2>Open the run route</h2>${navButtons(from,to,"run",legLine(i,"run"))}</div>`;
+    h += `<div><h2>Open the run route</h2>${navButtons(from,to,"run",legLine(i,"run"),LEGS[i].n)}</div>`;
   } else {
     h += `<div class="card"><div class="point"><div class="dot"></div><div><div class="lbl">Leave from exchange ${i===0?"start":L_.n-1}</div><p>${esc(startLabel(i))}</p></div></div><div style="height:10px"></div><div class="point"><div class="dot end"></div><div><div class="lbl">Meet runner at exchange ${L_.n}</div><p>${esc(L_.ex)}</p></div></div></div>
       <div class="stats"><div class="stat"><div class="k">Drive</div><div class="v">${Math.round(de.km)}<small> km</small></div></div><div class="stat"><div class="k">Drive time</div><div class="v">${Math.round(de.min)}<small> min</small></div></div><div class="stat"><div class="k">Slack</div><div class="v" style="color:${((projEnd(i)-projStart(i))/60000-de.min)<10?'var(--bad)':((projEnd(i)-projStart(i))/60000-de.min)<20?'var(--warn)':'var(--ok)'}">${Math.round((projEnd(i)-projStart(i))/60000-de.min)}<small> min</small></div></div></div>

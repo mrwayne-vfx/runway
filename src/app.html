@@ -707,7 +707,9 @@ function renderLeg(){
   $("#prevLeg")?.addEventListener("click",()=>go(i-1));
   $("#nextLeg")?.addEventListener("click",()=>go(i+1));
   $("#jumpNow")?.addEventListener("click",()=>{ S.viewLeg=null; save(); renderLeg(); $("main").scrollTop=0; });
-  $("#markStart")?.addEventListener("click",()=>{ const gun=new Date(S.raceStart).getTime(); if(Date.now()<gun-30*60000 && !confirm(`The race starts at ${hm(new Date(gun))}. Record leg ${L.n} as started now anyway?`)) return; setShared("actual."+L.n,()=>{ S.actual[L.n]=toLocalISO(new Date()); }); setShared("manualNow",()=>{ S.manualNow=null; }); S.viewLeg=null; save(); renderLeg(); });
+  $("#markStart")?.addEventListener("click",()=>{ const gun=new Date(S.raceStart).getTime(); if(Date.now()<gun-30*60000 && !confirm(`The race starts at ${hm(new Date(gun))}. Record leg ${L.n} as started now anyway?`)) return;
+    // Starting a leg other than the next one (e.g. the screen was left on a leg you were browsing) asks first.
+    { const c=currentIndex(), expect=(S.actual[LEGS[c].n]? c+1 : c); if(i!==expect && i!==c && !confirm(`The team is on leg ${LEGS[c].n}. Record leg ${L.n} as started now? (Usually you'd start leg ${LEGS[Math.min(N-1,expect)].n}.)`)) return; } setShared("actual."+L.n,()=>{ S.actual[L.n]=toLocalISO(new Date()); }); setShared("manualNow",()=>{ S.manualNow=null; }); S.viewLeg=null; save(); renderLeg(); });
   $("#editStart")?.addEventListener("click",()=>{ $("#startEdit").hidden=false; });
   $("#startTime")?.addEventListener("change",e=>{ if(e.target.value) setShared("actual."+L.n,()=>{ S.actual[L.n]=e.target.value; }); renderLeg(); });
   $("#clearStart")?.addEventListener("click",()=>{ setShared("actual."+L.n,()=>{ delete S.actual[L.n]; }); renderLeg(); });
@@ -1339,6 +1341,7 @@ setInterval(()=>{ if(sb&&!document.hidden) pullOnce(); },60000);
 // Roles are gone: every phone is the same crew app and opens on Now. Old role links (?role=…) just open the app.
 try{ if(new URLSearchParams(location.search).has("role")) history.replaceState(null,"",location.pathname+location.hash); }catch(e){}
 if(S.me.kind!=="crew"){ S.me.kind="crew"; S.roleSet=true; S.mode="run"; save(); }
+S.viewLeg=null;
 // A share link carries the team settings in ?sync=…
 try{ const q=new URLSearchParams(location.search).get("sync"); if(q){ const cfg=JSON.parse(atob(q)); if(cfg&&cfg.url){ S.sync=cfg; save(); history.replaceState(null,"",location.pathname+location.hash); } } }catch(e){}
 

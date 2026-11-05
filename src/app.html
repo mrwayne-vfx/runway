@@ -489,6 +489,12 @@ document.addEventListener("click",e=>{ const a=e.target.closest&&e.target.closes
   location.href=a.dataset.gapp; setTimeout(()=>{ document.removeEventListener("visibilitychange",off); if(!left && !document.hidden) window.open(web,"_blank","noopener"); },1500); });
 // Pick the k points that most define the shape of a line (iterative farthest-point selection), returned in route order,
 // so Google's walking directions are pinned to the booklet route. Google allows 3 waypoints on phones, 9 on desktop.
+// k points spaced evenly by distance along the line (not at the corners), so Google is pinned all the way along, trails included.
+function evenPoints(line,k){ if(!line||line.length<2) return []; const cum=[0]; for(let i=1;i<line.length;i++) cum.push(cum[i-1]+hav(line[i-1],line[i]));
+  const tot=cum[cum.length-1], out=[]; let j=1;
+  for(let q=1;q<=k;q++){ const t=tot*q/(k+1); while(j<cum.length-1 && cum[j]<t) j++; const a=line[j-1], b=line[j], f=(t-cum[j-1])/((cum[j]-cum[j-1])||1);
+    out.push([+(a[0]+(b[0]-a[0])*f).toFixed(5), +(a[1]+(b[1]-a[1])*f).toFixed(5)]); }
+  return out; }
 function shapePoints(line,k){ if(!line||line.length<3) return []; const chosen=[0,line.length-1]; const P=line.map(p=>[p[0]*110540,p[1]*111320*Math.cos(p[0]*Math.PI/180)]);
   const segd=(p,a,b)=>{ const dx=b[0]-a[0],dy=b[1]-a[1]; const L2=dx*dx+dy*dy; const t=L2?Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2)):0; return Math.hypot(p[0]-a[0]-dx*t,p[1]-a[1]-dy*t); };
   while(chosen.length-2<k){ chosen.sort((a,b)=>a-b); let best=-1,bd=0; for(let c=0;c<chosen.length-1;c++){ for(let j=chosen[c]+1;j<chosen[c+1];j++){ const d=segd(P[j],P[chosen[c]],P[chosen[c+1]]); if(d>bd){bd=d;best=j;} } } if(best<0||bd<25) break; chosen.push(best); }
@@ -502,7 +508,7 @@ const MANY_STOPS = new Set([4]);
 function navButtons(from,to,mode,line,legN){
   const g=mode==="run"?"walking":"driving", a=mode==="run"?"w":"d";
   const many = MANY_STOPS.has(legN);
-  const via = mode==="run" ? shapePoints(line, IS_MOBILE?(many?8:3):9) : [];
+  const via = mode==="run" ? (many && IS_MOBILE ? evenPoints(line,8) : shapePoints(line, IS_MOBILE?3:9)) : [];
   const note = mode==="run"
     ? (many ? `Google opens walking directions with ${via.length} stops along our route, so it stays on our line. Google will say "arrived at stop" at each one: tap to continue. Apple and Waze take only the two ends.` : `Google opens walking directions pinned to the booklet route with ${via.length} waypoint${via.length===1?"":"s"} (phones allow 3, so Google may still shortcut a twisty leg; the map above is the authority). Apple and Waze take only the two ends.`)
     : `Google and Apple open with both ends filled in; swap the origin for your location if you're not at the exchange. Waze takes only a destination.`;

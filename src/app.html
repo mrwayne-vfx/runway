@@ -1320,7 +1320,13 @@ function mergeRemote(r){ if(!r||!r.stamps) return false; let changed=false, mine
 // Race night, Nov 4: a start was recorded on the wrong leg at the gun. No leg after leg 1 can really start before 9:35 PM,
 // so any such start is removed, and leg 1 keeps that tap's time if leg 1 itself has none. Runs on any open crew phone and syncs to all.
 const BOGUS_BEFORE = new Date("2026-11-04T21:35:00-05:00").getTime();
+const LEG3_BOGUS_BEFORE = new Date("2026-11-04T22:35:00-05:00").getTime(); // leg 3 can't really start before this (legs 1+2 = 24 km)
 function raceNightFix(){ if(TEST) return;
+  // ~10:15 PM: a leg 3 start was tapped at exchange 1. If leg 2 has no start, that tap was Emmett's start; otherwise it's just removed.
+  const a3=S.actual[3];
+  if(a3 && new Date(a3).getTime()<LEG3_BOGUS_BEFORE){
+    if(!S.actual[2]) setShared("actual.2",()=>{ S.actual[2]=a3; });
+    setShared("actual.3",()=>{ delete S.actual[3]; }); S.viewLeg=null; save(); render(); lastPublic=0; try{ pushPublic(); }catch(e){} }
   const bad=Object.keys(S.actual).filter(n=>+n>=2 && S.actual[n] && new Date(S.actual[n]).getTime()<BOGUS_BEFORE); if(!bad.length) return;
   const t=Math.min(...bad.map(n=>new Date(S.actual[n]).getTime()));
   if(!S.actual[1]) setShared("actual.1",()=>{ S.actual[1]=toLocalISO(new Date(t)); });

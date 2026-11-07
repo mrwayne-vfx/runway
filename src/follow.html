@@ -50,6 +50,8 @@ header .logo{height:60px;display:block}
 html[data-skin="night"] .ring circle.now{filter:drop-shadow(0 0 8px #fff)}
 .portrait{position:absolute;inset:34px;border-radius:50%;overflow:hidden;border:5px solid var(--accent);box-shadow:0 0 60px var(--glow);background:var(--soft);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:48px;color:var(--mute)}
 .portrait img{width:100%;height:100%;object-fit:cover;display:block}
+/* finish: the latest team photo fills the circle, cropped to the centre and a little high so faces sit in the middle */
+.portrait.finpic img{object-fit:cover;object-position:50% 38%;transform:scale(1.04)}
 .legtag{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%) skewX(-8deg);background:var(--fg);color:var(--bg);font-family:var(--d);font-weight:900;font-size:36px;line-height:1;padding:6px 16px 4px;white-space:nowrap}
 .legtag small{font-family:var(--f);font-size:12px;font-weight:700;margin-right:6px;vertical-align:middle}
 .hero h1{margin:26px 0 0;font-family:var(--d);font-weight:900;font-size:60px;line-height:.86;text-transform:uppercase;letter-spacing:-1px;transform:skewX(-8deg);text-wrap:balance}
@@ -320,7 +322,7 @@ function renderHome(){
   const who = PUB.finished ? "" : (PUB.runner || (PUB.legs&&PUB.legs.assign&&PUB.legs.assign[PUB.started?PUB.leg:1]) || "");
   const t=byName(who);
   let hero;
-  if(PUB.finished){ liveTag(true,"Finished"); hero=`<div class="ringwrap">${ringSvg(290)}<div class="portrait"><img class="logo n" src="SP_WHITE" alt=""><img class="logo d" src="SP_BLACK" alt=""></div></div><h1>We made it<span>Montréal</span></h1><div class="word">${km1(totalKm)} km, 67 legs, one team</div><div class="sub">Finished ${dayhm(new Date(PUB.eta_finish))} at the Chalet du Mont-Royal.</div>`; }
+  if(PUB.finished){ liveTag(true,"Finished"); const fin=PHOTOS[0]; hero=`<div class="ringwrap">${ringSvg(290)}<div class="portrait${fin?" finpic":""}">${fin?`<img src="${esc(fin.url)}" alt="${esc(fin.caption||"The team at the finish")}">`:`<img class="logo n" src="SP_WHITE" alt=""><img class="logo d" src="SP_BLACK" alt="">`}</div></div><h1>We made it<span>Montréal</span></h1><div class="word">${km1(totalKm)} km, 67 legs, one team</div><div class="sub">Finished ${dayhm(new Date(PUB.eta_finish))} at the Chalet du Mont-Royal.</div>`; }
   else if(!PUB.started){ liveTag(false,"Soon"); hero=`<div class="ringwrap">${ringSvg(290)}<div class="portrait">${t?face(t):"67"}</div><div class="legtag"><small>LEG</small>1</div></div><h1>${t?esc(t.name):"The team"}<span>goes first</span></h1>${t&&t.word?`<div class="word">${esc(t.word)}</div>`:""}<div class="sub">Gun goes <b>${dayhm(new Date(PUB.race_start))}</b> on ${esc(RACE.startShort||"the start line")}.</div>`; }
   else { liveTag(true,"Live"); hero=`<div class="ringwrap">${ringSvg(290)}<div class="portrait">${t?face(t):"🏃"}</div><div class="legtag"><small>LEG</small>${PUB.leg}</div></div><h1>${esc(who||"The team")}<span>is running</span></h1>${t&&t.word?`<div class="word">${esc(t.word)}</div>`:""}<div class="sub">${esc(L_.name)}, ${km1(L_.km)} km.${PUB.next_runner?` Next up <b>${esc(PUB.next_runner)}</b>.`:""}</div>`; }
   const tDate = new Date(PUB.finished ? PUB.eta_finish : !PUB.started ? PUB.race_start : PUB.eta_finish), tLabel = PUB.finished ? "finished" : !PUB.started ? "starts" : "finish about";
